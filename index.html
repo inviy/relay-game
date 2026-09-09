@@ -322,37 +322,6 @@ function resize(){DPR=Math.min(devicePixelRatio||1,2);
 addEventListener("resize",resize);resize();
 const C={gold:"#ffd166",cyan:"#4ff0d8",pink:"#ff5c8a",violet:"#a86bff",orange:"#ff9f43",pale:"#eef2ff"};
 
-/* ───── 도트 스프라이트 (Kenney "Pixel Shmup", CC0) ─────
-   32×32 · 4열 6행. 아래 3행이 회색조라 팔레트 색으로 틴트해 쓴다.
-   시트를 인라인해 단일 HTML·외부 요청 0을 유지한다. */
-const SS=32, SCOL=4;
-const SHEET=new Image();
-SHEET.src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAADABAMAAAA+SHaUAAAABGdBTUEAALGPC/xhBQAAAC1QTFRFAAAA3kse4qEGkrEVEaXU////LMX23OHnttU8/70g/Gg7dXualZqxr7PFQ0pfwApmtAAAAAF0Uk5TAEDm2GYAAAhASURBVGje7Zk9ixtJGsfnEzQ4FYeDSQ7BsskkCowjIyfGmY7dw850umRxsJjr3bOtRCyrwEwgWJaGwaBgOZjAqYOZHti1ffYwpcmMg1aJ9o6x5kV6PsM9L1VdVS1pvMPMwcF14XH3o+76db11/R/pv7ZWFVsALhdHAPll4jWYHQZIOH0O514vxWugVHjD9jacez2MAeD1PSi6hSd8g9fPBQDeH3RIALnFAVUAg8T/I4pzIdLdEd2fmxr4wbQ7e33vcNrlDyLqH8V0zKUCzFqtQ5AK4McgD3QA/CCaPn4jMR4JQJ9LhSnGEcT4AcfTbszEGKYP7yj16nYXT6lCHAsAjwI47t9Q6mV/kwAgAKUEQN2LYfbqzut7r+4cQswd9brAwO/6vRut1stG/0cC1OOfvx980Wr9Vv/5+3hAQx13vhHAvzsxjc82ltr29pCOkOOQvO33CdDvP8VBgURt7Qtga18lCGiqTqdNXWh2OqoN0akPeJ7D8dO3tgVP326CAShVADoEuK3UQwJ0CDCsCQCPCGj0sfAYYOkhAMvgz0p9W6czAnRcCzpLAFyPAEwyAG6BBdy6dUsAeIKAD34XriNgY6PRv/Hm8ct+b2NjGaDZ7LTbt1/decgnOIg0+lOlujwLCGj0Gz0CNHr9HgHW19elC3hCAFlZNImytGQaaZ55GhlgWsCAej0ZSAvoBGSlOoBZu7Nf/3RoVq604O1T2wI4SZ7B7IvfDvnEvFLR9B9/7+bu5Yym//xXNzcr/RhrTb/7ERd0f5PWCZXp1n7XPlDex08P/C0mog0lN6cEgGOsSwB5myJ4dsJvo3u/EbBiR4p4YBCw5h64RoBwT/x4N9zzPlz3eoTv4NFNehHB24LgajfVC2/jVanK/0RZXMoXTmgglPecd4rzMpBSPhHHJXn3t5clr2sZGGYoMI1pQ4m74HCoaj4yOt7MV2YoqH4K5QUUpwNmmzYAsO3hLc3rMQKKPsMnlKa//QWFibY1Eddhq1UTcTVtIk0qdkkgeXENhE6zSYB2u0OAUx/wnAHY4R++wm4bADb4JMEtXR1aQBvrIqXpANf4nwHADAUB5cGMGwKS+k9fD5ICEHbhdPvaNQHg8TkLDarrD1+htpoOzRIBJDJopUFEQG1IylqjIwOOewJobMogJxaQuEEmABRZnDcLDOhLF/oCSAbrSX1QHyTr9QSKZYPrwMMBfLheTCPnfdj+mZlmUvWTQf2ZqLtdC58e5CtzZQId3XR5p5sFWA0IcmWs2ujZFkofZR249V3SRlpNgdgeNXo3fa0jgP/2RdBsBxU+1IbXVwKI8fuX4cv2sdm+ex6AxiAAnDwrva0f74b5Ac5CvnoDiaA+KL3fpfd/Qb5L28Pv9cGX+SXUOKIxyK9wT7yCr4lVqUpVrPqHGcAFs3WbYPzxDaac4tDPDS5liKz+5yt+wbA/ULjmkC7RX15s/CgsQULACUbuUiLcVIvYKCOro8SxaGPsiR0nGFYJ8QcE1IVp1yoNizsLvIjfthoOf/lrraaMOjl5tynR/uCnr+tbVt0/OcCD5YDeBgE2GiY82RLAvmgDATA/oT8DwO/vDNg2AgtHPQI0bpowsYAEbBcswKQgp0NKMGruu+cR5QdWmxgwqBeAhUFccwmGmzYeRBthpjCom59YlkwjV+AEw5t4yg/8xNZP80SbQ30u/RgXUX4QJMKoTF52Qdoc6HMEtSGcI+8lcWVtDvT5c/lBWVwXXqayvJfzgwVxpbqlbxAXehuv4DfWqlSl8hf+W/7CfHJJf0Hryl+4oL/waFepgxcr/YW5put6stpfONh9fe9gd5W/8ERnu63WQarfEyCN3z+R+P2TOGN/QY8FMNLsL2gsqdYZHdlfGGlNFbQek7+g1XgkgPFI4WRDqvBmaiJWUhlEcx8wyWE+HtkWjEcTMAC63wA0AV4o9YgAmgBZKgA8IiAlEI8Blgy4gfZ+zQDtWqCXAErXyzECdnZ25AM8QcCZ34W9nK6nevfN4wOd0fVFQJrqLHtxsPuITxb9BYSlGQFSbBMB6IHcBX6g9RdoEpf7CwQwLWAAP4dbwA+0/oIFWH9BYlpn0oLR2LYA5noCs92DQz4p/IUn70N/gWKz0udYi2Js/aTwF8ajkr+AG0iQQBRxxACKGWD9hcm85C+UdyAXi79Ase8vICDcE8/28lUx+wsUV/5CVary/+Ev4IYR+AukAL6/MJ98xl/ACoG/YADFN1He0lb5C6iG2bv7qBMT9hdYOVot0Q3rLzDQ8xfkASal0WlKgCyjxErE1QIm1l94dz/wF+b0tMIeQH1AHUtRKArADv8zAJiRzqXa+Qs6fXc/0wUg7MIctUsAeJzk0im5bv0FLQDt+wvFICKAJYgFSQDzTACptIcGSQDa+7ovg+IWhZ0FQQrQdAhVGtlI30m18xfcNEnFs73QX0Cg9RdobOZZOhF1X7VQfKVywMJfMLMAqwFBroxV0yz0F0ortayNNPCB2J6lWaB1dD30F/AJKyssxmvUpVBLz68QUYX8nO8T5RsWK5T9hbDFF/cXyl26uL9QamHlL1SlKpW/cGX+AukS/Tl/gZXKSwg49vwFPzYywVJR+AsUxcu00/gLGDt/gbWX9deIn8ooSpVRJyfvNiUaUTy26j53gMlyQLZD8U5qQvxBgAEj0QYCaMoFtAXgBwzQRjzgTOI92yAL0GC7YAEmBZlLyuO+e55RvFfkVAjI0gKwMIgLg2bv8P2FLA38hWAauQLnA97EU+wntn6aJ0oXqt2C3IdXSw9gpQvU7rNyH15npQvU7rNyX4qX+Avny/0S+a/8hapcqvwHhpASpSbowbgAAAAASUVORK5CYII=";
-/* 회색 스프라이트 인덱스 — 대형 12~15 · 중형 16~19 · 소형 20~23 */
-const SPR={
-  mote:22, dash:21, bomber:23, wisp:18, shooter:17, splitter:16, tank:13, wall:12,
-  none:20, rover1:19, rover2:15, warden1:14, warden2:12, boss:13,
-};
-const tintCache=new Map();
-function sprite(idx,col){
-  const k=idx+"|"+col; let c=tintCache.get(k); if(c)return c;
-  c=document.createElement("canvas"); c.width=c.height=SS;
-  const g=c.getContext("2d"); g.imageSmoothingEnabled=false;
-  g.drawImage(SHEET,(idx%SCOL)*SS,(idx/SCOL|0)*SS,SS,SS,0,0,SS,SS);
-  if(col){ g.globalCompositeOperation="source-atop";
-    g.globalAlpha=.72; g.fillStyle=col; g.fillRect(0,0,SS,SS); }
-  tintCache.set(k,c); return c;
-}
-const sheetOK=()=>SHEET.complete&&SHEET.naturalWidth>0;
-/* 스프라이트는 위(북)를 향한다 → 진행각에 90도를 더한다 */
-function drawSpr(idx,col,x,y,size,ang){
-  if(!sheetOK())return false;
-  cx.save(); cx.translate(x,y); cx.rotate(ang+Math.PI/2);
-  cx.imageSmoothingEnabled=false;
-  cx.drawImage(sprite(idx,col),-size/2,-size/2,size,size);
-  cx.restore(); return true;
-}
-
 /* 저장 */
 /* ═══════════ 배포 설정 — 여기 두 줄만 채우면 됩니다 ═══════════ */
 const SB_URL="https://jljkevgeofntxqzuvzla.supabase.co";
@@ -1122,14 +1091,6 @@ function draw(){
   // 적
   for(const e of G.en){
     const X=e.x+ox,Y=e.y+oy;
-    if(sheetOK()&&SPR[e.kind]!==undefined){
-      const ang=Math.atan2(p.y-e.y,p.x-e.x);
-      cx.save();cx.shadowColor=e.c;cx.shadowBlur=e.elite?16:5;
-      drawSpr(SPR[e.kind],e.hit>0?"#ffffff":e.c,X,Y,e.r*3.4,ang);
-      cx.restore();
-      if(e.elite){cx.strokeStyle=C.gold;cx.lineWidth=2;cx.beginPath();cx.arc(X,Y,e.r+7,0,TAU);cx.stroke();}
-      continue;
-    }
     cx.save();cx.shadowColor=e.c;cx.shadowBlur=e.elite?22:8;
     cx.fillStyle=e.hit>0?"#fff":e.c;cx.beginPath();
     if(e.sh==="tri"){cx.moveTo(X,Y-e.r);cx.lineTo(X+e.r*.9,Y+e.r*.8);cx.lineTo(X-e.r*.9,Y+e.r*.8);cx.closePath();}
@@ -1145,8 +1106,7 @@ function draw(){
   // 보스
   if(G.boss){const b=G.boss,X=b.x+ox,Y=b.y+oy;
     cx.save();cx.shadowColor=C.pink;cx.shadowBlur=36;
-    if(!drawSpr(SPR.boss,b.hit>0?"#ffffff":"#c46bff",X,Y,b.r*3.2,Math.atan2(p.y-b.y,p.x-b.x))){
-      cx.fillStyle=b.hit>0?"#fff":"#7b3fb8";cx.beginPath();cx.arc(X,Y,b.r,0,TAU);cx.fill();}
+    cx.fillStyle=b.hit>0?"#fff":"#7b3fb8";cx.beginPath();cx.arc(X,Y,b.r,0,TAU);cx.fill();
     cx.strokeStyle=C.pink;cx.lineWidth=3;cx.beginPath();cx.arc(X,Y,b.r+12,0,TAU);cx.stroke();cx.restore();
     cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54*VS,W*.68,9*VS);
     cx.fillStyle=C.pink;cx.fillRect(W*.16,54*VS,W*.68*Math.max(0,b.hp/b.mhp),9*VS);}
@@ -1176,7 +1136,7 @@ function draw(){
     cx.fillRect(-7,-7,14,14);cx.restore();}
   // 플레이어
   const px=W/2+sx,py=H/2+sy;
-  cx.save();cx.shadowColor=G.ult.t>0?C.violet:(p.in?C.gold:C.cyan);cx.shadowBlur=G.ult.t>0?34:14;
+  cx.save();cx.shadowColor=G.ult.t>0?C.violet:(p.in?C.gold:C.cyan);cx.shadowBlur=G.ult.t>0?48:26;
   if(p.flash>0){cx.shadowColor=C.pink;}
   drawShip(px,py,p.dx,p.dy,G.form,G.stage,p.flash>0?C.pink:null);
   if(G.form==="warden"&&G.shield.up){cx.strokeStyle="rgba(255,209,102,.9)";cx.lineWidth=2.5;cx.setLineDash([14,8]);
@@ -1235,19 +1195,8 @@ function edgeArrow(wx,wy,ox,oy,col,label){
   if(label){cx.font="700 12px 'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";cx.textAlign="center";cx.fillText(label,0,ey>H/2?-16:26);}
   cx.restore();
 }
-/* 폼·단계별 스프라이트와 색 */
-function shipSpr(form,stage){
-  if(!form||form==="none"||stage===0)return[SPR.none,"#dfe6ff"];
-  if(form==="rover")return stage===1?[SPR.rover1,C.cyan]:[SPR.rover2,C.violet];
-  return stage===2?[SPR.warden2,C.orange]:[SPR.warden1,C.gold];
-}
 function drawShip(x,y,dx,dy,form,stage,over){
   const a=Math.atan2(dy,dx);
-  if(sheetOK()){
-    const[si,sc]=shipSpr(form,stage);
-    const size=(form==="warden"?(stage===2?22:16):(stage===2?26:20))*3.2;
-    if(drawSpr(si,over||sc,x,y,size,a))return;
-  }
   cx.save();cx.translate(x,y);
   if(!form||form==="none"||stage===0){
     cx.fillStyle=over||"#ffffff";cx.beginPath();cx.arc(0,0,13,0,TAU);cx.fill();
