@@ -141,6 +141,97 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 #ult.ready #ultfill{box-shadow:0 0 18px var(--violet);animation:ultp 1s ease-in-out infinite}
 @keyframes ultp{50%{filter:brightness(1.6)}}
 #form{position:absolute;left:16px;bottom:22px;font-family:"Chakra Petch";font-weight:700;font-size:13px;letter-spacing:.1em;color:var(--ash)}
+
+/* ── HUD 아이콘 버튼 (넓은 화면에서는 기존 텍스트 그대로) ── */
+#mute .ico,#pausebtn .ico{display:none}
+#mute .ico{fill:currentColor;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;fill-rule:evenodd}
+#mute .ico .wave,#mute .ico .slash{fill:none}
+#mute .ico .slash{display:none}
+#mute.off .ico .wave{display:none}
+#mute.off .ico .slash{display:block}
+#pausebtn .ico{fill:currentColor}
+
+/* ── 궁극기 원형 버튼 (모바일 전용) ── */
+#ultbtn{display:none;position:absolute;width:88px;height:88px;padding:0;border:none;border-radius:50%;
+  pointer-events:auto;cursor:pointer;background:radial-gradient(circle at 50% 38%,rgba(168,107,255,.30),rgba(13,18,36,.86));
+  box-shadow:inset 0 0 0 1px rgba(168,107,255,.45),0 8px 26px -10px rgba(0,0,0,.9);
+  place-items:center;-webkit-tap-highlight-color:transparent}
+#ultbtn svg{position:absolute;inset:0;width:88px;height:88px;transform:rotate(-90deg);fill:none}
+#ultbtn .trk{stroke:#0b1024;stroke-width:5}
+#ultbtn .prg{stroke:var(--violet);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .1s}
+#ultbtn .gl{position:relative;font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:17px;
+  letter-spacing:.12em;color:var(--ash)}
+#ultbtn.ready{background:radial-gradient(circle at 50% 38%,rgba(168,107,255,.55),rgba(24,14,52,.9));
+  box-shadow:inset 0 0 0 1px rgba(214,180,255,.9),0 0 30px -4px rgba(168,107,255,.85)}
+#ultbtn.ready .gl{color:#f0e6ff;text-shadow:0 0 14px var(--violet)}
+#ultbtn.ready .prg{stroke:#d6b4ff;filter:drop-shadow(0 0 6px var(--violet))}
+#ultbtn.locked{opacity:.42}
+#ultbtn:active{transform:scale(.94)}
+
+/* ══════════ 모바일 (620px 미만) ══════════ */
+@media(max-width:619px){
+  /* HUD — 노치·홈바 회피 */
+  #xpwrap{top:env(safe-area-inset-top)}
+  #lvbadge{top:calc(env(safe-area-inset-top) + 20px);left:calc(env(safe-area-inset-left) + 14px)}
+  #clock{top:calc(env(safe-area-inset-top) + 14px);font-size:27px}
+  #zt{top:calc(env(safe-area-inset-top) + 48px);font-size:12px;letter-spacing:.08em}
+  #right{top:calc(env(safe-area-inset-top) + 70px);right:calc(env(safe-area-inset-right) + 14px);font-size:13px}
+  #weapons{top:calc(env(safe-area-inset-top) + 96px);left:calc(env(safe-area-inset-left) + 14px)}
+  #call{top:38%}
+
+  /* 상단 우측 46×46 원형 아이콘 버튼 */
+  #mute,#pausebtn{top:calc(env(safe-area-inset-top) + 12px);display:grid;place-items:center;
+    width:46px;height:46px;padding:0;border-radius:50%;color:var(--pale);
+    background:rgba(13,18,36,.72);box-shadow:inset 0 0 0 1px var(--line);
+    -webkit-tap-highlight-color:transparent}
+  #pausebtn{right:calc(env(safe-area-inset-right) + 14px)}
+  #mute{right:calc(env(safe-area-inset-right) + 68px)}
+  #mute .ico,#pausebtn .ico{display:block;width:22px;height:22px}
+  #mute .lbl,#pausebtn .lbl{display:none}
+  #mute:active,#pausebtn:active{transform:scale(.94)}
+
+  /* 체력바 좌측 정렬 — 궁극기 버튼과 분리 */
+  #hptext{left:calc(env(safe-area-inset-left) + 15px);right:auto;text-align:left;
+    bottom:calc(env(safe-area-inset-bottom) + 62px)}
+  #hpwrap{left:calc(env(safe-area-inset-left) + 15px);transform:none;
+    width:min(210px,46vw);bottom:calc(env(safe-area-inset-bottom) + 44px)}
+  #form{left:calc(env(safe-area-inset-left) + 15px);bottom:calc(env(safe-area-inset-bottom) + 22px)}
+
+  /* 궁극기: 텍스트 → 엄지 자리의 원형 버튼 */
+  #ult{display:none}
+  #ultbtn{display:grid;right:calc(env(safe-area-inset-right) + 18px);
+    bottom:calc(env(safe-area-inset-bottom) + 26px)}
+
+  /* 오버레이 */
+  .veil{padding:20px 16px calc(24px + env(safe-area-inset-bottom));align-items:flex-start}
+  .veil .box{margin:auto 0}
+  .btn{display:block;width:100%;height:52px;padding:0 18px;font-size:18px;border-radius:4px}
+  .btn.ghost{margin-left:0!important;margin-top:10px}
+  .stats{gap:22px;margin:20px 0}
+  .ident{flex-wrap:nowrap;gap:8px;margin:18px 0 14px}
+  .ident select,.ident input{height:52px;padding:0 12px;font-size:16px}
+  .ident input{flex:1 1 auto;width:auto;min-width:0}
+  .ident select{flex:0 0 118px;width:118px}
+
+  h2{font-size:23px}
+  p{font-size:15.5px;line-height:1.55}
+
+  /* 카드 · 리롤 터치 영역 */
+  #picks{gap:10px;margin:16px 0 6px}
+  .card{padding:16px 16px 14px;-webkit-tap-highlight-color:transparent}
+  .card:active{transform:scale(.985)}
+  .card .glyph{width:44px;height:44px;margin-bottom:10px}
+  .card .glyph i{width:16px;height:16px}
+  .card .t,.card.form .t{font-size:19px;margin-bottom:6px}
+  .card .d,.card.form .d{font-size:14px}
+  .card .n{font-size:12px}
+  .lvpips{margin-top:8px}
+  #lvtools{gap:10px;margin-top:12px}
+  #lvtools button{flex:1 1 0;min-width:0;height:52px;padding:0 10px;font-size:15px}
+  #lb{margin-top:22px}
+  .lbrow{grid-template-columns:28px 26px 1fr 56px 74px;gap:6px;font-size:14px;padding:9px 6px}
+  #lb-refresh{padding:6px 2px}
+}
 </style>
 
 <canvas id="cv"></canvas>
@@ -150,14 +241,15 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <div id="lvbadge">LV 1</div>
   <div id="clock" class="mono">0:00</div>
   <div id="zt"></div>
-  <button id="mute">소리 켬</button>
+  <button id="mute" aria-label="소리 끄기"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7"/><path class="wave" d="M19 6a8.5 8.5 0 0 1 0 12"/><path class="slash" d="M17 8.5l5 7M22 8.5l-5 7"/></svg><span class="lbl">소리 켬</span></button>
   <div id="right"><div><b id="kills">0</b> 처치</div><div id="zonestate">신호권 안</div></div>
-  <button id="pausebtn">일시정지</button>
+  <button id="pausebtn" aria-label="일시정지"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.6" height="14" rx="1"/><rect x="13.4" y="5" width="3.6" height="14" rx="1"/></svg><span class="lbl">일시정지</span></button>
   <div id="weapons"></div>
   <div id="hptext"><span id="hpnum">120 / 120</span></div>
   <div id="hpwrap"><div id="hpfill"></div></div>
   <div id="form">오퍼레이터</div>
   <div id="ult"><span id="ultname">궁극기 · 8레벨 진화 후</span><div class="bar"><div id="ultfill"></div></div></div>
+  <button id="ultbtn" class="locked" aria-label="궁극기"><svg viewBox="0 0 88 88" aria-hidden="true"><circle class="trk" cx="44" cy="44" r="39"/><circle id="ultprg" class="prg" cx="44" cy="44" r="39"/></svg><span class="gl">ULT</span></button>
   <div id="call"></div>
 </div>
 
@@ -217,9 +309,14 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 const cv=$("#cv"), cx=cv.getContext("2d");
-let W,H,DPR;
-function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
-  cv.width=W*DPR;cv.height=H*DPR;cx.setTransform(DPR,0,0,DPR,0,0);}
+let W,H,DPR,VS=1,SMALL=false;
+const NARROW=620;                      // 이 폭 미만은 모바일 레이아웃
+function resize(){DPR=Math.min(devicePixelRatio||1,2);
+  SMALL=innerWidth<NARROW;
+  VS=SMALL?1.9:1;                      // 세로 화면에서 1.9배 넓게 본다
+  W=innerWidth*VS;H=innerHeight*VS;    // W·H는 "월드 단위" 화면 크기
+  cv.width=innerWidth*DPR;cv.height=innerHeight*DPR;
+  const k=DPR/VS;cx.setTransform(k,0,0,k,0,0);}
 addEventListener("resize",resize);resize();
 const C={gold:"#ffd166",cyan:"#4ff0d8",pink:"#ff5c8a",violet:"#a86bff",orange:"#ff9f43",pale:"#eef2ff"};
 
@@ -373,23 +470,29 @@ const EVOS=[
  {id:"quake",  w:"hammer", p:"armor",n:"지진",       d:"망치가 360도 전방위로 땅을 가른다.",       c:C.gold},
 ];
 
+function setMute(m){const b=$("#mute");
+  b.classList.toggle("off",m);
+  b.querySelector(".lbl").textContent=m?"소리 끔":"소리 켬";
+  b.setAttribute("aria-label",m?"소리 켜기":"소리 끄기");}
+
 let G=null, mode="menu", last=0, shake=0, hitstop=0;
 const keys={};
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=1;
   if(e.key===" "&&mode==="play")useUlt();
   if(mode==="level"&&e.key.toLowerCase()==="r")reroll();
   if(mode==="level"&&e.key.toLowerCase()==="s"&&!$("#v-level").classList.contains("off")&&$("#lvtools").offsetParent)skipCard();
-  if(e.key.toLowerCase()==="m"){$("#mute").textContent=SFX.toggle()?"소리 끔":"소리 켬";}
+  if(e.key.toLowerCase()==="m")setMute(SFX.toggle());
   if(mode==="level"&&"1234".includes(e.key)){const b=document.querySelectorAll("#picks .card")[+e.key-1];b&&b.click();}
   if(e.key==="Escape"){mode==="play"?pause():mode==="pause"&&resume();}
   if([" ","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key))e.preventDefault();});
 addEventListener("keyup",e=>keys[e.key.toLowerCase()]=0);
 let touch=null;
+const STICK=48;                        // 조이스틱 반경(CSS px)
 cv.addEventListener("touchstart",e=>{const t=e.touches[0];touch={ox:t.clientX,oy:t.clientY,x:0,y:0};},{passive:1});
 cv.addEventListener("touchmove",e=>{if(!touch)return;const t=e.touches[0];
   let dx=t.clientX-touch.ox,dy=t.clientY-touch.oy,l=Math.hypot(dx,dy);
-  if(l>48){touch.ox+=dx*(1-48/l);touch.oy+=dy*(1-48/l);dx*=48/l;dy*=48/l;l=48;}
-  touch.x=l>7?dx/48:0;touch.y=l>7?dy/48:0;},{passive:1});
+  if(l>STICK){touch.ox+=dx*(1-STICK/l);touch.oy+=dy*(1-STICK/l);dx*=STICK/l;dy*=STICK/l;l=STICK;}
+  touch.x=l>7?dx/STICK:0;touch.y=l>7?dy/STICK:0;},{passive:1});
 cv.addEventListener("touchend",()=>touch=null,{passive:1});
 
 const ZONE_T=32, RUN_LEN=420; // 7분
@@ -1003,8 +1106,8 @@ function draw(){
     cx.save();cx.shadowColor=C.pink;cx.shadowBlur=36;
     cx.fillStyle=b.hit>0?"#fff":"#7b3fb8";cx.beginPath();cx.arc(X,Y,b.r,0,TAU);cx.fill();
     cx.strokeStyle=C.pink;cx.lineWidth=3;cx.beginPath();cx.arc(X,Y,b.r+12,0,TAU);cx.stroke();cx.restore();
-    cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54,W*.68,9);
-    cx.fillStyle=C.pink;cx.fillRect(W*.16,54,W*.68*Math.max(0,b.hp/b.mhp),9);}
+    cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54*VS,W*.68,9*VS);
+    cx.fillStyle=C.pink;cx.fillRect(W*.16,54*VS,W*.68*Math.max(0,b.hp/b.mhp),9*VS);}
 
   // 탄
   cx.save();cx.shadowBlur=16;
@@ -1048,7 +1151,7 @@ function draw(){
   if(G.outT>30){const k=Math.min(1,(G.outT-30)/20);cx.fillStyle=`rgba(255,80,120,${.06*k})`;
     for(let i=0;i<14*k;i++)cx.fillRect(rnd(0,W),rnd(0,H),rnd(20,220),rnd(1,3));}
   // 데미지 숫자
-  cx.textAlign="center";cx.font="700 17px 'Chakra Petch',sans-serif";
+  cx.textAlign="center";cx.font="700 "+(17*VS).toFixed(1)+"px 'Chakra Petch',sans-serif";
   for(const n of G.num){cx.globalAlpha=Math.min(1,n.life*2.2);
     cx.fillStyle=n.c;cx.fillText(n.v,n.x+ox,n.y+oy);}
   cx.globalAlpha=1;
@@ -1059,15 +1162,32 @@ function draw(){
   cx.fillStyle=v;cx.fillRect(0,0,W,H);
   if(p.flash>0){cx.fillStyle=`rgba(255,60,100,${p.flash*.35})`;cx.fillRect(0,0,W,H);}
   if(G.flash.t>0){cx.fillStyle=`rgba(${G.flash.c},${(G.flash.t*.55).toFixed(2)})`;cx.fillRect(0,0,W,H);}
+  drawStick();
+}
+
+/* 가상 조이스틱 — 손가락이 닿은 자리에 원과 노브 */
+function drawStick(){
+  if(!touch)return;
+  const bx=touch.ox*VS, by=touch.oy*VS, r=STICK*VS;
+  cx.save();
+  cx.fillStyle="rgba(13,18,36,.34)";cx.beginPath();cx.arc(bx,by,r,0,TAU);cx.fill();
+  cx.strokeStyle="rgba(79,240,216,.34)";cx.lineWidth=1.6*VS;
+  cx.beginPath();cx.arc(bx,by,r,0,TAU);cx.stroke();
+  const kx=bx+touch.x*r, ky=by+touch.y*r;
+  cx.shadowColor=C.cyan;cx.shadowBlur=10*VS;
+  cx.fillStyle="rgba(79,240,216,.55)";cx.beginPath();cx.arc(kx,ky,r*.33,0,TAU);cx.fill();
+  cx.shadowBlur=0;cx.strokeStyle="rgba(220,255,250,.7)";cx.lineWidth=1.4*VS;
+  cx.beginPath();cx.arc(kx,ky,r*.33,0,TAU);cx.stroke();
+  cx.restore();
 }
 
 function edgeArrow(wx,wy,ox,oy,col,label){
-  const sxp=wx+ox,syp=wy+oy,m=30;
+  const sxp=wx+ox,syp=wy+oy,m=30*VS;
   if(sxp>m&&sxp<W-m&&syp>m&&syp<H-m)return;
   const cxp=W/2,cyp=H/2,a=Math.atan2(syp-cyp,sxp-cxp),dx=Math.cos(a),dy=Math.sin(a);
   const tx=dx>0?(W-m-cxp)/dx:dx<0?(m-cxp)/dx:1e9,ty=dy>0?(H-m-cyp)/dy:dy<0?(m-cyp)/dy:1e9;
   const t=Math.min(tx,ty),ex=cxp+dx*t,ey=cyp+dy*t;
-  cx.save();cx.translate(ex,ey);cx.rotate(a);cx.fillStyle=col;cx.shadowColor=col;cx.shadowBlur=14;
+  cx.save();cx.translate(ex,ey);cx.scale(VS,VS);cx.rotate(a);cx.fillStyle=col;cx.shadowColor=col;cx.shadowBlur=14;
   cx.beginPath();cx.moveTo(14,0);cx.lineTo(-8,-9);cx.lineTo(-8,9);cx.closePath();cx.fill();
   cx.rotate(-a);cx.shadowBlur=0;
   if(label){cx.font="700 12px 'Chakra Petch',sans-serif";cx.textAlign="center";cx.fillText(label,0,ey>H/2?-16:26);}
@@ -1108,6 +1228,8 @@ function drawShip(x,y,dx,dy,form,stage,over){
 }
 
 /* ───── HUD ───── */
+const ULT_C=2*Math.PI*39;               // 궁극기 링 둘레
+$("#ultprg").style.strokeDasharray=ULT_C.toFixed(1);
 function hud(){
   const p=G.p;
   $("#lvbadge").textContent="LV "+p.lv;
@@ -1117,20 +1239,25 @@ function hud(){
   $("#hpfill").style.width=Math.max(0,100*p.hp/p.mhp)+"%";
   $("#hpnum").textContent=Math.max(0,Math.ceil(p.hp))+" / "+p.mhp;
   const z=$("#zonestate");
-  z.textContent=p.in?"신호권 · 피해 170%":"신호권 밖 · 피해 100%";
+  z.textContent=p.in?(SMALL?"권내 170%":"신호권 · 피해 170%")
+                    :(SMALL?"권외 100%":"신호권 밖 · 피해 100%");
   z.style.color=p.in?C.gold:"#8a93bb";
   let html="";
   for(const k in G.w){const ev=EVOS.find(e=>e.w===k&&G.evo[e.id]);
     html+=`<div class="wchip" style="--c:${WEAPONS[k].c}"><b>${ev?ev.n:WEAPONS[k].n}</b> ${ev?"MAX":"Lv"+G.lvls[k]}</div>`;}
   $("#weapons").innerHTML=html;
-  const u=G.ult,ue=$("#ult");
-  $("#ultfill").style.width=(G.form&&G.form!=="none"?100*u.c/u.max:0)+"%";
-  const rdy=!!G.form&&G.form!=="none"&&u.c>=u.max;
+  const u=G.ult,ue=$("#ult"),ub=$("#ultbtn"),armed=!!G.form&&G.form!=="none";
+  const pct=armed?Math.min(1,u.c/u.max):0;
+  $("#ultfill").style.width=(pct*100)+"%";
+  $("#ultprg").style.strokeDashoffset=(ULT_C*(1-pct)).toFixed(1);
+  const rdy=armed&&u.c>=u.max;
   if(rdy&&!G.ultReady){G.ultReady=true;SFX.ready();}
   ue.classList.toggle("ready",rdy);
+  ub.classList.toggle("ready",rdy);ub.classList.toggle("locked",!armed);
   const zt=$("#zt");
   if(G.boss)zt.textContent="";
-  else{zt.textContent=(G.zt<=8?"신호권 이동 ":"신호권 유지 ")+Math.ceil(G.zt)+"s"+(G.outT>30?"  ·  간섭 발생":"");
+  else{zt.textContent=(G.zt<=8?(SMALL?"이동 ":"신호권 이동 "):(SMALL?"유지 ":"신호권 유지 "))
+      +Math.ceil(G.zt)+"s"+(G.outT>30?(SMALL?" · 간섭":"  ·  간섭 발생"):"");
     zt.classList.toggle("soon",G.zt<=8);}
 }
 
@@ -1173,7 +1300,8 @@ $("#b-menu").onclick=()=>{showVeil("#v-menu");mode="menu";};
 $("#pausebtn").onclick=()=>{if(mode==="play")pause();};
 $("#ult").onclick=()=>{if(mode==="play")useUlt();};
 $("#b-reroll").onclick=reroll;$("#b-skip").onclick=skipCard;
-$("#mute").onclick=()=>{$("#mute").textContent=SFX.toggle()?"소리 끔":"소리 켬";};
+$("#mute").onclick=()=>setMute(SFX.toggle());
+$("#ultbtn").onclick=()=>{if(mode==="play")useUlt();};
 $("#lb-refresh").onclick=loadLB;
 $("#seed").textContent="#"+SEED;
 $("#tab-daily").onclick=()=>{LBMODE="daily";$("#tab-daily").style.color="var(--gold)";$("#tab-all").style.color="";loadLB();};
