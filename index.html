@@ -7,16 +7,18 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
 :root{
+  /* 한글 폴백 — Rajdhani·Chakra Petch에는 한글 글리프가 없다 */
+  --kr:"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
   --bg:#070a14; --bg2:#0d1224; --panel:#111834; --line:#26305a;
   --ash:#8a93bb; --pale:#eef2ff;
   --gold:#ffd166; --cyan:#4ff0d8; --pink:#ff5c8a; --violet:#a86bff; --orange:#ff9f43;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--pale);overflow:hidden;touch-action:none;
-  font-family:"Rajdhani","Chakra Petch",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  font-family:"Rajdhani","Chakra Petch",var(--kr);-webkit-font-smoothing:antialiased}
 canvas{display:block;width:100%;height:100%}
 .mono{font-variant-numeric:tabular-nums}
-.dis{font-family:"Chakra Petch",sans-serif}
+.dis{font-family:"Chakra Petch",var(--kr)}
 
 /* ── 오버레이 ── */
 .veil{position:fixed;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;padding:24px;
@@ -24,14 +26,14 @@ canvas{display:block;width:100%;height:100%}
   backdrop-filter:blur(8px);overflow-y:auto}
 .veil.off{display:none}
 .box{width:100%;max-width:900px;text-align:center}
-h1{font-family:"Chakra Petch";font-size:clamp(54px,13vw,120px);font-weight:700;line-height:.9;
+h1{font-family:"Chakra Petch",var(--kr);font-size:clamp(54px,13vw,120px);font-weight:700;line-height:.9;
   letter-spacing:.04em;background:linear-gradient(180deg,#fff,#ffd166 60%,#ff9f43);
   -webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 0 26px rgba(255,159,67,.35))}
-h2{font-family:"Chakra Petch";font-size:clamp(24px,5vw,38px);font-weight:700;letter-spacing:.02em}
+h2{font-family:"Chakra Petch",var(--kr);font-size:clamp(24px,5vw,38px);font-weight:700;letter-spacing:.02em}
 p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
-.tag{font-family:"Chakra Petch";font-size:12px;letter-spacing:.34em;color:var(--gold);font-weight:600}
-.btn{font:inherit;font-family:"Chakra Petch";font-weight:700;font-size:19px;letter-spacing:.06em;
+.tag{font-family:"Chakra Petch",var(--kr);font-size:12px;letter-spacing:.34em;color:var(--gold);font-weight:600}
+.btn{font:inherit;font-family:"Chakra Petch",var(--kr);font-weight:700;font-size:19px;letter-spacing:.06em;
   color:var(--bg);background:linear-gradient(180deg,#ffe08a,#ffb038);border:none;padding:17px 30px;
   cursor:pointer;border-radius:3px;box-shadow:0 0 0 1px rgba(255,209,102,.5),0 10px 30px -8px rgba(255,176,56,.65);
   transition:transform .12s,box-shadow .12s}
@@ -40,27 +42,27 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .btn.ghost:hover{box-shadow:inset 0 0 0 1px var(--gold)}
 .stats{display:flex;justify-content:center;gap:38px;flex-wrap:wrap;margin:26px 0}
 .ident{display:flex;justify-content:center;gap:8px;margin:18px 0 6px;flex-wrap:wrap}
-.ident select,.ident input{font:inherit;font-family:"Chakra Petch";font-weight:600;font-size:16px;color:var(--pale);
+.ident select,.ident input{font:inherit;font-family:"Chakra Petch",var(--kr);font-weight:600;font-size:16px;color:var(--pale);
   background:#0d1224;border:1px solid var(--line);border-radius:3px;padding:10px 12px;outline:none}
 .ident input{width:190px;letter-spacing:.04em}
 .ident select{width:120px}
 .ident input:focus,.ident select:focus{border-color:var(--gold)}
 #lb{margin:26px auto 0;max-width:560px;text-align:left}
-#lb h3{font-family:"Chakra Petch";font-size:13px;letter-spacing:.3em;color:var(--ash);font-weight:600;margin-bottom:8px;
+#lb h3{font-family:"Chakra Petch",var(--kr);font-size:13px;letter-spacing:.3em;color:var(--ash);font-weight:600;margin-bottom:8px;
   display:flex;justify-content:space-between}
 #lb h3 span{letter-spacing:.05em;color:var(--cyan);cursor:pointer}
 .lbrow{display:grid;grid-template-columns:34px 30px 1fr 70px 88px;gap:8px;align-items:center;padding:7px 10px;
   border-bottom:1px solid #1a2242;font-size:15px;font-weight:600}
 .lbrow.me{background:rgba(255,209,102,.08);border-left:2px solid var(--gold)}
-.lbrow .rk{font-family:"Chakra Petch";color:var(--ash)}
+.lbrow .rk{font-family:"Chakra Petch",var(--kr);color:var(--ash)}
 .lbrow:nth-child(1) .rk{color:var(--gold)}.lbrow:nth-child(2) .rk{color:#cfd6e6}.lbrow:nth-child(3) .rk{color:#d59a6a}
 .lbrow .fl{font-size:20px;line-height:1}
 .lbrow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lbrow .fm{font-size:11px;letter-spacing:.1em;color:var(--ash)}
-.lbrow .sc{font-family:"Chakra Petch";text-align:right;color:var(--gold)}
+.lbrow .sc{font-family:"Chakra Petch",var(--kr);text-align:right;color:var(--gold)}
 .lbempty{color:var(--ash);font-size:14px;padding:14px 0}
-#rankline{font-family:"Chakra Petch";font-size:18px;color:var(--gold);margin:-8px 0 20px}
-.stat b{display:block;font-family:"Chakra Petch";font-size:32px;font-weight:700;color:var(--gold)}
+#rankline{font-family:"Chakra Petch",var(--kr);font-size:18px;color:var(--gold);margin:-8px 0 20px}
+.stat b{display:block;font-family:"Chakra Petch",var(--kr);font-size:32px;font-weight:700;color:var(--gold)}
 .stat span{font-size:12px;letter-spacing:.2em;color:var(--ash);text-transform:uppercase}
 
 /* ── 레벨업 카드 ── */
@@ -80,7 +82,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   box-shadow:inset 0 0 0 1.5px var(--c)}
 .card .glyph i{display:block;width:20px;height:20px;background:var(--c);border-radius:2px}
 .card .kind{font-size:11px;letter-spacing:.24em;color:var(--c);font-weight:700;margin-bottom:7px}
-.card .t{font-family:"Chakra Petch";font-size:21px;font-weight:700;margin-bottom:8px}
+.card .t{font-family:"Chakra Petch",var(--kr);font-size:21px;font-weight:700;margin-bottom:8px}
 .card .d{color:var(--ash);font-size:15px;line-height:1.5;font-weight:500}
 .card.evo{border-color:var(--gold);animation:pulseGlow 1.6s ease-in-out infinite}
 @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 1px var(--gold),0 0 30px -6px rgba(255,209,102,.5)}
@@ -95,38 +97,38 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   border-bottom:1px solid rgba(79,240,216,.18)}
 #xpfill{height:100%;width:0%;background:linear-gradient(90deg,#2ec4b6,#4ff0d8);
   box-shadow:0 0 16px rgba(79,240,216,.8);transition:width .08s}
-#lvbadge{position:absolute;top:20px;left:16px;font-family:"Chakra Petch";font-weight:700;
+#lvbadge{position:absolute;top:20px;left:16px;font-family:"Chakra Petch",var(--kr);font-weight:700;
   font-size:15px;letter-spacing:.08em;color:var(--cyan);text-shadow:0 0 12px rgba(79,240,216,.6)}
-#clock{position:absolute;top:20px;left:0;right:0;text-align:center;font-family:"Chakra Petch";
+#clock{position:absolute;top:20px;left:0;right:0;text-align:center;font-family:"Chakra Petch",var(--kr);
   font-weight:700;font-size:34px;letter-spacing:.03em;text-shadow:0 3px 18px rgba(0,0,0,.9)}
-#right{position:absolute;top:22px;right:16px;text-align:right;font-family:"Chakra Petch";
+#right{position:absolute;top:22px;right:16px;text-align:right;font-family:"Chakra Petch",var(--kr);
   font-weight:600;font-size:15px;color:var(--ash);line-height:1.5}
 #right b{color:var(--pale)}
 #weapons{position:absolute;left:16px;top:52px;display:flex;flex-direction:column;gap:5px}
 .wchip{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ash);
   background:rgba(13,18,36,.7);border-left:2px solid var(--c);padding:3px 9px 3px 7px;border-radius:2px}
-.wchip b{color:var(--pale);font-family:"Chakra Petch"}
+.wchip b{color:var(--pale);font-family:"Chakra Petch",var(--kr)}
 #hpwrap{position:absolute;left:50%;transform:translateX(-50%);bottom:22px;width:min(380px,74vw);
   height:11px;background:#0b1024;border:1px solid #2a1c33;border-radius:2px;overflow:hidden}
 #hpfill{height:100%;width:100%;background:linear-gradient(90deg,#ff3b6b,#ff8fa8);
   box-shadow:0 0 18px rgba(255,59,107,.6);transition:width .12s}
-#hptext{position:absolute;left:0;right:0;bottom:38px;text-align:center;font-family:"Chakra Petch";
+#hptext{position:absolute;left:0;right:0;bottom:38px;text-align:center;font-family:"Chakra Petch",var(--kr);
   font-size:13px;font-weight:600;color:#ff8fa8;letter-spacing:.1em}
-#call{position:absolute;left:0;right:0;top:34%;text-align:center;font-family:"Chakra Petch";
+#call{position:absolute;left:0;right:0;top:34%;text-align:center;font-family:"Chakra Petch",var(--kr);
   font-size:clamp(22px,5vw,38px);font-weight:700;letter-spacing:.16em;color:var(--gold);opacity:0;
   text-shadow:0 0 30px rgba(255,209,102,.8);transition:opacity .3s,transform .3s;transform:scale(.94)}
 #call.on{opacity:1;transform:scale(1)}
-#zt{position:absolute;top:60px;left:0;right:0;text-align:center;font-family:"Chakra Petch";font-weight:600;font-size:13px;letter-spacing:.14em;color:var(--gold)}
+#zt{position:absolute;top:60px;left:0;right:0;text-align:center;font-family:"Chakra Petch",var(--kr);font-weight:600;font-size:13px;letter-spacing:.14em;color:var(--gold)}
 #zt.soon{color:var(--pink);animation:blink .5s steps(2) infinite}
 @keyframes blink{50%{opacity:.35}}
 #mute{position:absolute;top:82px;right:92px;pointer-events:auto;background:none;border:none;color:var(--ash);font:inherit;font-size:13px;font-weight:600;letter-spacing:.14em;cursor:pointer}
 #mute:hover{color:var(--gold)}
 #lvtools{display:flex;justify-content:center;gap:10px;margin-top:6px}
-#lvtools button{font:inherit;font-family:"Chakra Petch";font-weight:600;font-size:14px;letter-spacing:.08em;color:var(--ash);
+#lvtools button{font:inherit;font-family:"Chakra Petch",var(--kr);font-weight:600;font-size:14px;letter-spacing:.08em;color:var(--ash);
   background:none;border:1px solid var(--line);border-radius:3px;padding:9px 16px;cursor:pointer}
 #lvtools button:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan)}
 #lvtools button:disabled{opacity:.35;cursor:default}
-.card .n{font-family:"Chakra Petch";font-size:12.5px;color:var(--pale);margin-top:8px;line-height:1.6;letter-spacing:.02em}
+.card .n{font-family:"Chakra Petch",var(--kr);font-size:12.5px;color:var(--pale);margin-top:8px;line-height:1.6;letter-spacing:.02em}
 .card .n em{font-style:normal;color:var(--c)}
 .card .ev{margin-top:9px;font-size:12px;color:var(--gold);line-height:1.45}
 .card .ev.ok{color:#8ef0b0}
@@ -134,13 +136,13 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   color:var(--ash);font:inherit;font-size:13px;font-weight:600;letter-spacing:.14em;cursor:pointer}
 #pausebtn:hover{color:var(--gold)}
 #ult{position:absolute;right:16px;bottom:22px;width:min(190px,36vw);pointer-events:auto;cursor:pointer;
-  font-family:"Chakra Petch";font-size:12px;letter-spacing:.14em;color:var(--ash);text-align:right}
+  font-family:"Chakra Petch",var(--kr);font-size:12px;letter-spacing:.14em;color:var(--ash);text-align:right}
 #ult .bar{height:9px;background:#0b1024;border:1px solid var(--line);border-radius:2px;overflow:hidden;margin-top:5px}
 #ultfill{height:100%;width:0%;background:linear-gradient(90deg,var(--violet),#d6b4ff);transition:width .1s}
 #ult.ready{color:#d6b4ff;text-shadow:0 0 12px var(--violet)}
 #ult.ready #ultfill{box-shadow:0 0 18px var(--violet);animation:ultp 1s ease-in-out infinite}
 @keyframes ultp{50%{filter:brightness(1.6)}}
-#form{position:absolute;left:16px;bottom:22px;font-family:"Chakra Petch";font-weight:700;font-size:13px;letter-spacing:.1em;color:var(--ash)}
+#form{position:absolute;left:16px;bottom:22px;font-family:"Chakra Petch",var(--kr);font-weight:700;font-size:13px;letter-spacing:.1em;color:var(--ash)}
 
 /* ── HUD 아이콘 버튼 (넓은 화면에서는 기존 텍스트 그대로) ── */
 #mute .ico,#pausebtn .ico{display:none}
@@ -159,7 +161,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 #ultbtn svg{position:absolute;inset:0;width:88px;height:88px;transform:rotate(-90deg);fill:none}
 #ultbtn .trk{stroke:#0b1024;stroke-width:5}
 #ultbtn .prg{stroke:var(--violet);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .1s}
-#ultbtn .gl{position:relative;font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:17px;
+#ultbtn .gl{position:relative;font-family:"Chakra Petch",var(--kr);font-weight:700;font-size:17px;
   letter-spacing:.12em;color:var(--ash)}
 #ultbtn.ready{background:radial-gradient(circle at 50% 38%,rgba(168,107,255,.55),rgba(24,14,52,.9));
   box-shadow:inset 0 0 0 1px rgba(214,180,255,.9),0 0 30px -4px rgba(168,107,255,.85)}
@@ -1151,7 +1153,7 @@ function draw(){
   if(G.outT>30){const k=Math.min(1,(G.outT-30)/20);cx.fillStyle=`rgba(255,80,120,${.06*k})`;
     for(let i=0;i<14*k;i++)cx.fillRect(rnd(0,W),rnd(0,H),rnd(20,220),rnd(1,3));}
   // 데미지 숫자
-  cx.textAlign="center";cx.font="700 "+(17*VS).toFixed(1)+"px 'Chakra Petch',sans-serif";
+  cx.textAlign="center";cx.font="700 "+(17*VS).toFixed(1)+"px 'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";
   for(const n of G.num){cx.globalAlpha=Math.min(1,n.life*2.2);
     cx.fillStyle=n.c;cx.fillText(n.v,n.x+ox,n.y+oy);}
   cx.globalAlpha=1;
@@ -1190,7 +1192,7 @@ function edgeArrow(wx,wy,ox,oy,col,label){
   cx.save();cx.translate(ex,ey);cx.scale(VS,VS);cx.rotate(a);cx.fillStyle=col;cx.shadowColor=col;cx.shadowBlur=14;
   cx.beginPath();cx.moveTo(14,0);cx.lineTo(-8,-9);cx.lineTo(-8,9);cx.closePath();cx.fill();
   cx.rotate(-a);cx.shadowBlur=0;
-  if(label){cx.font="700 12px 'Chakra Petch',sans-serif";cx.textAlign="center";cx.fillText(label,0,ey>H/2?-16:26);}
+  if(label){cx.font="700 12px 'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";cx.textAlign="center";cx.fillText(label,0,ey>H/2?-16:26);}
   cx.restore();
 }
 function drawShip(x,y,dx,dy,form,stage,over){
