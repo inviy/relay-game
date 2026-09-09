@@ -97,12 +97,6 @@ python3 -m http.server 8000   # 또는 그냥 index.html을 브라우저로 열�
 
 ---
 
-## 에셋
-
-기체·적 스프라이트는 [Kenney — Pixel Shmup](https://kenney.nl/assets/pixel-shmup) (CC0 1.0)을
-사용했습니다. 32×32 스프라이트시트를 base64로 인라인해 외부 요청 없이 단일 HTML을 유지하며,
-회색조 스프라이트에 게임 팔레트를 틴트해 씁니다. CC0라 출처 표기 의무는 없지만 밝혀 둡니다.
-
 ## 라이선스
 
-MIT (코드) · 스프라이트는 CC0
+MIT

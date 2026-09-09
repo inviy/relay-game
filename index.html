@@ -322,37 +322,6 @@ function resize(){DPR=Math.min(devicePixelRatio||1,2);
 addEventListener("resize",resize);resize();
 const C={gold:"#ffd166",cyan:"#4ff0d8",pink:"#ff5c8a",violet:"#a86bff",orange:"#ff9f43",pale:"#eef2ff"};
 
-/* ───── 도트 스프라이트 (Kenney "Pixel Shmup", CC0) ─────
-   32×32 · 4열 6행. 아래 3행이 회색조라 팔레트 색으로 틴트해 쓴다.
-   시트를 인라인해 단일 HTML·외부 요청 0을 유지한다. */
-const SS=32, SCOL=4;
-const SHEET=new Image();
-SHEET.src="data:image/png;base64,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";
-/* 회색 스프라이트 인덱스 — 대형 12~15 · 중형 16~19 · 소형 20~23 */
-const SPR={
-  mote:22, dash:21, bomber:23, wisp:18, shooter:17, splitter:16, tank:13, wall:12,
-  none:20, rover1:19, rover2:15, warden1:14, warden2:12, boss:13,
-};
-const tintCache=new Map();
-function sprite(idx,col){
-  const k=idx+"|"+col; let c=tintCache.get(k); if(c)return c;
-  c=document.createElement("canvas"); c.width=c.height=SS;
-  const g=c.getContext("2d"); g.imageSmoothingEnabled=false;
-  g.drawImage(SHEET,(idx%SCOL)*SS,(idx/SCOL|0)*SS,SS,SS,0,0,SS,SS);
-  if(col){ g.globalCompositeOperation="source-atop";
-    g.globalAlpha=.72; g.fillStyle=col; g.fillRect(0,0,SS,SS); }
-  tintCache.set(k,c); return c;
-}
-const sheetOK=()=>SHEET.complete&&SHEET.naturalWidth>0;
-/* 스프라이트는 위(북)를 향한다 → 진행각에 90도를 더한다 */
-function drawSpr(idx,col,x,y,size,ang){
-  if(!sheetOK())return false;
-  cx.save(); cx.translate(x,y); cx.rotate(ang+Math.PI/2);
-  cx.imageSmoothingEnabled=false;
-  cx.drawImage(sprite(idx,col),-size/2,-size/2,size,size);
-  cx.restore(); return true;
-}
-
 /* 저장 */
 /* ═══════════ 배포 설정 — 여기 두 줄만 채우면 됩니다 ═══════════ */
 const SB_URL="https://jljkevgeofntxqzuvzla.supabase.co";
@@ -779,13 +748,19 @@ function explodeE(e){
 }
 function dmgE(e,d,showNum){
   e.hp-=d; e.hit=.1;
+  if(showNum&&e.hp>0&&Math.random()<.55){    // 직접 타격에만 스파크가 튄다
+    const a=rnd(0,TAU);
+    for(let i=0;i<2;i++)G.fx.push({x:e.x,y:e.y,vx:Math.cos(a+rnd(-.7,.7))*rnd(70,150),
+      vy:Math.sin(a+rnd(-.7,.7))*rnd(70,150),life:.18,max:.18,c:"#ffffff"});}
   if(showNum&&d>=1)G.num.push({x:e.x,y:e.y-e.r,v:Math.round(d),life:.65,c:C.pale});
   if(e.hp<=0&&!e.dead){
     e.dead=1;G.kills++;SFX.kill();
     if(e.split)for(let i=0;i<3;i++){const a=i/3*TAU;G.en.push(makeE("mote",e.x+Math.cos(a)*18,e.y+Math.sin(a)*18,false));}
     if(e.bomb){explodeE(Object.assign({},e,{dead:0}));}if(G.form&&G.form!=="none")G.ult.c=Math.min(G.ult.max,G.ult.c+1);
     for(let i=0;i<e.xp;i++)G.fx.push({x:e.x+rnd(-10,10),y:e.y+rnd(-10,10),xp:1});
-    for(let i=0;i<7;i++)G.fx.push({x:e.x,y:e.y,vx:rnd(-160,160),vy:rnd(-160,160),life:.4,max:.4,c:e.c});
+    G.fx.push({x:e.x,y:e.y,vx:0,vy:0,life:.26,max:.26,ring:e.r*1.5,rc:e.c,rw:2});
+    for(let i=0;i<11;i++){const a=rnd(0,TAU),v=rnd(90,260);
+      G.fx.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rnd(.3,.55),max:.55,c:e.c});}
     if(e.elite){hitstop=.06;shake=Math.max(shake,.5);dropItem(e.x,e.y,"chest");}
   }
 }
@@ -1042,18 +1017,50 @@ function apply(o){
 }
 
 /* ───── 렌더 ───── */
+/* 성운 — 매 프레임 그라디언트를 만들지 않도록 512 타일에 한 번만 굽는다 */
+let NEB=null;
+function makeNeb(){
+  const c=document.createElement("canvas");c.width=c.height=512;
+  const g=c.getContext("2d");
+  [["58,42,122",.34],["30,74,106",.26],["92,40,92",.22],["40,64,130",.20]].forEach(b=>{
+    const x=rnd(80,432),y=rnd(80,432),r=rnd(140,240);
+    const rg=g.createRadialGradient(x,y,0,x,y,r);
+    rg.addColorStop(0,`rgba(${b[0]},${b[1]})`);rg.addColorStop(1,`rgba(${b[0]},0)`);
+    g.fillStyle=rg;g.fillRect(0,0,512,512);});
+  return c;
+}
+/* 배경 한 장으로 굽기 — 그라디언트와 성운을 매 프레임 다시 칠하지 않는다.
+   성운은 가장 먼 층이라 화면에 고정해도 어색하지 않다. */
+let BGC=null,BGW=0,BGH=0;
+function bakeBG(){
+  BGC=document.createElement("canvas");BGC.width=Math.ceil(W);BGC.height=Math.ceil(H);
+  BGW=W;BGH=H;
+  const g=BGC.getContext("2d");
+  const bg=g.createRadialGradient(W/2,H*.42,60,W/2,H*.5,Math.max(W,H)*.8);
+  bg.addColorStop(0,"#0e1430");bg.addColorStop(1,"#05070f");
+  g.fillStyle=bg;g.fillRect(0,0,W,H);
+  if(!NEB)NEB=makeNeb();
+  g.globalAlpha=.55;
+  const NS=760;
+  for(let x=-NS*.4;x<W;x+=NS)for(let y=-NS*.4;y<H;y+=NS)g.drawImage(NEB,x,y,NS,NS);
+}
+/* 별 3단 — 멀수록 어둡고 작다 */
+const STARB=[{lo:.2,hi:.5,c:"rgba(150,170,240,.22)"},
+             {lo:.5,hi:.78,c:"rgba(175,195,255,.40)"},
+             {lo:.78,hi:1.01,c:"rgba(215,230,255,.68)"}];
 function draw(){
   const p=G.p,sx=shake?rnd(-shake*11,shake*11):0,sy=shake?rnd(-shake*11,shake*11):0;
   const ox=W/2-p.x+sx, oy=H/2-p.y+sy;
   // 배경
-  const bg=cx.createRadialGradient(W/2,H*.42,60,W/2,H*.5,Math.max(W,H)*.8);
-  bg.addColorStop(0,"#0e1430");bg.addColorStop(1,"#05070f");
-  cx.fillStyle=bg;cx.fillRect(0,0,W,H);
-  // 별
-  cx.fillStyle="rgba(160,180,255,.35)";
-  for(const s of G.stars){
-    const x=((s.x+ox*s.z)%2400+2400)%2400-200, y=((s.y+oy*s.z)%1800+1800)%1800-200;
-    if(x>-20&&x<W+20&&y>-20&&y<H+20)cx.fillRect(x,y,s.z*1.8,s.z*1.8);}
+  if(!BGC||BGW!==W||BGH!==H)bakeBG();
+  cx.drawImage(BGC,0,0,W,H);
+  // 별 — 3단 시차, 가까울수록 밝고 크다
+  for(const band of STARB){
+    cx.fillStyle=band.c;
+    for(const s of G.stars){
+      if(s.z<band.lo||s.z>=band.hi)continue;
+      const x=((s.x+ox*s.z)%2400+2400)%2400-200, y=((s.y+oy*s.z)%1800+1800)%1800-200;
+      if(x>-20&&x<W+20&&y>-20&&y<H+20)cx.fillRect(x,y,s.z*2.2,s.z*2.2);}}
   // 그리드
   cx.strokeStyle="rgba(70,90,170,.10)";cx.lineWidth=1;cx.beginPath();
   const gs=100,x0=((ox%gs)+gs)%gs,y0=((oy%gs)+gs)%gs;
@@ -1089,8 +1096,8 @@ function draw(){
   cx.restore();
   for(const f of G.fx){
     if(f.xp)continue;
-    if(f.ring){const k=1-f.life/f.max;cx.save();cx.shadowColor=C.gold;cx.shadowBlur=18;
-      cx.strokeStyle=`rgba(255,209,102,${(1-k).toFixed(2)})`;cx.lineWidth=3;
+    if(f.ring){const k=1-f.life/f.max,col=f.rc||C.gold;cx.save();cx.shadowColor=col;cx.shadowBlur=18;
+      cx.globalAlpha=Math.max(0,1-k);cx.strokeStyle=col;cx.lineWidth=f.rw||3;
       cx.beginPath();cx.arc(f.x+ox,f.y+oy,f.ring*(.5+k),0,TAU);cx.stroke();cx.restore();continue;}
     if(f.arc){cx.save();cx.globalAlpha=f.life/f.max*.55;cx.fillStyle=f.c;cx.shadowColor=f.c;cx.shadowBlur=24;
       cx.beginPath();cx.moveTo(f.x+ox,f.y+oy);cx.arc(f.x+ox,f.y+oy,f.r,f.a-f.w,f.a+f.w);cx.closePath();cx.fill();cx.restore();continue;}
@@ -1098,8 +1105,10 @@ function draw(){
       cx.lineWidth=3*(f.life/f.max)+1;cx.beginPath();
       f.chain.forEach((q,i)=>i?cx.lineTo(q.x+ox,q.y+oy):cx.moveTo(q.x+ox,q.y+oy));
       cx.stroke();cx.restore();continue;}
-    cx.globalAlpha=Math.max(0,f.life/(f.max||.4));cx.fillStyle=f.c||"#fff";
-    const s=f.sp?5:4;cx.fillRect(f.x+ox-s/2,f.y+oy-s/2,s,s);cx.globalAlpha=1;}
+    const k=Math.max(0,f.life/(f.max||.4));
+    cx.globalAlpha=k;cx.fillStyle=f.c||"#fff";
+    const s=(f.sp?5:4)*(.35+.65*k);          // 사라지며 작아진다
+    cx.fillRect(f.x+ox-s/2,f.y+oy-s/2,s,s);cx.globalAlpha=1;}
 
   // 낙뢰
   for(const z of G.bolts){const k=1-z.life/z.max;
@@ -1122,14 +1131,6 @@ function draw(){
   // 적
   for(const e of G.en){
     const X=e.x+ox,Y=e.y+oy;
-    if(sheetOK()&&SPR[e.kind]!==undefined){
-      const ang=Math.atan2(p.y-e.y,p.x-e.x);
-      cx.save();cx.shadowColor=e.c;cx.shadowBlur=e.elite?16:5;
-      drawSpr(SPR[e.kind],e.hit>0?"#ffffff":e.c,X,Y,e.r*3.4,ang);
-      cx.restore();
-      if(e.elite){cx.strokeStyle=C.gold;cx.lineWidth=2;cx.beginPath();cx.arc(X,Y,e.r+7,0,TAU);cx.stroke();}
-      continue;
-    }
     cx.save();cx.shadowColor=e.c;cx.shadowBlur=e.elite?22:8;
     cx.fillStyle=e.hit>0?"#fff":e.c;cx.beginPath();
     if(e.sh==="tri"){cx.moveTo(X,Y-e.r);cx.lineTo(X+e.r*.9,Y+e.r*.8);cx.lineTo(X-e.r*.9,Y+e.r*.8);cx.closePath();}
@@ -1139,21 +1140,32 @@ function draw(){
     else if(e.sh==="bomb"){cx.arc(X,Y,e.r*(1+Math.sin(e.ph*2)*.15),0,TAU);}
     else if(e.sh==="cell"){cx.arc(X,Y,e.r,0,TAU);cx.moveTo(X+e.r*.35,Y-e.r*.3);cx.arc(X-e.r*.3,Y-e.r*.3,e.r*.35,0,TAU);cx.moveTo(X+e.r*.6,Y+e.r*.3);cx.arc(X+e.r*.25,Y+e.r*.3,e.r*.35,0,TAU);}
     else cx.arc(X,Y,e.r*(1+Math.sin(e.ph)*.05),0,TAU);
-    cx.fill();cx.restore();
+    cx.fill();
+    // 밝은 코어 — 단색 덩어리로 보이지 않게 (그림자는 꺼서 비용을 아낀다)
+    cx.shadowBlur=0;cx.globalAlpha=e.hit>0?.9:.5;cx.fillStyle="#ffffff";
+    cx.beginPath();cx.arc(X,Y,e.r*.28,0,TAU);cx.fill();
+    cx.globalAlpha=1;cx.restore();
     if(e.elite){cx.strokeStyle=C.gold;cx.lineWidth=2;cx.beginPath();cx.arc(X,Y,e.r+7,0,TAU);cx.stroke();}}
 
   // 보스
   if(G.boss){const b=G.boss,X=b.x+ox,Y=b.y+oy;
     cx.save();cx.shadowColor=C.pink;cx.shadowBlur=36;
-    if(!drawSpr(SPR.boss,b.hit>0?"#ffffff":"#c46bff",X,Y,b.r*3.2,Math.atan2(p.y-b.y,p.x-b.x))){
-      cx.fillStyle=b.hit>0?"#fff":"#7b3fb8";cx.beginPath();cx.arc(X,Y,b.r,0,TAU);cx.fill();}
+    cx.fillStyle=b.hit>0?"#fff":"#7b3fb8";cx.beginPath();cx.arc(X,Y,b.r,0,TAU);cx.fill();
     cx.strokeStyle=C.pink;cx.lineWidth=3;cx.beginPath();cx.arc(X,Y,b.r+12,0,TAU);cx.stroke();cx.restore();
     cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54*VS,W*.68,9*VS);
     cx.fillStyle=C.pink;cx.fillRect(W*.16,54*VS,W*.68*Math.max(0,b.hp/b.mhp),9*VS);}
 
   // 탄
-  cx.save();cx.shadowBlur=16;
+  cx.save();cx.shadowBlur=16;cx.lineCap="round";
   for(const b of G.bul){cx.shadowColor=b.c;cx.fillStyle=b.c;
+    const sp=Math.hypot(b.vx,b.vy);
+    if(sp>240&&!b.beam){            // 빠른 탄은 진행 방향으로 꼬리를 끈다
+      const t=Math.min(30,sp*.03);
+      cx.shadowBlur=0;                    // 꼬리엔 그림자를 끈다 — 그림자 stroke는 비싸다
+      cx.strokeStyle=b.c;cx.lineWidth=b.r*1.6;cx.globalAlpha=.5;
+      cx.beginPath();cx.moveTo(b.x+ox,b.y+oy);
+      cx.lineTo(b.x+ox-b.vx/sp*t,b.y+oy-b.vy/sp*t);cx.stroke();
+      cx.globalAlpha=1;cx.shadowBlur=16;}
     if(b.beam){cx.globalAlpha=.9;cx.beginPath();cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);cx.fill();cx.globalAlpha=1;}
     else{cx.beginPath();cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);cx.fill();}}
   cx.shadowColor=C.pink;cx.fillStyle=C.pink;
@@ -1176,7 +1188,7 @@ function draw(){
     cx.fillRect(-7,-7,14,14);cx.restore();}
   // 플레이어
   const px=W/2+sx,py=H/2+sy;
-  cx.save();cx.shadowColor=G.ult.t>0?C.violet:(p.in?C.gold:C.cyan);cx.shadowBlur=G.ult.t>0?34:14;
+  cx.save();cx.shadowColor=G.ult.t>0?C.violet:(p.in?C.gold:C.cyan);cx.shadowBlur=G.ult.t>0?48:26;
   if(p.flash>0){cx.shadowColor=C.pink;}
   drawShip(px,py,p.dx,p.dy,G.form,G.stage,p.flash>0?C.pink:null);
   if(G.form==="warden"&&G.shield.up){cx.strokeStyle="rgba(255,209,102,.9)";cx.lineWidth=2.5;cx.setLineDash([14,8]);
@@ -1235,19 +1247,8 @@ function edgeArrow(wx,wy,ox,oy,col,label){
   if(label){cx.font="700 12px 'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";cx.textAlign="center";cx.fillText(label,0,ey>H/2?-16:26);}
   cx.restore();
 }
-/* 폼·단계별 스프라이트와 색 */
-function shipSpr(form,stage){
-  if(!form||form==="none"||stage===0)return[SPR.none,"#dfe6ff"];
-  if(form==="rover")return stage===1?[SPR.rover1,C.cyan]:[SPR.rover2,C.violet];
-  return stage===2?[SPR.warden2,C.orange]:[SPR.warden1,C.gold];
-}
 function drawShip(x,y,dx,dy,form,stage,over){
   const a=Math.atan2(dy,dx);
-  if(sheetOK()){
-    const[si,sc]=shipSpr(form,stage);
-    const size=(form==="warden"?(stage===2?22:16):(stage===2?26:20))*3.2;
-    if(drawSpr(si,over||sc,x,y,size,a))return;
-  }
   cx.save();cx.translate(x,y);
   if(!form||form==="none"||stage===0){
     cx.fillStyle=over||"#ffffff";cx.beginPath();cx.arc(0,0,13,0,TAU);cx.fill();
