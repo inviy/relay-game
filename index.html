@@ -45,7 +45,8 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .ident select,.ident input{font:inherit;font-family:"Chakra Petch",var(--kr);font-weight:600;font-size:16px;color:var(--pale);
   background:#0d1224;border:1px solid var(--line);border-radius:3px;padding:10px 12px;outline:none}
 .ident input{width:190px;letter-spacing:.04em}
-.ident select{width:120px}
+/* 고정폭이면 "대한민국"이 "대한민"으로 잘린다. 가장 긴 항목에 맞춰 자동으로 잡히게 둔다 */
+.ident select{width:auto;min-width:120px}
 .ident input:focus,.ident select:focus{border-color:var(--gold)}
 #lb{margin:26px auto 0;max-width:560px;text-align:left}
 #lb h3{font-family:"Chakra Petch",var(--kr);font-size:13px;letter-spacing:.3em;color:var(--ash);font-weight:600;margin-bottom:8px;
@@ -212,8 +213,9 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   .stats{gap:22px;margin:20px 0}
   .ident{flex-wrap:nowrap;gap:8px;margin:18px 0 14px}
   .ident select,.ident input{height:52px;padding:0 12px;font-size:16px}
-  .ident input{flex:1 1 auto;width:auto;min-width:0}
-  .ident select{flex:0 0 118px;width:118px}
+  /* 국가는 줄지 않게 두고 닉네임이 남는 폭을 가져간다 — 반대로 하면 국가명이 잘린다 */
+  .ident input{flex:1 1 0;width:auto;min-width:0}
+  .ident select{flex:0 0 auto;width:auto}
 
   h2{font-size:23px}
   p{font-size:15.5px;line-height:1.55}
@@ -309,7 +311,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.1.0";
+const VERSION="1.1.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 const cv=$("#cv"), cx=cv.getContext("2d");
@@ -376,7 +378,10 @@ const SFX=(()=>{let ac=null,master,muted=false,lastKill=0;
 /* ───── 프로필 · 글로벌 랭킹 ───── */
 const CCS=["KR","JP","US","CN","TW","HK","VN","TH","ID","PH","SG","MY","IN","AU","NZ","GB","DE","FR","ES","IT","NL","SE","NO","FI","PL","RU","UA","TR","BR","AR","MX","CA","CL","CO","ZA","EG","SA","AE","IL","OT"];
 const flag=cc=>(cc==="OT"||cc==="ZZ")?"🌐":String.fromCodePoint(...[...cc].map(c=>0x1F1E6+c.charCodeAt(0)-65));
-let ccName=cc=>cc;try{const dn=new Intl.DisplayNames(["ko"],{type:"region"});ccName=cc=>cc==="OT"?"기타":dn.of(cc);}catch(e){}
+/* Intl 정식 명칭이 길어 좁은 화면에서 잘리는 항목만 통용 표기로 줄인다.
+   HK는 "홍콩(중국 특별행정구)" 12자라 그대로는 못 쓴다. */
+const CCSHORT={HK:"홍콩",AU:"호주",SA:"사우디"};
+let ccName=cc=>cc;try{const dn=new Intl.DisplayNames(["ko"],{type:"region"});ccName=cc=>cc==="OT"?"기타":(CCSHORT[cc]||dn.of(cc));}catch(e){}
 const PKEY="relay:profile";
 let PROF={nick:"",cc:""}, LB=[], LBMODE="daily";
 const CLIENT=(()=>{let c=ls.get("relay:client",null);if(!c){c=(crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));ls.set("relay:client",c);}return c;})();
