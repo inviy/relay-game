@@ -374,7 +374,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.6.0";
+const VERSION="1.7.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 const cv=$("#cv"), cx=cv.getContext("2d");
@@ -1008,6 +1008,9 @@ function gainXp(n){const p=G.p;p.xp+=n;
   while(p.xp>=p.need){p.xp-=p.need;p.lv++;p.need=Math.round(p.need*1.22+3);
     if(p.lv>=16&&G.form&&G.form!=="none"&&!G.final)finalForm();
     if(p.lv>=24&&G.final&&!G.apex)apexForm();
+    /* 진화 거부는 3차 대상이 아니라 24레벨 이후가 통째로 무보상이었다 */
+    if(p.lv>=24&&G.noEvo&&!G.apex){G.apex=true;G.st.dmg*=1.25;G.p.mhp+=60;G.p.hp=G.p.mhp;G.rerolls+=2;
+      call("정점 · 순수");$("#form").textContent=charOf().n+" · 정점";burst(C.pale,90);SFX.evolve();shake=1.3;}
     if(p.lv>=8&&!G.form)formChoice(); else levelUp();}}
 
 /* ───── 오퍼레이터 진화 (2갈래) ───── */
@@ -1331,7 +1334,7 @@ function draw(){
 
   // 유령 분신
   if(G.stage>=2&&G.form==="rover")for(const ci of HIST_IDX()){const h=G.hist[ci];if(!h)continue;
-    cx.save();cx.globalAlpha=.5-ci*.014;drawShip(h.x+ox,h.y+oy,p.dx,p.dy,"rover",2,C.violet);cx.restore();}
+    cx.save();cx.globalAlpha=.5-ci*.014;drawShip(h.x+ox,h.y+oy,p.dx,p.dy,"rover",G.stage,null);cx.restore();}
   // 요새 포탑
   if(G.stage>=2&&G.form==="warden")for(const t of G.turrets){
     cx.save();cx.strokeStyle="rgba(255,209,102,.35)";cx.lineWidth=1.5;cx.beginPath();cx.moveTo(W/2+sx,H/2+sy);cx.lineTo(t.x+ox,t.y+oy);cx.stroke();
@@ -1428,8 +1431,8 @@ function charAccent(g,k,R,col){
   g.restore();
 }
 function drawChar(g,k,R,col){
-  const body=col||"#eef2ff", acc=col||(CHARS[k]||CHARS.relay).c;
-  charAccent(g,k,R,col);
+  const body=col||"#eef2ff", acc=(CHARS[k]||CHARS.relay).c;   // 장식은 섬광에 물들지 않는다
+  charAccent(g,k,R);
   g.fillStyle=body;
   if(k==="runner"){                      // 화살촉 — 뒤가 파여 대셔의 단순 삼각과 다르다
     g.beginPath();
@@ -1450,41 +1453,52 @@ function drawChar(g,k,R,col){
   }
   g.fillStyle=acc;g.beginPath();g.arc(0,0,R*.3,0,TAU);g.fill();
 }
+/* 색 축 분리 — 진화 색과 기체 색을 같은 5색 팔레트에서 뽑으면 충돌이 필연이다.
+   (중계사×방랑자1차 = 둘 다 cyan, 질주자×관제탑 = 둘 다 orange …)
+   그래서 축을 나눈다: 형태 = 진화(화살/육각), 색 = 기체, 크기·요소 수 = 단계.
+   본체를 연한 색으로 두는 건 "나는 연한 것, 적은 채도 높은 것" 대비를 지키기 위함이고,
+   진화를 색이 아닌 형태로 읽게 되므로 색약 대응도 같이 좋아진다. */
+const chCol=()=>(CHARS[(G&&G.ch)||"relay"]||CHARS.relay).c;
 function drawShip(x,y,dx,dy,form,stage,over){
-  const a=Math.atan2(dy,dx);
+  /* 피격 섬광은 본체에만 준다 — 장식까지 같은 색이 되면 실루엣이 사라진다 */
+  const a=Math.atan2(dy,dx), acc=chCol(), body=over||"#eef2ff";
   cx.save();cx.translate(x,y);
   if(!form||form==="none"||stage===0){
     cx.rotate(a);drawChar(cx,(G&&G.ch)||"relay",13,over);
   }else if(form==="rover"){
-    /* 진행 방향 기준으로 기체 장식을 먼저 깐다 — 본체 아래에 깔려 배경처럼 읽힌다 */
-    cx.save();cx.rotate(a);charAccent(cx,(G&&G.ch)||"relay",stage>=3?23:stage===2?19:15,over);cx.restore();
-    cx.rotate(a);
-    if(stage===1){ // 날렵한 화살 기체
-      cx.fillStyle=over||C.cyan;cx.beginPath();cx.moveTo(20,0);cx.lineTo(-12,-13);cx.lineTo(-5,0);cx.lineTo(-12,13);cx.closePath();cx.fill();
-      cx.fillStyle="#fff";cx.beginPath();cx.arc(4,0,4,0,TAU);cx.fill();
-      cx.fillStyle="rgba(79,240,216,.5)";cx.fillRect(-22,-3,10,6);
-    }else{ // 유령 / 특이점(3차) — 반투명 긴 날개
-      if(stage>=3)cx.scale(1.2,1.2);
-      cx.globalAlpha*= .85;
-      cx.fillStyle=over||C.violet;cx.beginPath();cx.moveTo(26,0);cx.lineTo(-16,-22);cx.lineTo(-4,0);cx.lineTo(-16,22);cx.closePath();cx.fill();
-      cx.fillStyle=over||C.cyan;cx.beginPath();cx.moveTo(18,0);cx.lineTo(-8,-9);cx.lineTo(-3,0);cx.lineTo(-8,9);cx.closePath();cx.fill();
-      cx.fillStyle="#fff";cx.beginPath();cx.arc(6,0,4,0,TAU);cx.fill();
+    const S=stage>=3?1.34:stage===2?1.12:1;      // 단계는 크기로도 자란다
+    /* 장식을 본체 위에 올린다 — 아래 깔면 육각형 본체에 60%가 가려진다 */
+    cx.rotate(a);cx.scale(S,S);
+    cx.fillStyle=body;cx.beginPath();
+    if(stage===1){                                // 날렵한 화살
+      cx.moveTo(20,0);cx.lineTo(-12,-13);cx.lineTo(-5,0);cx.lineTo(-12,13);
+    }else{                                        // 유령 이상 — 긴 날개
+      cx.moveTo(26,0);cx.lineTo(-16,-22);cx.lineTo(-4,0);cx.lineTo(-16,22);
     }
+    cx.closePath();cx.fill();
+    if(stage>=3){                                 // 3차는 날개가 한 겹 늘어난다 — 확대가 아니라 요소 추가
+      cx.strokeStyle=acc;cx.lineWidth=2.4;cx.beginPath();
+      cx.moveTo(-14,-26);cx.lineTo(14,-13);cx.moveTo(-14,26);cx.lineTo(14,13);cx.stroke();}
+    charAccent(cx,(G&&G.ch)||"relay",stage>=3?20:stage===2?17:14);
+    cx.fillStyle=acc;cx.beginPath();cx.arc(stage===1?4:6,0,4,0,TAU);cx.fill();
   }else{ // warden
     const n=6,R=stage>=3?26:stage===2?22:16;
-    /* 본체는 자전하지만 장식은 진행 방향에 고정한다 — 같이 돌면 방패 호가 뒤를 막는다 */
-    cx.save();cx.rotate(a);charAccent(cx,(G&&G.ch)||"relay",stage>=3?23:stage===2?19:15,over);cx.restore();
-    cx.rotate(G.t*.6);
-    cx.fillStyle=over||(stage===2?C.orange:C.gold);cx.beginPath();
+    cx.save();cx.rotate(G.t*.6);                  // 본체만 자전한다
+    cx.fillStyle=body;cx.beginPath();
     for(let i=0;i<n;i++){const g=i/n*TAU;i?cx.lineTo(Math.cos(g)*R,Math.sin(g)*R):cx.moveTo(R,0);}
     cx.closePath();cx.fill();
-    cx.fillStyle="#1a1200";cx.beginPath();
+    cx.fillStyle="#0b1024";cx.beginPath();
     for(let i=0;i<n;i++){const g=i/n*TAU;i?cx.lineTo(Math.cos(g)*R*.55,Math.sin(g)*R*.55):cx.moveTo(R*.55,0);}
     cx.closePath();cx.fill();
-    cx.fillStyle="#fff";cx.beginPath();cx.arc(0,0,4,0,TAU);cx.fill();
-    if(stage>=2){cx.strokeStyle=stage>=3?C.orange:C.gold;cx.lineWidth=stage>=3?4:3;cx.beginPath();
-      for(let i=0;i<n;i++){const g=i/n*TAU;cx.moveTo(Math.cos(g)*R,Math.sin(g)*R);cx.lineTo(Math.cos(g)*(R+9),Math.sin(g)*(R+9));}
+    if(stage>=2){                                 // 2차 6갈래 → 3차 12갈래
+      const m=stage>=3?12:6;
+      cx.strokeStyle=acc;cx.lineWidth=stage>=3?3.4:3;cx.beginPath();
+      for(let i=0;i<m;i++){const g=i/m*TAU;cx.moveTo(Math.cos(g)*R,Math.sin(g)*R);cx.lineTo(Math.cos(g)*(R+9),Math.sin(g)*(R+9));}
       cx.stroke();}
+    cx.restore();
+    /* 장식은 진행 방향 고정 — 본체와 같이 돌면 방패 호가 뒤를 막는다 */
+    cx.save();cx.rotate(a);charAccent(cx,(G&&G.ch)||"relay",stage>=3?23:stage===2?19:15);cx.restore();
+    cx.fillStyle=acc;cx.beginPath();cx.arc(0,0,4.5,0,TAU);cx.fill();
   }
   cx.restore();
 }
