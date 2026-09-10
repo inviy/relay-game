@@ -368,14 +368,16 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <div id="build" style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:22px"></div>
   <div id="rankline"></div>
   <button class="btn" id="b-again">다시 출격</button>
+  <button class="btn ghost" id="b-share" style="margin-left:10px">결과 복사</button>
   <button class="btn ghost" id="b-menu" style="margin-left:10px">메인으로</button>
 </div></div>
 
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.7.1";
+const VERSION="1.8.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
+const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 const cv=$("#cv"), cx=cv.getContext("2d");
 let W,H,DPR,VS=1,SMALL=false;
@@ -644,10 +646,21 @@ const KIND={
  mote    :{hp:5, spd:80, dmg:5, r:8, c:"#d8ffb0",xp:1,sh:"circle"},
 };
 const NAMEK={wisp:"위스프",dash:"대셔",tank:"탱크",shooter:"사수",splitter:"분열체",bomber:"자폭체",wall:"철벽",mote:"파편"};
+/* 엘리트 특성 — 적 8종이 속도·체력만 다른 "걸어오는 것" 하나였다.
+   새 적을 만드는 것보다 기존 적에 행동을 얹는 쪽이 싸고 조합도 늘어난다. */
+const TRAITS={
+  armor :{n:"장갑",c:"#9fb0d8",d:.55},                  // 받는 피해 감소
+  rage  :{n:"광폭",c:"#ff5c8a"},                        // 체력 절반 아래에서 가속
+  blink :{n:"점멸",c:"#a86bff"},                        // 주기적으로 플레이어 쪽으로 도약
+  volat :{n:"불안정",c:"#ff4d4d"},                      // 죽을 때 유폭
+  regen :{n:"재생",c:"#8ef0b0"},                        // 초당 회복
+};
+const TKEYS=Object.keys(TRAITS);
 function makeE(k,x,y,elite,hpMul=1){
   const K=KIND[k],sc=1+G.t/110,hp=K.hp*sc*(elite?7:1)*hpMul;
   return {x,y,hp,mhp:hp,spd:K.spd*(elite?.8:1),dmg:K.dmg*(elite?1.4:1),r:K.r*(elite?1.6:1),
     c:elite?C.gold:K.c,xp:K.xp*(elite?8:1),elite:!!elite,hit:0,slow:0,sh:K.sh,ph:rnd(0,TAU),kind:k,
+    tr:elite?pick(TKEYS):null,bt:rnd(1.5,3),
     ranged:K.ranged,split:K.split,bomb:K.bomb,absorb:K.absorb,fire:rnd(1,2.5)};
 }
 function ringSpawn(k,n,r){for(let i=0;i<n;i++){const a=i/n*TAU;G.en.push(makeE(k,G.p.x+Math.cos(a)*r,G.p.y+Math.sin(a)*r,false));}}
@@ -877,6 +890,7 @@ function explodeE(e,byKill){
   shake=Math.max(shake,byKill?.28:.5);SFX.bomb();
 }
 function dmgE(e,d,showNum){
+  if(e.tr==="armor")d*=TRAITS.armor.d;
   e.hp-=d; e.hit=.1;
   if(showNum&&e.hp>0&&Math.random()<.55){    // 직접 타격에만 스파크가 튄다
     const a=rnd(0,TAU);
@@ -886,7 +900,7 @@ function dmgE(e,d,showNum){
   if(e.hp<=0&&!e.dead){
     e.dead=1;G.kills++;SFX.kill();
     if(e.split)for(let i=0;i<3;i++){const a=i/3*TAU;G.en.push(makeE("mote",e.x+Math.cos(a)*18,e.y+Math.sin(a)*18,false));}
-    if(e.bomb){explodeE(Object.assign({},e,{dead:0}),true);}if(G.form&&G.form!=="none")G.ult.c=Math.min(G.ult.max,G.ult.c+1);
+    if(e.bomb||e.tr==="volat"){explodeE(Object.assign({},e,{dead:0,dmg:e.bomb?e.dmg:26}),true);}if(G.form&&G.form!=="none")G.ult.c=Math.min(G.ult.max,G.ult.c+1);
     for(let i=0;i<e.xp;i++)G.fx.push({x:e.x+rnd(-10,10),y:e.y+rnd(-10,10),xp:1});
     G.fx.push({x:e.x,y:e.y,vx:0,vy:0,life:.26,max:.26,ring:e.r*1.5,rc:e.c,rw:2});
     for(let i=0;i<11;i++){const a=rnd(0,TAU),v=rnd(90,260);
@@ -915,6 +929,12 @@ function enemies(dt){const p=G.p;
     if(e.dead){G.en.splice(i,1);continue;}
     e.hit=Math.max(0,e.hit-dt);e.slow=Math.max(0,e.slow-dt);
     const a=Math.atan2(p.y-e.y,p.x-e.x);let s=e.spd*(e.slow>0?.35:1);
+    if(e.tr==="rage"&&e.hp<e.mhp*.5)s*=1.7;
+    if(e.tr==="regen")e.hp=Math.min(e.mhp,e.hp+e.mhp*.02*dt);
+    if(e.tr==="blink"){e.bt-=dt;
+      if(e.bt<=0&&Math.hypot(p.x-e.x,p.y-e.y)>150){e.bt=2.6;
+        e.x+=Math.cos(a)*130;e.y+=Math.sin(a)*130;
+        G.fx.push({x:e.x,y:e.y,vx:0,vy:0,life:.25,max:.25,ring:e.r*2,rc:TRAITS.blink.c,rw:2});}}
     if(G.final&&G.form==="warden"&&Math.hypot(e.x-G.zone.x,e.y-G.zone.y)<G.zone.r)s*=.72;
     if(G.outT>30)s*=1.2;
     const dist=Math.hypot(p.x-e.x,p.y-e.y);
@@ -1301,7 +1321,10 @@ function draw(){
     cx.shadowBlur=0;cx.globalAlpha=e.hit>0?.9:.5;cx.fillStyle="#ffffff";
     cx.beginPath();cx.arc(X,Y,e.r*.28,0,TAU);cx.fill();
     cx.globalAlpha=1;cx.restore();
-    if(e.elite){cx.strokeStyle=C.gold;cx.lineWidth=2;cx.beginPath();cx.arc(X,Y,e.r+7,0,TAU);cx.stroke();}}
+    if(e.elite){const t=TRAITS[e.tr];
+      cx.strokeStyle=t?t.c:C.gold;cx.lineWidth=2.5;cx.beginPath();cx.arc(X,Y,e.r+7,0,TAU);cx.stroke();
+      if(t){cx.fillStyle=t.c;cx.font="700 11px 'Chakra Petch',"+KRF;cx.textAlign="center";
+        cx.fillText(t.n,X,Y-e.r-13);}}}
 
   // 보스
   if(G.boss){const b=G.boss,X=b.x+ox,Y=b.y+oy;
@@ -1361,7 +1384,7 @@ function draw(){
   if(G.outT>30){const k=Math.min(1,(G.outT-30)/20);cx.fillStyle=`rgba(255,80,120,${.06*k})`;
     for(let i=0;i<14*k;i++)cx.fillRect(rnd(0,W),rnd(0,H),rnd(20,220),rnd(1,3));}
   // 데미지 숫자
-  cx.textAlign="center";cx.font="700 "+(17*VS).toFixed(1)+"px 'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";
+  cx.textAlign="center";cx.font="700 "+(17*VS).toFixed(1)+"px "+KRF;
   for(const n of G.num){cx.globalAlpha=Math.min(1,n.life*2.2);
     cx.fillStyle=n.c;cx.fillText(n.v,n.x+ox,n.y+oy);}
   cx.globalAlpha=1;
@@ -1581,6 +1604,26 @@ $("#ult").onclick=()=>{if(mode==="play")useUlt();};
 $("#b-reroll").onclick=reroll;$("#b-skip").onclick=skipCard;
 $("#mute").onclick=()=>setMute(SFX.toggle());
 $("#ultbtn").onclick=()=>{if(mode==="play")useUlt();};
+/* 데일리 시드 + 짧은 판 + 자랑할 숫자까지 갖춰 놓고 자랑할 수단만 없었다. */
+function shareText(){
+  const t=Math.floor(G.t), FN={rover:"기동계",warden:"방어계",none:"순수"};
+  return ["RELAY #"+SEED,
+    (PROF.nick||"오퍼레이터")+" · "+charOf().n+(G.form?" / "+(FN[G.form]||""):""),
+    "LV"+G.p.lv+" · "+Math.floor(t/60)+":"+String(t%60).padStart(2,"0")+" · "+G.kills+"처치"+(G.cleared?" · 재머 격파":""),
+    calcScore().toLocaleString()+"점",
+    location.origin+location.pathname].join(String.fromCharCode(10));
+}
+$("#b-share").onclick=async()=>{
+  const btn=$("#b-share"), txt=shareText();
+  try{
+    if(navigator.share){await navigator.share({text:txt});return;}
+    await navigator.clipboard.writeText(txt);
+  }catch(e){                       // 클립보드 권한이 없거나 취소된 경우
+    const ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(e2){}ta.remove();
+  }
+  btn.textContent="복사됨";setTimeout(()=>btn.textContent="결과 복사",1600);
+};
 $("#lb-refresh").onclick=loadLB;
 $("#seed").textContent="#"+SEED;
 $("#ver").textContent="v"+VERSION;
