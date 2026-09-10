@@ -491,7 +491,7 @@ const ydayScore=()=>SAVE.hist[seedFor(-1)]||0;
    오늘 시드에서만 유효하다 — 시드가 바뀌면 애초에 같은 판이 아니다.
    되살린 저장은 즉시 지운다. 안 그러면 같은 순간을 반복해 되살릴 수 있다. */
 const RKEY="relay:run", RUNV=1;
-const RUNF=["t","et","daily","pace","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
+const RUNF=["t","et","eth","daily","pace","tpace","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
   "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ult","shield",
   "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
 let runSaveT=0;
@@ -840,9 +840,13 @@ cv.addEventListener("touchend",()=>touch=null,{passive:1});
    2차(16레벨)·3차(24레벨) 진화를 한 번도 못 보고 끝난다. */
 const ZONE_T=32, RUN_LEN=420;                       // 심층 — 7분에 첫 재머
 const DAILY_LEN=240, DAILY_PACE=2, DAILY_BOSS=340;  // 오늘의 중계 — 4분, et=340(실 170초)에 재머
+/* 위협은 진행보다 덜 압축한다. pace=2는 숫자를 압축하지만 사람의 반응속도는
+   압축하지 못한다 — 레벨은 2배로 오르는데 초당 적 수와 체력까지 2배가 되면
+   실측상 이동하는 봇도 59초에 죽었다(심층은 75초). 진행 2배 / 위협 1.45배. */
+const DAILY_TPACE=1.45;
 
 function newRun(daily){
-  G={t:0,et:0,daily:!!daily,pace:daily?DAILY_PACE:1,kills:0,spawn:0,elite:daily?12:24,chest:0,boss:null,over:false,won:false,cleared:false,ended:false,endNow:false,bosses:0,bossT:0,
+  G={t:0,et:0,eth:0,daily:!!daily,pace:daily?DAILY_PACE:1,tpace:daily?DAILY_TPACE:1,kills:0,spawn:0,elite:daily?12:24,chest:0,boss:null,over:false,won:false,cleared:false,ended:false,endNow:false,bosses:0,bossT:0,
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
@@ -889,7 +893,7 @@ const TRAITS={
 };
 const TKEYS=Object.keys(TRAITS);
 function makeE(k,x,y,elite,hpMul=1){
-  const K=KIND[k],sc=1+G.et/110,hp=K.hp*sc*(elite?7:1)*hpMul*(G.mod.hp||1)*(elite?(G.mod.ehp||1):1);
+  const K=KIND[k],sc=1+G.eth/110,hp=K.hp*sc*(elite?7:1)*hpMul*(G.mod.hp||1)*(elite?(G.mod.ehp||1):1);
   return {x,y,hp,mhp:hp,spd:K.spd*(elite?.8:1)*(G.mod.espd||1),dmg:K.dmg*(elite?1.4:1),r:K.r*(elite?1.6:1),
     c:elite?C.gold:K.c,xp:K.xp*(elite?8:1),elite:!!elite,hit:0,slow:0,sh:K.sh,ph:rnd(0,TAU),kind:k,
     tr:elite?pick(TKEYS):null,bt:rnd(1.5,3),
@@ -930,7 +934,7 @@ function call(t){const e=$("#call");e.textContent=t;e.classList.add("on");
 
 /* ───── 업데이트 ───── */
 function update(dt){
-  const p=G.p; G.t+=dt; G.et=G.t*G.pace;
+  const p=G.p; G.t+=dt; G.et=G.t*G.pace; G.eth=G.t*G.tpace;
   /* 오늘의 중계는 4분에 무조건 끝난다. 매일 하는 것의 진입장벽은 재미가 아니라
      시간이라, 길이가 고정이어야 의식이 된다. */
   if(G.daily&&G.t>=DAILY_LEN){G.t=DAILY_LEN;finish(G.cleared);return;}
@@ -962,7 +966,7 @@ function update(dt){
   p.inv=Math.max(0,p.inv-dt); p.flash=Math.max(0,p.flash-dt); G.ult.t=Math.max(0,G.ult.t-dt);
 
   // 스폰 (초반은 아주 완만하게)
-  G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.et/34)*(G.mod.spawn||1);  // 클리어 후에는 상한을 풀어 난이도를 이어간다
+  G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.eth/34)*(G.mod.spawn||1);  // 클리어 후에는 상한을 풀어 난이도를 이어간다
   while(G.spawn>=1){G.spawn--;
     const r=R.spawn(); let k="wisp";
     if(G.et>75&&r<.38)k="dash";
