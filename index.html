@@ -433,7 +433,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.14.0";
+const VERSION="1.15.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -658,20 +658,45 @@ function submitBeacon(){
       p_won:!!G.cleared,p_ch:G.ch})}).catch(()=>{});}catch(e){}
 }
 function calcScore(){return G.kills*6+Math.floor(G.t)*3+G.p.lv*260+(G.cleared?12000:0);}
+/* 제출 실패한 기록을 들고 있다가 다음 접속 때 다시 보낸다.
+   101,752점짜리 판이 서버 검증식 결함으로 거부됐는데, 화면에는 "실패 (400)"만
+   뜨고 기록은 그대로 사라졌다. 이유도 안 보이고 복구할 방법도 없었다.
+   서버가 고쳐지면 저절로 들어가야 한다 — 그게 이 큐의 목적이다. */
+const QKEY="relay:pending";
+const postScore=b=>fetch(`${SB_URL}/rest/v1/rpc/submit_score`,
+  {method:"POST",headers:SB_H(),body:JSON.stringify(b)});
+function queueScore(b){
+  const q=ls.get(QKEY,[]).filter(x=>x&&x.at&&Date.now()-x.at<7*864e5);
+  q.push({at:Date.now(),b});ls.set(QKEY,q.slice(-5));}
+async function flushScores(){
+  const q=ls.get(QKEY,[]); if(!q.length||!sbReady())return;
+  const left=[];let ok=0;
+  for(const it of q){
+    try{const r=await postScore(it.b); if(r.ok)ok++; else left.push(it);}
+    catch(e){left.push(it);}
+  }
+  ls.set(QKEY,left);
+  if(ok)loadLB();
+  return ok;
+}
 async function submitScore(){
   if(!sbReady()){$("#rankline").textContent="랭킹 서버 미설정 · 이번 판 "+calcScore().toLocaleString()+"점";return;}
   const base={p_client:CLIENT,p_nick:PROF.nick,p_cc:PROF.cc==="OT"?"ZZ":PROF.cc,
-    p_time:Math.floor(G.t),p_kills:G.kills,p_lv:G.p.lv,p_form:G.form,p_won:!!G.cleared};
-  const post=b=>fetch(`${SB_URL}/rest/v1/rpc/submit_score`,{method:"POST",headers:SB_H(),body:JSON.stringify(b)});
+    p_time:Math.floor(G.t),p_kills:G.kills,p_lv:G.p.lv,p_form:G.form,p_won:!!G.cleared,p_ch:G.ch};
   try{
-    /* p_ch를 아직 모르는 서버에서도 기록이 남게 한다 — 마이그레이션 전 배포를 견딘다 */
-    let r=await post({...base,p_ch:G.ch});
-    if(!r.ok)r=await post(base);
-    if(!r.ok){$("#rankline").textContent="기록 제출 실패 ("+r.status+")";return;}
+    const r=await postScore(base);
+    if(!r.ok){
+      /* 이유를 반드시 보여준다. "실패 (400)"만으로는 아무것도 알 수 없다. */
+      let why="";try{const j=await r.json();why=j.message||j.hint||"";}catch(e){}
+      queueScore(base);
+      $("#rankline").innerHTML="기록 제출 실패 — 다음 접속 때 다시 보냅니다"+
+        (why?`<br><span style="font-size:12px;color:var(--ash)">${esc(why)}</span>`:"");
+      return;
+    }
     const [{rank,score}]=await r.json();
     $("#rankline").textContent=`${flag(PROF.cc)} ${PROF.nick} · 오늘 ${rank}위 · ${score.toLocaleString()}점`;
     LBMODE="recent";await loadLB();paintLB(PROF.nick);
-  }catch(e){$("#rankline").textContent="기록 제출 실패";}
+  }catch(e){queueScore(base);$("#rankline").textContent="기록 제출 실패 — 다음 접속 때 다시 보냅니다";}
 }
 
 /* ───── 무기 / 패시브 정의 ───── */
@@ -1965,7 +1990,7 @@ function leave(){
 addEventListener("pagehide",leave);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")leave();});
 
-showVeil("#v-menu");load();loadProfile().then(loadLB);requestAnimationFrame(loop);
+showVeil("#v-menu");load();loadProfile().then(flushScores).then(loadLB);requestAnimationFrame(loop);
 try{track("land",{w:innerWidth,h:innerHeight,touch:matchMedia("(pointer:coarse)").matches,
   ref:document.referrer?new URL(document.referrer).host:""});}catch(e){}
 })();
