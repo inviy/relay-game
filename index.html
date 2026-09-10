@@ -41,7 +41,15 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .btn.ghost{background:none;color:var(--pale);box-shadow:inset 0 0 0 1px var(--line)}
 .btn.ghost:hover{box-shadow:inset 0 0 0 1px var(--gold)}
 .stats{display:flex;justify-content:center;gap:38px;flex-wrap:wrap;margin:26px 0}
-.ident{display:flex;justify-content:center;gap:8px;margin:18px 0 6px;flex-wrap:wrap}
+/* 이름 입력 — 미리 채워두면 "이미 됐다"고 읽혀 아무도 안 적는다.
+   비워 두고, 비어 있는 동안만 눈에 띄게 한다. */
+.identlab{font-family:"Chakra Petch",var(--kr);font-size:12px;letter-spacing:.22em;
+  color:var(--ash);font-weight:600;margin-top:18px}
+.identlab.ask{color:var(--gold)}
+.ident{display:flex;justify-content:center;gap:8px;margin:8px 0 6px;flex-wrap:wrap}
+.ident.ask input{border-color:var(--gold);animation:askGlow 1.9s ease-in-out infinite}
+@keyframes askGlow{0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,0)}
+  50%{box-shadow:0 0 0 3px rgba(255,209,102,.22)}}
 .ident select,.ident input{font:inherit;font-family:"Chakra Petch",var(--kr);font-weight:600;font-size:16px;color:var(--pale);
   background:#0d1224;border:1px solid var(--line);border-radius:3px;padding:10px 12px;outline:none}
 .ident input{width:190px;letter-spacing:.04em}
@@ -279,11 +287,12 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     <div class="stat"><b id="bestk" class="mono">0</b><span>최다 처치</span></div>
     <div class="stat"><b id="runs" class="mono">0</b><span>출격</span></div>
   </div>
-  <div class="ident">
-    <select id="cc" title="국가"></select>
-    <input id="nick" maxlength="14" placeholder="닉네임" spellcheck="false">
-  </div>
   <div id="chars" class="chars" aria-label="시작 기체 선택"></div>
+  <div class="identlab" id="identlab">순위표에 올라갈 이름</div>
+  <div class="ident" id="ident">
+    <select id="cc" title="국가"></select>
+    <input id="nick" maxlength="14" placeholder="이름을 적어주세요" spellcheck="false">
+  </div>
   <button class="btn" id="b-start">중계 시작</button>
   <p style="margin-top:16px;font-size:14px">WASD · 방향키 · 드래그로 이동 &nbsp;·&nbsp; 공격은 자동</p>
   <div id="lb"><h3><span style="color:var(--ash);cursor:default"><b id="tab-daily" style="color:var(--gold);cursor:pointer">TODAY</b> &nbsp;/&nbsp; <b id="tab-all" style="cursor:pointer">ALL TIME</b></span><span id="lb-refresh">새로고침</span></h3><div id="lblist"><div class="lbempty">불러오는 중…</div></div></div>
@@ -323,7 +332,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.2.1";
+const VERSION="1.3.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 const cv=$("#cv"), cx=cv.getContext("2d");
@@ -405,12 +414,21 @@ async function loadProfile(){
   if(!CHARS[PROF.ch])PROF.ch="relay";
   renderChars();
   if(!PROF.cc)PROF.cc=guessCC();
-  if(!PROF.nick)PROF.nick="OP-"+Math.floor(1000+Math.random()*9000);
   const sel=$("#cc");sel.innerHTML=CCS.map(c=>`<option value="${c}">${flag(c)} ${ccName(c)}</option>`).join("");
-  sel.value=PROF.cc;$("#nick").value=PROF.nick;
+  sel.value=PROF.cc;$("#nick").value=PROF.nick;   // 첫 방문이면 빈 칸으로 둔다
+  askName();
+}
+/* 이름이 비어 있는 동안만 강조하고, 한 글자라도 치면 바로 가라앉는다 */
+function askName(){
+  const ask=!$("#nick").value.trim();
+  $("#ident").classList.toggle("ask",ask);
+  $("#identlab").classList.toggle("ask",ask);
+  $("#identlab").textContent=ask?"순위표에 올라갈 이름을 적어주세요":"순위표에 올라갈 이름";
 }
 async function saveProfile(){
-  PROF.nick=($("#nick").value.trim()||PROF.nick).slice(0,14);PROF.cc=$("#cc").value;
+  /* 안 적고 시작해도 막지 않는다 — 서버가 이름 1자 이상을 요구하므로 여기서 채운다 */
+  PROF.nick=($("#nick").value.trim()||PROF.nick||"OP-"+Math.floor(1000+Math.random()*9000)).slice(0,14);
+  PROF.cc=$("#cc").value;
   ls.set(PKEY,PROF);
 }
 async function loadLB(){
@@ -1447,6 +1465,7 @@ $("#ver").textContent="v"+VERSION;
 $("#tab-daily").onclick=()=>{LBMODE="daily";$("#tab-daily").style.color="var(--gold)";$("#tab-all").style.color="";loadLB();};
 $("#tab-all").onclick=()=>{LBMODE="all";$("#tab-all").style.color="var(--gold)";$("#tab-daily").style.color="";loadLB();};
 $("#nick").addEventListener("keydown",e=>e.stopPropagation());
+$("#nick").addEventListener("input",askName);
 showVeil("#v-menu");load();loadProfile().then(loadLB);requestAnimationFrame(loop);
 })();
 </script>
