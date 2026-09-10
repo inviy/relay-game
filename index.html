@@ -377,7 +377,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <div class="veil" id="v-menu"><div class="box">
   <div class="tag">SECTOR 07 · 오늘의 시드 <span id="seed"></span> · <span id="ver"></span></div>
   <h1>RELAY</h1>
-  <p style="max-width:560px;margin:14px auto 0">매일 새 시드로 싸웁니다. 기록은 30일간 순위표에 남습니다.<br>
+  <p style="max-width:560px;margin:14px auto 0">매일 새 시드로 싸웁니다. 기록은 순위표에 계속 남습니다.<br>
   황금빛 <b style="color:var(--gold)">신호권</b> 안에서 싸우면 피해가 크게 오릅니다. 신호권은 계속 옮겨 갑니다.<br>
   <b style="color:var(--pale)">8·16·24레벨</b>에 3단계 진화 — 기동계와 방어계는 전혀 다른 게임이 됩니다.</p>
   <p id="todaymod" style="margin:12px auto 0;font-size:14.5px;max-width:540px;
@@ -398,7 +398,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <button class="btn ghost" id="b-deep" style="margin-left:10px">심층 모드</button>
   <button class="btn ghost" id="b-cont" style="margin-left:10px;display:none">이어하기</button>
   <p style="margin-top:16px;font-size:14px">WASD · 방향키 · 드래그로 이동 &nbsp;·&nbsp; 공격은 자동</p>
-  <div id="lb"><h3><span style="color:var(--ash);cursor:default"><b id="tab-recent" style="color:var(--gold);cursor:pointer">오늘의 중계</b> &nbsp;/&nbsp; <b id="tab-all" style="cursor:pointer">심층 30일</b></span><span id="lb-refresh">새로고침</span></h3><div id="lblist"><div class="lbempty">불러오는 중…</div></div></div>
+  <div id="lb"><h3><span style="color:var(--gold)">최고 기록</span><span id="lb-refresh">새로고침</span></h3><div id="lblist"><div class="lbempty">불러오는 중…</div></div></div>
 </div></div>
 
 <div class="veil off" id="v-level"><div class="box">
@@ -438,7 +438,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.0.0";
+const VERSION="2.0.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -609,7 +609,7 @@ const flag=cc=>(cc==="OT"||cc==="ZZ")?"🌐":String.fromCodePoint(...[...cc].map
 const CCSHORT={HK:"홍콩",AU:"호주",SA:"사우디"};
 let ccName=cc=>cc;try{const dn=new Intl.DisplayNames(["ko"],{type:"region"});ccName=cc=>cc==="OT"?"기타":(CCSHORT[cc]||dn.of(cc));}catch(e){}
 const PKEY="relay:profile";
-let PROF={nick:"",cc:""}, LB=[], LBMODE="daily";
+let PROF={nick:"",cc:""}, LB=[];
 const CLIENT=(()=>{let c=ls.get("relay:client",null);if(!c){c=(crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));ls.set("relay:client",c);}return c;})();
 const SB_H=()=>({"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"});
 const sbReady=()=>SB_KEY&&!SB_KEY.startsWith("PASTE");
@@ -655,9 +655,10 @@ async function fetchLB(view){
 }
 async function loadLB(){
   if(!sbReady()){LB=[];paintLB();$("#lblist").innerHTML=`<div class="lbempty">랭킹 서버 키가 아직 설정되지 않았습니다.</div>`;return;}
-  LB=await fetchLB(LBMODE==="daily"?"board_daily":"recent_top");
-  /* 모드 분리 뷰가 아직 없는 DB에서도 뜨게 한다 — 마이그레이션 전 배포를 견딘다 */
-  if(LB===null)LB=await fetchLB("recent_top");
+  /* 표 하나로 둔다. 사람이 둘뿐인데 모드별로 나누면 양쪽 다 비어 보인다.
+     기간 제한도 없앴다 — 기록이 쌓일 때까지는 사라지지 않는 편이 낫다.
+     사람이 늘면 그때 나누면 된다. */
+  LB=await fetchLB("recent_top");
   if(LB===null)LB=await fetchLB("daily_top");
   if(LB===null)LB=[];
   paintLB();
@@ -732,7 +733,7 @@ async function submitScore(){
     }
     const [{rank,score}]=await r.json();G.rank=rank;
     $("#rankline").textContent=`${flag(PROF.cc)} ${PROF.nick} · 오늘 ${rank}위 · ${score.toLocaleString()}점`;
-    LBMODE=G.daily?"daily":"endless";await loadLB();paintLB(PROF.nick);
+    await loadLB();paintLB(PROF.nick);
   }catch(e){queueScore(base);$("#rankline").textContent="기록 제출 실패 — 다음 접속 때 다시 보냅니다";}
 }
 
@@ -2072,8 +2073,6 @@ $("#lb-refresh").onclick=loadLB;
 $("#seed").textContent="#"+SEED;
 $("#todaymod").innerHTML=`<b style="color:var(--gold)">오늘의 규칙 · ${MOD.n}</b> — ${MOD.d}`;
 $("#ver").textContent="v"+VERSION;
-$("#tab-recent").onclick=()=>{LBMODE="daily";$("#tab-recent").style.color="var(--gold)";$("#tab-all").style.color="";loadLB();};
-$("#tab-all").onclick=()=>{LBMODE="endless";$("#tab-all").style.color="var(--gold)";$("#tab-recent").style.color="";loadLB();};
 $("#nick").addEventListener("keydown",e=>e.stopPropagation());
 $("#nick").addEventListener("input",askName);
 /* 탭을 닫거나 앱을 전환하면 end가 영영 안 찍힌다. 이 신호가 없으면 이탈 지점이
