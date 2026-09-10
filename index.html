@@ -346,6 +346,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     <input id="nick" maxlength="14" placeholder="이름을 적어주세요" spellcheck="false">
   </div>
   <button class="btn" id="b-start">중계 시작</button>
+  <button class="btn ghost" id="b-cont" style="margin-left:10px;display:none">이어하기</button>
   <p style="margin-top:16px;font-size:14px">WASD · 방향키 · 드래그로 이동 &nbsp;·&nbsp; 공격은 자동</p>
   <div id="lb"><h3><span style="color:var(--ash);cursor:default"><b id="tab-recent" style="color:var(--gold);cursor:pointer">최근 30일</b> &nbsp;/&nbsp; <b id="tab-all" style="cursor:pointer">전체</b></span><span id="lb-refresh">새로고침</span></h3><div id="lblist"><div class="lbempty">불러오는 중…</div></div></div>
 </div></div>
@@ -385,7 +386,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.10.0";
+const VERSION="1.11.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -412,6 +413,30 @@ const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;
           set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
 function load(){SAVE=Object.assign({best:0,bestk:0,runs:0},ls.get(KEY,{}));menu();}
 function save(){ls.set(KEY,SAVE);}
+
+/* ───── 판 이어하기 ─────
+   탭을 닫으면 판이 통째로 날아갔다. 적·탄·파티클은 저장하지 않는다 — 순식간에
+   다시 차오르고, 저장해봐야 용량과 깨질 구석만 는다. 남기는 건 진행 상태
+   (시간·레벨·무기·진화·신호권)뿐이다.
+   오늘 시드에서만 유효하다 — 시드가 바뀌면 애초에 같은 판이 아니다.
+   되살린 저장은 즉시 지운다. 안 그러면 같은 순간을 반복해 되살릴 수 있다. */
+const RKEY="relay:run", RUNV=1;
+const RUNF=["t","kills","spawn","elite","chest","bosses","bossT","cleared","evi","evWarn","outT",
+  "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ult","shield",
+  "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
+let runSaveT=0;
+function saveRun(){
+  if(!G||G.over||!RID||G.t<20)return;      // 20초 미만은 되살릴 가치가 없다
+  const p=G.p,o={v:RUNV,seed:SEED,rid:RID,at:Date.now()};
+  RUNF.forEach(k=>o[k]=G[k]);
+  o.p={hp:p.hp,mhp:p.mhp,spd:p.spd,lv:p.lv,xp:p.xp,need:p.need,mag:p.mag,x:p.x,y:p.y,dx:p.dx,dy:p.dy};
+  o.boss=G.boss?{hp:G.boss.hp,mhp:G.boss.mhp,spd:G.boss.spd,r:G.boss.r,dmg:G.boss.dmg,
+                 fire:G.boss.fire,ring:0,summon:5,hit:0}:null;
+  ls.set(RKEY,o);
+}
+function loadRun(){const r=ls.get(RKEY,null);
+  return (r&&r.v===RUNV&&r.seed===SEED&&r.t>=20&&r.p)?r:null;}
+function clearRun(){try{localStorage.removeItem(RKEY);}catch(e){}}
 
 /* ───── 데일리 시드 ───── */
 function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
@@ -757,6 +782,7 @@ function call(t){const e=$("#call");e.textContent=t;e.classList.add("on");
 /* ───── 업데이트 ───── */
 function update(dt){
   const p=G.p; G.t+=dt;
+  runSaveT+=dt;if(runSaveT>=10){runSaveT=0;saveRun();}
   p.in=Math.hypot(p.x-G.zone.x,p.y-G.zone.y)<G.zone.r;
 
   // 신호권 이동
@@ -1647,12 +1673,35 @@ function loop(now){requestAnimationFrame(loop);
   let dt=Math.min(.05,(now-last)/1000);last=now;
   if(hitstop>0){hitstop-=dt;dt*=.12;}
   update(dt);draw();}
-function start(){SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun();hideAll();mode="play";last=performance.now();call("중계 개시");
-  RID=uid();track("start",{ch:G.ch,seed:SEED},0);}
-function pause(){mode="pause";showVeil("#v-pause");}
+function start(){clearRun();SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun();hideAll();mode="play";last=performance.now();call("중계 개시");
+  runSaveT=0;RID=uid();track("start",{ch:G.ch,seed:SEED},0);}
+/* 이어하기는 진화 단계를 건너뛰고 도착하므로 HUD 라벨을 직접 맞춰야 한다.
+   setForm·finalForm·apexForm이 각자 써 놓던 것을 한 자리에 모은 것이다. */
+function relabel(){
+  const f=G.form,st=G.stage,e=$("#form");
+  if(!f){e.textContent=CHARS[G.ch].n;e.style.color="";}
+  else if(f==="none"){e.textContent=CHARS[G.ch].n+" · 순수";e.style.color=FORMS.none.c;}
+  else{
+    const N={1:{rover:"기동계",warden:"방어계"},2:{rover:"유령",warden:"요새"},3:{rover:"특이점",warden:"관제탑"}};
+    e.textContent=N[st][f]+" · "+st+"차";
+    e.style.color=st>=3?(f==="rover"?C.violet:C.orange):FORMS[f].c;
+  }
+  $("#ultname").textContent=!f?"궁극기 · 8레벨 진화 후":f==="none"?"궁극기 없음":FORMS[f].ult+" · SPACE / 탭";
+}
+function contRun(){
+  const r=loadRun();if(!r){menu();return;}
+  clearRun();
+  SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun();
+  RUNF.forEach(k=>{if(r[k]!==undefined)G[k]=r[k];});
+  Object.assign(G.p,r.p);
+  if(r.boss)G.boss=Object.assign({x:G.p.x+520,y:G.p.y},r.boss);
+  RID=r.rid;runSaveT=0;relabel();
+  hideAll();mode="play";last=performance.now();call("중계 재개");
+  track("start",{ch:G.ch,seed:SEED,resumed:true},G.t);}
+function pause(){mode="pause";saveRun();showVeil("#v-pause");}
 function resume(){mode="play";last=performance.now();hideAll();}
 function finish(won){
-  if(G.over)return;G.over=1;G.won=!!won;mode="over";SFX.bgm(false);
+  if(G.over)return;G.over=1;G.won=!!won;mode="over";SFX.bgm(false);clearRun();
   $("#o-score").textContent=calcScore().toLocaleString();$("#rankline").textContent="순위 집계 중…";submitScore();
   track("end",{kills:G.kills,lv:G.p.lv,ch:G.ch,form:G.form,won:!!won,cause:won?"":(G.lastHit||""),score:calcScore()},G.t);
   RID=null;
@@ -1670,9 +1719,12 @@ function finish(won){
   showVeil("#v-over");}
 function menu(){
   $("#best").textContent=Math.floor(SAVE.best/60)+":"+String(Math.floor(SAVE.best%60)).padStart(2,"0");
-  $("#bestk").textContent=SAVE.bestk;$("#runs").textContent=SAVE.runs;}
+  $("#bestk").textContent=SAVE.bestk;$("#runs").textContent=SAVE.runs;
+  const r=loadRun(),b=$("#b-cont");
+  if(r){b.style.display="";b.textContent="이어하기 · "+Math.floor(r.t/60)+":"+String(Math.floor(r.t%60)).padStart(2,"0")+" · LV"+r.p.lv;}
+  else b.style.display="none";}
 
-$("#b-start").onclick=start;$("#b-again").onclick=start;
+$("#b-start").onclick=start;$("#b-again").onclick=start;$("#b-cont").onclick=contRun;
 $("#b-resume").onclick=resume;$("#b-quit").onclick=()=>finish(false);
 $("#b-menu").onclick=()=>{showVeil("#v-menu");mode="menu";};
 $("#pausebtn").onclick=()=>{if(mode==="play")pause();};
@@ -1714,6 +1766,7 @@ let lastLeave=-99;
 function leave(){
   const now=performance.now()/1000; if(now-lastLeave<10)return; lastLeave=now;
   const playing=G&&!G.over&&(mode==="play"||mode==="pause"||mode==="level");
+  if(playing)saveRun();
   track("abandon",{mode},playing?G.t:null);
 }
 addEventListener("pagehide",leave);
