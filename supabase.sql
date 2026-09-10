@@ -63,3 +63,36 @@ create or replace view public.all_time_top with (security_invoker = true) as
   order by score desc limit 50;
 
 grant select on public.daily_top, public.all_time_top to anon, authenticated;
+
+
+-- ═══════════════════════════════════════════════════════════════
+-- 마이그레이션 · 2026-09-10 — 순위 기간을 하루에서 30일로
+-- Supabase SQL Editor에 이 블록만 붙여넣고 Run 하면 됩니다.
+-- 데이터는 건드리지 않고 뷰만 다시 만듭니다. 되돌리려면 이전 뷰 정의를 다시 실행하세요.
+-- ═══════════════════════════════════════════════════════════════
+
+-- 최근 30일 롤링 순위. 달력 월이 아니라 롤링이라 월초에 보드가 비지 않는다.
+-- distinct on (client_id) — 30일로 넓히면 한 사람이 여러 줄을 차지하므로 최고 기록만 남긴다.
+create or replace view public.recent_top with (security_invoker = true) as
+  select nick, cc, score, time_s, kills, lv, form, day,
+         rank() over (order by score desc)::int as rank
+  from (
+    select distinct on (client_id) client_id, nick, cc, score, time_s, kills, lv, form, day
+    from public.scores
+    where day >= (now() at time zone 'Asia/Seoul')::date - 29
+    order by client_id, score desc
+  ) t
+  order by score desc limit 50;
+
+-- 전체 순위도 사람별 최고 기록만. 기존에는 한 사람이 여러 줄을 차지했다.
+create or replace view public.all_time_top with (security_invoker = true) as
+  select nick, cc, score, time_s, kills, lv, form, day,
+         rank() over (order by score desc)::int as rank
+  from (
+    select distinct on (client_id) client_id, nick, cc, score, time_s, kills, lv, form, day
+    from public.scores
+    order by client_id, score desc
+  ) t
+  order by score desc limit 50;
+
+grant select on public.recent_top to anon, authenticated;

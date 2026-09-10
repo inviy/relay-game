@@ -316,7 +316,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <div class="veil" id="v-menu"><div class="box">
   <div class="tag">SECTOR 07 · 오늘의 시드 <span id="seed"></span> · <span id="ver"></span></div>
   <h1>RELAY</h1>
-  <p style="max-width:560px;margin:14px auto 0">모두 같은 시드로 싸우고, 순위는 매일 자정에 초기화됩니다.<br>
+  <p style="max-width:560px;margin:14px auto 0">매일 새 시드로 싸웁니다. 기록은 30일간 순위표에 남습니다.<br>
   황금빛 <b style="color:var(--gold)">신호권</b> 안에서 싸우면 피해가 크게 오릅니다. 신호권은 계속 옮겨 갑니다.<br>
   <b style="color:var(--pale)">8·16레벨</b>에 진화 — 방랑자와 수호자는 전혀 다른 게임이 됩니다.</p>
   <div class="stats">
@@ -332,7 +332,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   </div>
   <button class="btn" id="b-start">중계 시작</button>
   <p style="margin-top:16px;font-size:14px">WASD · 방향키 · 드래그로 이동 &nbsp;·&nbsp; 공격은 자동</p>
-  <div id="lb"><h3><span style="color:var(--ash);cursor:default"><b id="tab-daily" style="color:var(--gold);cursor:pointer">TODAY</b> &nbsp;/&nbsp; <b id="tab-all" style="cursor:pointer">ALL TIME</b></span><span id="lb-refresh">새로고침</span></h3><div id="lblist"><div class="lbempty">불러오는 중…</div></div></div>
+  <div id="lb"><h3><span style="color:var(--ash);cursor:default"><b id="tab-recent" style="color:var(--gold);cursor:pointer">최근 30일</b> &nbsp;/&nbsp; <b id="tab-all" style="cursor:pointer">전체</b></span><span id="lb-refresh">새로고침</span></h3><div id="lblist"><div class="lbempty">불러오는 중…</div></div></div>
 </div></div>
 
 <div class="veil off" id="v-level"><div class="box">
@@ -369,7 +369,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.3.1";
+const VERSION="1.4.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 const cv=$("#cv"), cx=cv.getContext("2d");
@@ -441,7 +441,7 @@ const flag=cc=>(cc==="OT"||cc==="ZZ")?"🌐":String.fromCodePoint(...[...cc].map
 const CCSHORT={HK:"홍콩",AU:"호주",SA:"사우디"};
 let ccName=cc=>cc;try{const dn=new Intl.DisplayNames(["ko"],{type:"region"});ccName=cc=>cc==="OT"?"기타":(CCSHORT[cc]||dn.of(cc));}catch(e){}
 const PKEY="relay:profile";
-let PROF={nick:"",cc:""}, LB=[], LBMODE="daily";
+let PROF={nick:"",cc:""}, LB=[], LBMODE="recent";
 const CLIENT=(()=>{let c=ls.get("relay:client",null);if(!c){c=(crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));ls.set("relay:client",c);}return c;})();
 const SB_H=()=>({"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"});
 const sbReady=()=>SB_KEY&&!SB_KEY.startsWith("PASTE");
@@ -468,10 +468,16 @@ async function saveProfile(){
   PROF.cc=$("#cc").value;
   ls.set(PKEY,PROF);
 }
+async function fetchLB(view){
+  try{const r=await fetch(`${SB_URL}/rest/v1/${view}?select=*`,{headers:SB_H()});
+    return r.ok?await r.json():null;}catch(e){return null;}
+}
 async function loadLB(){
   if(!sbReady()){LB=[];paintLB();$("#lblist").innerHTML=`<div class="lbempty">랭킹 서버 키가 아직 설정되지 않았습니다.</div>`;return;}
-  try{const r=await fetch(`${SB_URL}/rest/v1/${LBMODE==="daily"?"daily_top":"all_time_top"}?select=*`,{headers:SB_H()});
-    LB=r.ok?await r.json():[];}catch(e){LB=[];}
+  LB=await fetchLB(LBMODE==="recent"?"recent_top":"all_time_top");
+  /* 30일 뷰가 아직 없는 DB에서도 뜨게 한다 — 마이그레이션 전에 배포돼도 안 깨진다 */
+  if(LB===null&&LBMODE==="recent")LB=await fetchLB("daily_top");
+  if(LB===null)LB=[];
   paintLB();
 }
 function paintLB(hl){
@@ -495,7 +501,7 @@ async function submitScore(){
     if(!r.ok){$("#rankline").textContent="기록 제출 실패 ("+r.status+")";return;}
     const [{rank,score}]=await r.json();
     $("#rankline").textContent=`${flag(PROF.cc)} ${PROF.nick} · 오늘 ${rank}위 · ${score.toLocaleString()}점`;
-    LBMODE="daily";await loadLB();paintLB(PROF.nick);
+    LBMODE="recent";await loadLB();paintLB(PROF.nick);
   }catch(e){$("#rankline").textContent="기록 제출 실패";}
 }
 
@@ -1499,8 +1505,8 @@ $("#ultbtn").onclick=()=>{if(mode==="play")useUlt();};
 $("#lb-refresh").onclick=loadLB;
 $("#seed").textContent="#"+SEED;
 $("#ver").textContent="v"+VERSION;
-$("#tab-daily").onclick=()=>{LBMODE="daily";$("#tab-daily").style.color="var(--gold)";$("#tab-all").style.color="";loadLB();};
-$("#tab-all").onclick=()=>{LBMODE="all";$("#tab-all").style.color="var(--gold)";$("#tab-daily").style.color="";loadLB();};
+$("#tab-recent").onclick=()=>{LBMODE="recent";$("#tab-recent").style.color="var(--gold)";$("#tab-all").style.color="";loadLB();};
+$("#tab-all").onclick=()=>{LBMODE="all";$("#tab-all").style.color="var(--gold)";$("#tab-recent").style.color="";loadLB();};
 $("#nick").addEventListener("keydown",e=>e.stopPropagation());
 $("#nick").addEventListener("input",askName);
 showVeil("#v-menu");load();loadProfile().then(loadLB);requestAnimationFrame(loop);
