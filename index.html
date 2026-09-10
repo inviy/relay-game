@@ -432,7 +432,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.12.0";
+const VERSION="1.13.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -778,7 +778,7 @@ function newRun(){
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
     zone:{x:0,y:0,r:340},next:null,zt:ZONE_T,
-    en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],
+    en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],shl:[],
     stars:Array.from({length:150},()=>({x:rnd(-2000,2000),y:rnd(-2000,2000),z:rnd(.2,1)}))};
   for(const k in WEAPONS)G.cd[k]=0;
   const ck=CHARS[PROF.ch]?PROF.ch:"relay", ch=CHARS[ck];
@@ -797,8 +797,15 @@ const KIND={
  bomber  :{hp:10,spd:135,dmg:20,r:11,c:"#ff4d4d",xp:1,sh:"bomb",bomb:1},
  wall    :{hp:130,spd:34,dmg:16,r:26,c:"#7f8aa8",xp:4,sh:"wall",absorb:1},
  mote    :{hp:5, spd:80, dmg:5, r:8, c:"#d8ffb0",xp:1,sh:"circle"},
+ /* 후반 전용 3종. t>260 이후로 새 적이 하나도 안 나와서 12분을 넘겨도 4분 20초
+    시점과 같은 구성이었다. 셋은 각각 다른 종류의 결정을 강요한다 —
+    배회체는 이동을, 관측자는 위치를, 차폐기는 처리 순서를. */
+ orbiter :{hp:26,spd:98, dmg:11,r:14,c:"#6ad2f0",xp:2,sh:"ring",orbit:250},
+ sniper  :{hp:20,spd:54, dmg:26,r:13,c:"#ffe08a",xp:3,sh:"eye",  snipe:430},
+ shielder:{hp:70,spd:40, dmg:10,r:18,c:"#9ad6b0",xp:4,sh:"hex",  aura:190},
 };
-const NAMEK={wisp:"위스프",dash:"대셔",tank:"탱크",shooter:"사수",splitter:"분열체",bomber:"자폭체",wall:"철벽",mote:"파편"};
+const NAMEK={wisp:"위스프",dash:"대셔",tank:"탱크",shooter:"사수",splitter:"분열체",bomber:"자폭체",wall:"철벽",mote:"파편",
+  orbiter:"배회체",sniper:"관측자",shielder:"차폐기"};
 /* 엘리트 특성 — 적 8종이 속도·체력만 다른 "걸어오는 것" 하나였다.
    새 적을 만드는 것보다 기존 적에 행동을 얹는 쪽이 싸고 조합도 늘어난다. */
 const TRAITS={
@@ -814,7 +821,9 @@ function makeE(k,x,y,elite,hpMul=1){
   return {x,y,hp,mhp:hp,spd:K.spd*(elite?.8:1),dmg:K.dmg*(elite?1.4:1),r:K.r*(elite?1.6:1),
     c:elite?C.gold:K.c,xp:K.xp*(elite?8:1),elite:!!elite,hit:0,slow:0,sh:K.sh,ph:rnd(0,TAU),kind:k,
     tr:elite?pick(TKEYS):null,bt:rnd(1.5,3),
-    ranged:K.ranged,split:K.split,bomb:K.bomb,absorb:K.absorb,fire:rnd(1,2.5)};
+    ranged:K.ranged,split:K.split,bomb:K.bomb,absorb:K.absorb,fire:rnd(1,2.5),
+    orbit:K.orbit,snipe:K.snipe,aura:K.aura&&K.aura*(elite?1.35:1),
+    dir:Math.random()<.5?1:-1,ot:rnd(2,4),chg:0,lunge:0};
 }
 function ringSpawn(k,n,r){for(let i=0;i<n;i++){const a=i/n*TAU;G.en.push(makeE(k,G.p.x+Math.cos(a)*r,G.p.y+Math.sin(a)*r,false));}}
 function lineSpawn(k,n){const a=rnd(0,TAU),cxp=G.p.x+Math.cos(a)*720,cyp=G.p.y+Math.sin(a)*720,px=-Math.sin(a),py=Math.cos(a);
@@ -881,6 +890,15 @@ function update(dt){
     if(G.t>170&&r>.86)k="tank";
     if(G.t>200&&r>.6&&r<.68)k="bomber";
     if(G.t>260&&r>.8&&r<.86)k="wall";
+    /* 여기까지가 4분 20초. 예전에는 이후로 구성이 영영 고정이었다.
+       .68~.80 구간이 비어 있어(위스프 기본값) 새 종류를 그 자리에 넣는다. */
+    if(G.t>330&&r>.68&&r<.74)k="orbiter";
+    if(G.t>430&&r>.74&&r<.80)k="sniper";
+    if(G.t>540&&r<.05)k="shielder";
+    // 후반에는 비중 자체를 올린다 — 같은 적이 더 두꺼워지기만 하면 지루하다
+    if(G.t>720&&r>.30&&r<.38)k="orbiter";
+    if(G.t>900&&r>.22&&r<.30)k="sniper";
+    if(G.t>1080&&r>.17&&r<.22)k="shielder";
     spawnE(k,false);}
   // 타임라인 이벤트
   const ev=EVENTS[G.evi];
@@ -891,7 +909,12 @@ function update(dt){
   if(p.in||G.form==="rover")G.outT=Math.max(0,G.outT-dt*2);else G.outT+=dt;
   G.elite-=dt;
   if(G.elite<=0&&!G.boss){G.elite=32;
-    for(let i=0;i<1+Math.floor(G.t/180);i++)spawnE(G.t>140?"tank":"wisp",true);}
+    /* 엘리트가 늘 탱크뿐이라 후반이 단조로웠다. 그 시점에 등장한 종류 중에서 고른다.
+       시드 생성기를 써야 같은 날 모두가 같은 구성을 만난다. */
+    const ep=G.t>540?["tank","wall","orbiter","sniper","shielder"]
+            :G.t>330?["tank","wall","orbiter"]
+            :G.t>140?["tank"]:["wisp"];
+    for(let i=0;i<1+Math.floor(G.t/180);i++)spawnE(spick(R.spawn,ep),true);}
   G.chest-=dt;
   if(G.chest<=0){G.chest=24;const a=srnd(R.zone,0,TAU),d=srnd(R.zone,0,G.zone.r*.7);
     dropItem(G.zone.x+Math.cos(a)*d,G.zone.y+Math.sin(a)*d,spick(R.zone,["heal","bomb","magnet","chest"]));}
@@ -1043,7 +1066,11 @@ function explodeE(e,byKill){
   for(const o of G.en)if(o!==e&&!o.dead&&Math.hypot(o.x-e.x,o.y-e.y)<100)dmgE(o,60,0);
   shake=Math.max(shake,byKill?.28:.5);SFX.bomb();
 }
+/* 차폐기 아우라 — 자기 자신은 못 지킨다. 그래야 "저것부터 죽여라"가 읽힌다.
+   이 게임 최초의 처리 순서 결정이다. */
 function dmgE(e,d,showNum){
+  if(G.shl.length&&!e.aura)for(const sh of G.shl)
+    if(Math.hypot(e.x-sh.x,e.y-sh.y)<sh.aura){d*=.55;break;}
   if(e.tr==="armor")d*=TRAITS.armor.d;
   e.hp-=d; e.hit=.1;
   if(showNum&&e.hp>0&&Math.random()<.55){    // 직접 타격에만 스파크가 튄다
@@ -1079,6 +1106,10 @@ function hitP(d,src){const p=G.p;if(p.inv>0)return;
   p.hp-=d;p.inv=.6;p.flash=.25;shake=Math.max(shake,.5);hitstop=.03;SFX.hurt();G.lastHit=src||"접촉";}
 
 function enemies(dt){const p=G.p;
+  /* 차폐기 목록을 프레임마다 한 번만 모은다 — dmgE는 초당 수백 번 불리므로
+     거기서 전체 적을 훑으면 안 된다. 보통 0~3마리다. */
+  G.shl.length=0;
+  for(const e of G.en)if(e.aura&&!e.dead)G.shl.push(e);
   for(let i=G.en.length-1;i>=0;i--){const e=G.en[i];
     if(e.dead){G.en.splice(i,1);continue;}
     e.hit=Math.max(0,e.hit-dt);e.slow=Math.max(0,e.slow-dt);
@@ -1098,6 +1129,31 @@ function enemies(dt){const p=G.p;
       else{e.x+=Math.cos(a+Math.PI/2)*s*.5*dt;e.y+=Math.sin(a+Math.PI/2)*s*.5*dt;}
       e.fire-=dt;if(e.fire<=0&&dist<520){e.fire=2.3;
         G.eb.push({x:e.x,y:e.y,vx:Math.cos(a)*230,vy:Math.sin(a)*230,r:6,dmg:e.dmg,life:3});}
+    }else if(e.orbit){
+      /* 배회체 — 일정 반경으로 수렴한 뒤 접선 방향으로 돈다. 가만히 있으면
+         포위망이 조여지므로 "제자리에서 쏘기"가 안 통한다. */
+      const pull=Math.max(-1,Math.min(1,(dist-e.orbit)/70));
+      const tanW=1-Math.abs(pull)*.5;
+      let vx=Math.cos(a)*pull+Math.cos(a+Math.PI/2*e.dir)*tanW;
+      let vy=Math.sin(a)*pull+Math.sin(a+Math.PI/2*e.dir)*tanW;
+      const L=Math.hypot(vx,vy)||1;
+      e.x+=vx/L*s*dt;e.y+=vy/L*s*dt;
+      e.ot-=dt;
+      if(e.ot<=0){e.ot=rnd(3.4,5.2);e.lunge=.65;}          // 가끔 파고든다
+      if(e.lunge>0){e.lunge-=dt;e.x+=Math.cos(a)*s*1.5*dt;e.y+=Math.sin(a)*s*1.5*dt;}
+    }else if(e.snipe){
+      /* 관측자 — 멀리 붙어서 예고 후 예측 사격. 거리가 안전을 보장하지 않게 만든다.
+         예고(chg)가 보이는 동안 움직이면 빗나간다. */
+      if(dist<e.snipe*.85){e.x-=Math.cos(a)*s*dt;e.y-=Math.sin(a)*s*dt;}
+      else if(dist>e.snipe*1.05){e.x+=Math.cos(a)*s*dt;e.y+=Math.sin(a)*s*dt;}
+      else{e.x+=Math.cos(a+Math.PI/2*e.dir)*s*.45*dt;e.y+=Math.sin(a+Math.PI/2*e.dir)*s*.45*dt;}
+      if(e.chg>0){e.chg-=dt;
+        if(e.chg<=0){e.fire=rnd(3.1,3.9);
+          const lead=dist/620;                              // 탄속 620 기준 예측 (사수는 230)
+          const b=Math.atan2(p.y+p.dy*p.spd*lead*.55-e.y, p.x+p.dx*p.spd*lead*.55-e.x);
+          G.eb.push({x:e.x,y:e.y,vx:Math.cos(b)*620,vy:Math.sin(b)*620,r:7,dmg:e.dmg,life:3});
+          SFX.block();}
+      }else{e.fire-=dt;if(e.fire<=0&&dist<900)e.chg=1.1;}
     }else{e.x+=Math.cos(a)*s*dt;e.y+=Math.sin(a)*s*dt;}
     e.ph+=dt*6;
     if(dist<p.r+e.r){
@@ -1474,6 +1530,12 @@ function draw(){
     else if(e.sh==="wall"){cx.rect(X-e.r,Y-e.r*.55,e.r*2,e.r*1.1);}
     else if(e.sh==="bomb"){cx.arc(X,Y,e.r*(1+Math.sin(e.ph*2)*.15),0,TAU);}
     else if(e.sh==="cell"){cx.arc(X,Y,e.r,0,TAU);cx.moveTo(X+e.r*.35,Y-e.r*.3);cx.arc(X-e.r*.3,Y-e.r*.3,e.r*.35,0,TAU);cx.moveTo(X+e.r*.6,Y+e.r*.3);cx.arc(X+e.r*.25,Y+e.r*.3,e.r*.35,0,TAU);}
+    /* 고리 — 안쪽을 반대로 감아 구멍을 낸다(nonzero). 배회체가 "도는 것"으로 읽힌다 */
+    else if(e.sh==="ring"){cx.arc(X,Y,e.r,0,TAU);cx.arc(X,Y,e.r*.48,0,TAU,true);}
+    /* 렌즈 — 관측자. 가로로 눕힌 눈 모양이라 멀리서도 다른 종과 안 헷갈린다 */
+    else if(e.sh==="eye"){cx.moveTo(X-e.r,Y);cx.quadraticCurveTo(X,Y-e.r*.95,X+e.r,Y);cx.quadraticCurveTo(X,Y+e.r*.95,X-e.r,Y);}
+    /* 육각 — 차폐기. 방어계 실루엣과 같은 계열이라 "막는 놈"으로 읽힌다 */
+    else if(e.sh==="hex"){for(let q=0;q<6;q++){const ang=q/6*TAU-Math.PI/2,xx=X+Math.cos(ang)*e.r,yy=Y+Math.sin(ang)*e.r;q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}cx.closePath();}
     else cx.arc(X,Y,e.r*(1+Math.sin(e.ph)*.05),0,TAU);
     cx.fill();
     /* 피격 섬광 — 예전엔 본체를 통째로 #fff로 갈아치웠다. 탄이 많으면 화면이
@@ -1485,6 +1547,13 @@ function draw(){
     cx.globalAlpha=e.hit>0?.9:.5;cx.fillStyle="#ffffff";
     cx.beginPath();cx.arc(X,Y,e.r*.28,0,TAU);cx.fill();
     cx.globalAlpha=1;cx.restore();
+    /* 차폐기 범위 — 안 보이면 왜 안 죽는지 알 수 없다. 보여야 처리 순서를 배운다. */
+    if(e.aura){cx.save();cx.strokeStyle="rgba(154,214,176,.45)";cx.lineWidth=1.5;cx.setLineDash([9,7]);
+      cx.beginPath();cx.arc(X,Y,e.aura,0,TAU);cx.stroke();cx.restore();}
+    /* 관측자 예고선 — 예고가 보이는 1.1초 안에 움직이면 빗나간다 */
+    if(e.chg>0){const k=1-e.chg/1.1;
+      cx.save();cx.strokeStyle="rgba(255,224,138,"+(.22+k*.62).toFixed(2)+")";cx.lineWidth=1+k*2.2;
+      cx.beginPath();cx.moveTo(X,Y);cx.lineTo(p.x+ox,p.y+oy);cx.stroke();cx.restore();}
     if(e.elite){const t=TRAITS[e.tr];
       cx.strokeStyle=t?t.c:C.gold;cx.lineWidth=2.5;cx.beginPath();cx.arc(X,Y,e.r+7,0,TAU);cx.stroke();
       if(t){cx.fillStyle=t.c;cx.font="700 11px 'Chakra Petch',"+KRF;cx.textAlign="center";
@@ -1545,6 +1614,7 @@ function draw(){
   if(!p.in)edgeArrow(G.zone.x,G.zone.y,ox,oy,C.gold,Math.round(Math.hypot(G.zone.x-p.x,G.zone.y-p.y)/10)+"m");
   if(G.next)edgeArrow(G.next.x,G.next.y,ox,oy,C.pink,"다음 "+Math.ceil(G.zt)+"s");
   for(const it of G.items)edgeArrow(it.x,it.y,ox,oy,{heal:C.pink,bomb:C.orange,magnet:C.cyan,chest:C.gold}[it.type],"");
+  for(const e of G.en)if(e.chg>0)edgeArrow(e.x,e.y,ox,oy,"#ffe08a","조준");
   // 간섭 노이즈
   if(G.outT>30){const k=Math.min(1,(G.outT-30)/20);cx.fillStyle=`rgba(255,80,120,${.06*k})`;
     for(let i=0;i<14*k;i++)cx.fillRect(rnd(0,W),rnd(0,H),rnd(20,220),rnd(1,3));}
