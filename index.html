@@ -68,6 +68,8 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .lbrow .fl{font-size:20px;line-height:1}
 .lbrow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lbrow .fm{font-size:11px;letter-spacing:.1em;color:var(--ash)}
+/* 기체 실루엣은 이름 줄에 — 부제 줄은 좁은 폰에서 이미 잘린다 */
+.lbrow .chi{width:17px;height:17px;display:inline-block;vertical-align:middle;margin:0 5px 2px 0}
 .lbrow .sc{font-family:"Chakra Petch",var(--kr);text-align:right;color:var(--gold)}
 .lbempty{color:var(--ash);font-size:14px;padding:14px 0}
 #rankline{font-family:"Chakra Petch",var(--kr);font-size:18px;color:var(--gold);margin:-8px 0 20px}
@@ -372,7 +374,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.5.0";
+const VERSION="1.6.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 const cv=$("#cv"), cx=cv.getContext("2d");
@@ -489,18 +491,28 @@ function paintLB(hl){
   const FN={rover:"방랑자",warden:"수호자",none:"순수",null:"—"};
   el.innerHTML=LB.slice(0,10).map((r,i)=>`<div class="lbrow${hl&&r.nick===hl?" me":""}">
     <span class="rk">${r.rank||i+1}</span><span class="fl">${flag(r.cc)}</span>
-    <span class="nm">${esc(r.nick)}<br><span class="fm">${FN[r.form]||"—"} · LV${r.lv}${r.day?" · "+r.day.slice(5):""}</span></span>
+    <span class="nm">${r.ch&&CHARS[r.ch]?`<canvas class="chi" width="34" height="34" data-ch="${r.ch}"></canvas>`:""}${esc(r.nick)}<br><span class="fm">${FN[r.form]||"—"} · LV${r.lv}${r.day?" · "+r.day.slice(5):""}</span></span>
     <span class="fm">${Math.floor(r.time_s/60)}:${String(r.time_s%60).padStart(2,"0")}</span>
     <span class="sc">${r.score.toLocaleString()}</span></div>`).join("");
+  /* 선택 카드·게임 화면과 같은 drawChar를 쓴다 — 세 곳이 어긋날 수 없다 */
+  el.querySelectorAll("canvas.chi").forEach(cn=>{
+    const g=cn.getContext("2d");g.translate(17,17);drawChar(g,cn.dataset.ch,7);});
 }
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function calcScore(){return Math.round(G.kills*10+G.t*4+G.p.lv*80+(G.won?4000:0));}
+/* 처치가 점수의 80~90%를 먹고 처치 수는 스폰(=시간)에 묶여 있어 잘해도 점수가 안 올랐다.
+   실력이 가장 잘 갈리는 레벨(27~41)과 보스 격파의 비중을 올린다. */
+/* 서버 submit_score와 같은 식이어야 표시 점수와 순위 점수가 어긋나지 않는다.
+   서버는 p_time을 정수로 받으므로 여기서도 내림한다. */
+function calcScore(){return G.kills*6+Math.floor(G.t)*3+G.p.lv*260+(G.cleared?12000:0);}
 async function submitScore(){
   if(!sbReady()){$("#rankline").textContent="랭킹 서버 미설정 · 이번 판 "+calcScore().toLocaleString()+"점";return;}
+  const base={p_client:CLIENT,p_nick:PROF.nick,p_cc:PROF.cc==="OT"?"ZZ":PROF.cc,
+    p_time:Math.floor(G.t),p_kills:G.kills,p_lv:G.p.lv,p_form:G.form,p_won:!!G.cleared};
+  const post=b=>fetch(`${SB_URL}/rest/v1/rpc/submit_score`,{method:"POST",headers:SB_H(),body:JSON.stringify(b)});
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/rpc/submit_score`,{method:"POST",headers:SB_H(),
-      body:JSON.stringify({p_client:CLIENT,p_nick:PROF.nick,p_cc:PROF.cc==="OT"?"ZZ":PROF.cc,
-        p_time:Math.floor(G.t),p_kills:G.kills,p_lv:G.p.lv,p_form:G.form,p_won:!!G.won})});
+    /* p_ch를 아직 모르는 서버에서도 기록이 남게 한다 — 마이그레이션 전 배포를 견딘다 */
+    let r=await post({...base,p_ch:G.ch});
+    if(!r.ok)r=await post(base);
     if(!r.ok){$("#rankline").textContent="기록 제출 실패 ("+r.status+")";return;}
     const [{rank,score}]=await r.json();
     $("#rankline").textContent=`${flag(PROF.cc)} ${PROF.nick} · 오늘 ${rank}위 · ${score.toLocaleString()}점`;
@@ -528,11 +540,11 @@ const WEAPONS={
 const FORMS={
  rover:{n:"방랑자",c:C.cyan,
    d:"신호권에 매이지 않는다. 어디서든 피해 135%, 이동 속도 +25%. 이동 중 피격 25% 회피.",
-   sub:"<b>전용 무기</b> 유도 미사일 · <b>궁극기</b> 잔상 질주 — 3초 무적, 이속 2배, 지나간 자리가 터진다<br><b>2차 진화 · 유령</b> (16레벨) — 잔상 분신 2체가 따라오며 다트를 같이 쏜다. 관통 +1, 이속 +15%",
+   sub:"<b>전용 무기</b> 유도 미사일 · <b>궁극기</b> 잔상 질주 — 3초 무적, 이속 2배, 지나간 자리가 터진다<br><b>2차 진화 · 유령</b> (16레벨) — 잔상 분신 2체가 따라오며 다트를 같이 쏜다. 관통 +1, 이속 +15%<br><b>3차 진화 · 특이점</b> (24레벨) — 분신 4체, 관통 +1, 피해 +20%",
    ult:"잔상 질주"},
  warden:{n:"수호자",c:C.gold,
    d:"신호권을 지킨다. 안에서 피해 220%, 받는 피해 -35%. 6초마다 피격 1회를 막는 방패.",
-   sub:"<b>전용 무기</b> 충격 망치 · <b>궁극기</b> 역송신 — 신호권을 내 위치로 끌어오고 주변을 쓸어버린다<br><b>2차 진화 · 요새</b> (16레벨) — 자동 포탑 2기가 궤도를 돌며 사격. 신호권 +30%, 안의 적 감속",
+   sub:"<b>전용 무기</b> 충격 망치 · <b>궁극기</b> 역송신 — 신호권을 내 위치로 끌어오고 주변을 쓸어버린다<br><b>2차 진화 · 요새</b> (16레벨) — 자동 포탑 2기가 궤도를 돌며 사격. 신호권 +30%, 안의 적 감속<br><b>3차 진화 · 관제탑</b> (24레벨) — 포탑 4기, 신호권 +25%, 최대 체력 +80, 피해 +15%",
    ult:"역송신"},
  none:{n:"진화 거부",c:C.pale,
    d:"진화하지 않는다. 대신 모든 레벨업 카드가 4장이 되고 피해 +15%.",
@@ -604,10 +616,10 @@ cv.addEventListener("touchend",()=>touch=null,{passive:1});
 const ZONE_T=32, RUN_LEN=420; // 7분
 
 function newRun(){
-  G={t:0,kills:0,spawn:0,elite:24,chest:0,boss:null,over:false,won:false,
+  G={t:0,kills:0,spawn:0,elite:24,chest:0,boss:null,over:false,won:false,cleared:false,bosses:0,bossT:0,
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0},
-    w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
+    w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
     zone:{x:0,y:0,r:340},next:null,zt:ZONE_T,
     en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],
     stars:Array.from({length:150},()=>({x:rnd(-2000,2000),y:rnd(-2000,2000),z:rnd(.2,1)}))};
@@ -653,7 +665,8 @@ function spawnE(k,elite){
 }
 function spawnBoss(){
   const a=rnd(0,TAU);
-  G.boss={x:G.p.x+Math.cos(a)*520,y:G.p.y+Math.sin(a)*520,hp:9000,mhp:9000,spd:70,r:46,dmg:24,
+  const bhp=Math.round(9000*Math.pow(1.55,G.bosses));
+  G.boss={x:G.p.x+Math.cos(a)*520,y:G.p.y+Math.sin(a)*520,hp:bhp,mhp:bhp,spd:70+G.bosses*8,r:46,dmg:24+G.bosses*6,
     fire:1.4,ring:0,summon:5,hit:0};
   call("재머 강림");SFX.boss();
 }
@@ -690,7 +703,7 @@ function update(dt){
   p.inv=Math.max(0,p.inv-dt); p.flash=Math.max(0,p.flash-dt); G.ult.t=Math.max(0,G.ult.t-dt);
 
   // 스폰 (초반은 아주 완만하게)
-  G.spawn+=dt*Math.min(7.5,0.9+G.t/34);   // 상한 없이 선형으로 오르면 후반이 물량으로 뭉갠다
+  G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.t/34);  // 클리어 후에는 상한을 풀어 난이도를 이어간다
   while(G.spawn>=1){G.spawn--;
     const r=R.spawn(); let k="wisp";
     if(G.t>75&&r<.38)k="dash";
@@ -714,10 +727,15 @@ function update(dt){
   if(G.chest<=0){G.chest=24;const a=srnd(R.zone,0,TAU),d=srnd(R.zone,0,G.zone.r*.7);
     dropItem(G.zone.x+Math.cos(a)*d,G.zone.y+Math.sin(a)*d,spick(R.zone,["heal","bomb","magnet","chest"]));}
 
-  if(G.t>=RUN_LEN&&!G.boss&&!G.over)spawnBoss();
+  /* 보스를 잡아도 끝나지 않는다 — 상한이 닫혀 있으면 잘해도 점수가 안 오른다.
+     격파 후에는 일정 간격으로 더 강한 재머가 계속 온다. 끝은 죽음뿐이다. */
+  if(!G.boss&&!G.over){
+    if(!G.cleared){ if(G.t>=RUN_LEN)spawnBoss(); }
+    else { G.bossT-=dt; if(G.bossT<=0)spawnBoss(); }
+  }
 
   weapons(dt); enemies(dt); boss(dt); bullets(dt); pools(dt); items(dt); fx(dt);
-  if(p.hp<=0)finish(false);
+  if(p.hp<=0)finish(G.cleared);
   shake=Math.max(0,shake-dt*3.2);
   hud();
 }
@@ -750,7 +768,7 @@ function weapons(dt){
         const a=t?Math.atan2(t.y-p.y,t.x-p.x):Math.atan2(p.dy,p.dx)+i*.35;
         G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:6*A,
           dmg:(11+L*5)*st.dmg*zoneMul(),life:1.5,pierce:st.pierce+(L>=5?1:0),c:C.cyan});
-        if(G.stage===2&&G.form==="rover")for(const ci of [8,16]){const h=G.hist[ci];if(!h)continue;
+        if(G.stage>=2&&G.form==="rover")for(const ci of HIST_IDX()){const h=G.hist[ci];if(!h)continue;
           G.bul.push({x:h.x,y:h.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:5*A,
             dmg:(11+L*5)*st.dmg*zoneMul()*.45,life:1.3,pierce:st.pierce,c:C.violet});}}
     }
@@ -819,7 +837,7 @@ function weapons(dt){
     shake=Math.max(shake,evo?.5:.25);
   }
   // 요새 포탑
-  if(G.stage===2&&G.form==="warden"){G.tcd-=dt;
+  if(G.stage>=2&&G.form==="warden"){G.tcd-=dt;
     for(const t of G.turrets){t.a+=dt*1.2;t.x=p.x+Math.cos(t.a)*70;t.y=p.y+Math.sin(t.a)*70;}
     if(G.tcd<=0){G.tcd=.42;
       for(const t of G.turrets){const tg=near(3);const e=tg[Math.floor(Math.random()*tg.length)];if(!e)continue;
@@ -877,7 +895,11 @@ function dmgE(e,d,showNum){
 function dmgB(d){const b=G.boss;if(!b)return;
   b.hp-=d;b.hit=.09;
   if(b.hp<=0){for(let i=0;i<40;i++)G.fx.push({x:b.x,y:b.y,vx:rnd(-340,340),vy:rnd(-340,340),life:.9,max:.9,c:C.gold});
-    G.boss=null;shake=1.1;hitstop=.14;finish(true);}
+    G.boss=null;shake=1.1;hitstop=.14;
+    G.bosses++;G.bossT=100;
+    const p=G.p;p.hp=Math.min(p.mhp,p.hp+p.mhp*.35);   // 격파 보상 — 다음 파도를 버틸 여지
+    if(!G.cleared){G.cleared=true;call("재머 격파 · 송신 계속");}
+    else call("재머 "+G.bosses+"기 격파");}
 }
 function hitP(d,src){const p=G.p;if(p.inv>0)return;
   if(G.form==="rover"&&G.moving&&Math.random()<.25){p.inv=.25;G.num.push({x:p.x,y:p.y-24,v:"회피",life:.6,c:C.cyan});return;}
@@ -985,6 +1007,7 @@ function fx(dt){const p=G.p;
 function gainXp(n){const p=G.p;p.xp+=n;
   while(p.xp>=p.need){p.xp-=p.need;p.lv++;p.need=Math.round(p.need*1.22+3);
     if(p.lv>=16&&G.form&&G.form!=="none"&&!G.final)finalForm();
+    if(p.lv>=24&&G.final&&!G.apex)apexForm();
     if(p.lv>=8&&!G.form)formChoice(); else levelUp();}}
 
 /* ───── 오퍼레이터 진화 (2갈래) ───── */
@@ -1012,6 +1035,24 @@ function setForm(k){
   $("#form").textContent=k==="none"?charOf().n+" · 순수":FORMS[k].n+" · 1차";
   $("#form").style.color=FORMS[k].c;
   $("#ultname").textContent=k==="none"?"궁극기 없음":FORMS[k].ult+" · SPACE / 탭";
+}
+/* 잔상 분신이 참조할 궤적 인덱스. 3차는 4체 — G.hist 길이가 24라 23이 상한이다. */
+const HIST_IDX=()=>G.stage>=3?[5,11,17,23]:[8,16];
+/* 3차 진화 · 24레벨. 기록상 27~41레벨까지 가는데 마지막 진화가 16레벨이라
+   후반 절반이 무보상이었다. */
+function apexForm(){
+  G.apex=true;G.stage=3;const p=G.p;
+  if(G.form==="rover"){
+    G.st.pierce+=1;G.st.dmg*=1.2;p.spd*=1.08;
+    call("3차 진화 · 특이점");$("#form").textContent="특이점 · 3차";G.flash={t:1.2,c:"168,107,255"};
+  }else{
+    G.zone.r*=1.25;p.mhp+=80;p.hp=p.mhp;G.st.dmg*=1.15;
+    G.turrets=[{a:0},{a:TAU/4},{a:TAU/2},{a:TAU*3/4}];
+    call("3차 진화 · 관제탑");$("#form").textContent="관제탑 · 3차";G.flash={t:1.2,c:"255,159,67"};
+  }
+  $("#form").style.color=G.form==="rover"?C.violet:C.orange;
+  burst(G.form==="warden"?C.orange:C.violet,110);SFX.evolve();
+  shake=1.5;hitstop=.26;
 }
 function finalForm(){
   G.final=true;G.stage=2;const p=G.p;
@@ -1289,10 +1330,10 @@ function draw(){
     cx.fillRect(-2.5,-o.r,5,o.r*2);cx.restore();}
 
   // 유령 분신
-  if(G.stage===2&&G.form==="rover")for(const ci of [8,16]){const h=G.hist[ci];if(!h)continue;
-    cx.save();cx.globalAlpha=ci===8?.45:.25;drawShip(h.x+ox,h.y+oy,p.dx,p.dy,"rover",2,C.violet);cx.restore();}
+  if(G.stage>=2&&G.form==="rover")for(const ci of HIST_IDX()){const h=G.hist[ci];if(!h)continue;
+    cx.save();cx.globalAlpha=.5-ci*.014;drawShip(h.x+ox,h.y+oy,p.dx,p.dy,"rover",2,C.violet);cx.restore();}
   // 요새 포탑
-  if(G.stage===2&&G.form==="warden")for(const t of G.turrets){
+  if(G.stage>=2&&G.form==="warden")for(const t of G.turrets){
     cx.save();cx.strokeStyle="rgba(255,209,102,.35)";cx.lineWidth=1.5;cx.beginPath();cx.moveTo(W/2+sx,H/2+sy);cx.lineTo(t.x+ox,t.y+oy);cx.stroke();
     cx.shadowColor=C.gold;cx.shadowBlur=16;cx.fillStyle=C.gold;cx.translate(t.x+ox,t.y+oy);cx.rotate(t.a);
     cx.fillRect(-7,-7,14,14);cx.restore();}
@@ -1416,22 +1457,23 @@ function drawShip(x,y,dx,dy,form,stage,over){
     cx.rotate(a);drawChar(cx,(G&&G.ch)||"relay",13,over);
   }else if(form==="rover"){
     /* 진행 방향 기준으로 기체 장식을 먼저 깐다 — 본체 아래에 깔려 배경처럼 읽힌다 */
-    cx.save();cx.rotate(a);charAccent(cx,(G&&G.ch)||"relay",stage===2?19:15,over);cx.restore();
+    cx.save();cx.rotate(a);charAccent(cx,(G&&G.ch)||"relay",stage>=3?23:stage===2?19:15,over);cx.restore();
     cx.rotate(a);
     if(stage===1){ // 날렵한 화살 기체
       cx.fillStyle=over||C.cyan;cx.beginPath();cx.moveTo(20,0);cx.lineTo(-12,-13);cx.lineTo(-5,0);cx.lineTo(-12,13);cx.closePath();cx.fill();
       cx.fillStyle="#fff";cx.beginPath();cx.arc(4,0,4,0,TAU);cx.fill();
       cx.fillStyle="rgba(79,240,216,.5)";cx.fillRect(-22,-3,10,6);
-    }else{ // 유령: 반투명 긴 날개
+    }else{ // 유령 / 특이점(3차) — 반투명 긴 날개
+      if(stage>=3)cx.scale(1.2,1.2);
       cx.globalAlpha*= .85;
       cx.fillStyle=over||C.violet;cx.beginPath();cx.moveTo(26,0);cx.lineTo(-16,-22);cx.lineTo(-4,0);cx.lineTo(-16,22);cx.closePath();cx.fill();
       cx.fillStyle=over||C.cyan;cx.beginPath();cx.moveTo(18,0);cx.lineTo(-8,-9);cx.lineTo(-3,0);cx.lineTo(-8,9);cx.closePath();cx.fill();
       cx.fillStyle="#fff";cx.beginPath();cx.arc(6,0,4,0,TAU);cx.fill();
     }
   }else{ // warden
-    const n=6,R=stage===2?22:16;
+    const n=6,R=stage>=3?26:stage===2?22:16;
     /* 본체는 자전하지만 장식은 진행 방향에 고정한다 — 같이 돌면 방패 호가 뒤를 막는다 */
-    cx.save();cx.rotate(a);charAccent(cx,(G&&G.ch)||"relay",stage===2?19:15,over);cx.restore();
+    cx.save();cx.rotate(a);charAccent(cx,(G&&G.ch)||"relay",stage>=3?23:stage===2?19:15,over);cx.restore();
     cx.rotate(G.t*.6);
     cx.fillStyle=over||(stage===2?C.orange:C.gold);cx.beginPath();
     for(let i=0;i<n;i++){const g=i/n*TAU;i?cx.lineTo(Math.cos(g)*R,Math.sin(g)*R):cx.moveTo(R,0);}
@@ -1440,7 +1482,7 @@ function drawShip(x,y,dx,dy,form,stage,over){
     for(let i=0;i<n;i++){const g=i/n*TAU;i?cx.lineTo(Math.cos(g)*R*.55,Math.sin(g)*R*.55):cx.moveTo(R*.55,0);}
     cx.closePath();cx.fill();
     cx.fillStyle="#fff";cx.beginPath();cx.arc(0,0,4,0,TAU);cx.fill();
-    if(stage===2){cx.strokeStyle=C.gold;cx.lineWidth=3;cx.beginPath();
+    if(stage>=2){cx.strokeStyle=stage>=3?C.orange:C.gold;cx.lineWidth=stage>=3?4:3;cx.beginPath();
       for(let i=0;i<n;i++){const g=i/n*TAU;cx.moveTo(Math.cos(g)*R,Math.sin(g)*R);cx.lineTo(Math.cos(g)*(R+9),Math.sin(g)*(R+9));}
       cx.stroke();}
   }
