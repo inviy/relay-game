@@ -425,6 +425,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <div id="build" style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:22px"></div>
   <div id="rankline"></div>
   <button class="btn" id="b-again">다시 출격</button>
+  <button class="btn ghost" id="b-more" style="margin-left:10px;display:none">계속 송신</button>
   <button class="btn ghost" id="b-share" style="margin-left:10px">결과 복사</button>
   <button class="btn ghost" id="b-menu" style="margin-left:10px">메인으로</button>
 </div></div>
@@ -432,7 +433,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.13.0";
+const VERSION="1.14.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -467,7 +468,7 @@ function save(){ls.set(KEY,SAVE);}
    오늘 시드에서만 유효하다 — 시드가 바뀌면 애초에 같은 판이 아니다.
    되살린 저장은 즉시 지운다. 안 그러면 같은 순간을 반복해 되살릴 수 있다. */
 const RKEY="relay:run", RUNV=1;
-const RUNF=["t","kills","spawn","elite","chest","bosses","bossT","cleared","evi","evWarn","outT",
+const RUNF=["t","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
   "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ult","shield",
   "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
 let runSaveT=0;
@@ -773,7 +774,7 @@ cv.addEventListener("touchend",()=>touch=null,{passive:1});
 const ZONE_T=32, RUN_LEN=420; // 7분
 
 function newRun(){
-  G={t:0,kills:0,spawn:0,elite:24,chest:0,boss:null,over:false,won:false,cleared:false,bosses:0,bossT:0,
+  G={t:0,kills:0,spawn:0,elite:24,chest:0,boss:null,over:false,won:false,cleared:false,ended:false,endNow:false,bosses:0,bossT:0,
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
@@ -840,12 +841,18 @@ function spawnE(k,elite){
   const a=rnd(0,TAU), d=Math.max(W,H)*.68;
   G.en.push(makeE(k,G.p.x+Math.cos(a)*d,G.p.y+Math.sin(a)*d,elite));
 }
+/* 재머 4기를 잡으면 종단 재머가 온다 — 약 13분 50초 지점. 무한 모드에 끝이
+   없어서 "할 게 없어서 중단"이 됐던 자리다. 체력은 후반 DPS 실측(정지 표적
+   6,279/s, 실전 체감은 그 60%)을 근거로 2.4배 — 대략 30~60초 싸움이 된다. */
+const FINAL_AT=4;
 function spawnBoss(){
   const a=rnd(0,TAU);
-  const bhp=Math.round(9000*Math.pow(1.55,G.bosses));
-  G.boss={x:G.p.x+Math.cos(a)*520,y:G.p.y+Math.sin(a)*520,hp:bhp,mhp:bhp,spd:70+G.bosses*8,r:46,dmg:24+G.bosses*6,
-    fire:1.4,ring:0,summon:5,hit:0};
-  call("재머 강림");SFX.boss();
+  const fin=G.bosses>=FINAL_AT&&!G.ended;
+  const bhp=Math.round(9000*Math.pow(1.55,G.bosses)*(fin?2.4:1));
+  G.boss={x:G.p.x+Math.cos(a)*520,y:G.p.y+Math.sin(a)*520,hp:bhp,mhp:bhp,
+    spd:fin?86:70+G.bosses*8,r:fin?78:46,dmg:fin?34:24+G.bosses*6,
+    fire:1.4,ring:0,summon:5,hit:0,fin:fin?1:0,ph:0,spiral:0,conv:0};
+  call(fin?"종단 재머 강림":"재머 강림");SFX.boss();
 }
 function call(t){const e=$("#call");e.textContent=t;e.classList.add("on");
   clearTimeout(call._);call._=setTimeout(()=>e.classList.remove("on"),1800);}
@@ -1091,10 +1098,12 @@ function dmgE(e,d,showNum){
 }
 function dmgB(d){const b=G.boss;if(!b)return;
   b.hp-=d;b.hit=.09;
-  if(b.hp<=0){for(let i=0;i<40;i++)G.fx.push({x:b.x,y:b.y,vx:rnd(-340,340),vy:rnd(-340,340),life:.9,max:.9,c:C.gold});
-    G.boss=null;shake=1.1;hitstop=.14;
+  if(b.hp<=0){const fin=b.fin;
+    for(let i=0;i<(fin?120:40);i++)G.fx.push({x:b.x,y:b.y,vx:rnd(-340,340)*(fin?1.8:1),vy:rnd(-340,340)*(fin?1.8:1),life:fin?1.4:.9,max:fin?1.4:.9,c:fin?C.pink:C.gold});
+    G.boss=null;shake=fin?2.2:1.1;hitstop=fin?.3:.14;
     G.bosses++;G.bossT=100;
     const p=G.p;p.hp=Math.min(p.mhp,p.hp+p.mhp*.35);   // 격파 보상 — 다음 파도를 버틸 여지
+    if(fin){G.ended=true;G.endNow=true;G.cleared=true;G.eb.length=0;call("송신 완료");finish(true);return;}
     if(!G.cleared){G.cleared=true;call("재머 격파 · 송신 계속");}
     else call("재머 "+G.bosses+"기 격파");}
 }
@@ -1161,11 +1170,44 @@ function enemies(dt){const p=G.p;
       hitP(e.dmg,NAMEK[e.kind]);}
     if(Math.hypot(p.x-e.x,p.y-e.y)>Math.max(W,H)*1.6)G.en.splice(i,1);}
 }
+/* 종단 재머 — 체력에 따라 패턴이 바뀐다. 링(넓게 퍼져) → 나선(계속 움직이게)
+   → 수렴(빈틈을 찾게). 소환도 단계마다 다른 종류를 부른다.
+   같은 공격이 더 아프기만 한 보스는 길기만 하고 안 무섭다. */
+function finalBoss(dt,b,a){
+  const f=b.hp/b.mhp, ph=f>.6?1:f>.3?2:3;
+  if(ph!==b.ph){b.ph=ph;shake=Math.max(shake,1.1);hitstop=.1;
+    call("종단 재머 · "+ph+"단계");SFX.warn();
+    for(let i=0;i<50;i++)G.fx.push({x:b.x,y:b.y,vx:rnd(-420,420),vy:rnd(-420,420),life:.85,max:.85,c:C.pink});}
+  b.spd=86+ph*16;
+  b.fire-=dt;
+  if(b.fire<=0){b.fire=ph===1?1.5:1.9;b.ring+=.28;
+    const n=16+ph*4;
+    for(let i=0;i<n;i++){const g=b.ring+i*TAU/n;
+      G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*210,vy:Math.sin(g)*210,r:8,dmg:15,life:4});}}
+  if(ph>=2){b.spiral-=dt;                                   // 나선 — 제자리에 못 서 있게
+    if(b.spiral<=0){b.spiral=.16;b.ring+=.42;
+      for(let i=0;i<2;i++){const g=b.ring+i*Math.PI;
+        G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*260,vy:Math.sin(g)*260,r:7,dmg:12,life:3.4});}}}
+  if(ph>=3){b.conv-=dt;                                     // 수렴 — 빈틈이 반드시 하나 있다
+    if(b.conv<=0){b.conv=3.4;
+      const p=G.p,R0=640,n=26,gap=Math.floor(rnd(0,n)),gw=4;
+      for(let i=0;i<n;i++){
+        if((i-gap+n)%n<gw)continue;
+        const g=i/n*TAU;
+        G.eb.push({x:p.x+Math.cos(g)*R0,y:p.y+Math.sin(g)*R0,
+          vx:-Math.cos(g)*250,vy:-Math.sin(g)*250,r:7,dmg:16,life:3.2});}
+      call("수렴");}}
+  b.summon-=dt;
+  if(b.summon<=0){b.summon=8-ph;
+    const k=ph===1?"tank":ph===2?"orbiter":"sniper";
+    for(let i=0;i<3+ph;i++)spawnE(k,false);}
+}
 function boss(dt){const b=G.boss;if(!b)return;const p=G.p;
   b.hit=Math.max(0,b.hit-dt);
   const a=Math.atan2(p.y-b.y,p.x-b.x);
   b.x+=Math.cos(a)*b.spd*dt;b.y+=Math.sin(a)*b.spd*dt;
-  if(Math.hypot(p.x-b.x,p.y-b.y)<p.r+b.r)hitP(b.dmg,"재머");
+  if(Math.hypot(p.x-b.x,p.y-b.y)<p.r+b.r)hitP(b.dmg,b.fin?"종단 재머":"재머");
+  if(b.fin){finalBoss(dt,b,a);return;}
   b.fire-=dt;
   if(b.fire<=0){b.fire=1.5;b.ring+=.3;
     for(let i=0;i<14;i++){const g=b.ring+i*TAU/14;
@@ -1564,9 +1606,14 @@ function draw(){
     cx.save();cx.shadowColor=C.pink;cx.shadowBlur=36;
     cx.fillStyle="#7b3fb8";cx.beginPath();cx.arc(X,Y,b.r,0,TAU);cx.fill();
     if(b.hit>0){cx.shadowBlur=0;cx.globalAlpha=.5;cx.fillStyle="#ffffff";cx.fill();cx.globalAlpha=1;cx.shadowBlur=36;}
-    cx.strokeStyle=C.pink;cx.lineWidth=3;cx.beginPath();cx.arc(X,Y,b.r+12,0,TAU);cx.stroke();cx.restore();
-    cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54*VS,W*.68,9*VS);
-    cx.fillStyle=C.pink;cx.fillRect(W*.16,54*VS,W*.68*Math.max(0,b.hp/b.mhp),9*VS);}
+    cx.strokeStyle=C.pink;cx.lineWidth=3;cx.beginPath();cx.arc(X,Y,b.r+12,0,TAU);cx.stroke();
+    /* 종단 재머는 회전하는 호 세 겹으로 구분한다 — 크기만 키우면 그냥 큰 보스다 */
+    if(b.fin){cx.strokeStyle="rgba(255,209,102,.8)";cx.lineWidth=2.5;
+      for(let q=0;q<3;q++){const rr=b.r+26+q*15, aa=G.t*(q%2?-.6:.9)+q*2;
+        cx.beginPath();cx.arc(X,Y,rr,aa,aa+TAU*.62);cx.stroke();}}
+    cx.restore();
+    cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54*VS,W*.68,(b.fin?13:9)*VS);
+    cx.fillStyle=b.fin?C.gold:C.pink;cx.fillRect(W*.16,54*VS,W*.68*Math.max(0,b.hp/b.mhp),(b.fin?13:9)*VS);}
 
   // 탄
   cx.save();cx.shadowBlur=16;cx.lineCap="round";
@@ -1839,15 +1886,18 @@ function resume(){mode="play";last=performance.now();hideAll();}
 function finish(won){
   if(G.over)return;G.over=1;G.won=!!won;mode="over";SFX.bgm(false);clearRun();
   $("#o-score").textContent=calcScore().toLocaleString();$("#rankline").textContent="순위 집계 중…";submitScore();
-  track("end",{kills:G.kills,lv:G.p.lv,ch:G.ch,form:G.form,won:!!won,cause:won?"":(G.lastHit||""),score:calcScore()},G.t);
-  RID=null;
+  track("end",{kills:G.kills,lv:G.p.lv,ch:G.ch,form:G.form,won:!!won,cause:won?"":(G.lastHit||""),
+    ended:!!G.endNow,score:calcScore()},G.t);
+  G.lastRid=RID;RID=null;
   SAVE.runs++;if(G.t>SAVE.best)SAVE.best=G.t;if(G.kills>SAVE.bestk)SAVE.bestk=G.kills;
   save();menu();
-  $("#otag").textContent=won?"MISSION COMPLETE":"SIGNAL LOST";
-  $("#otitle").textContent=won?"중계 성공":"신호가 끊어졌다";
+  const trueEnd=!!G.endNow;
+  $("#otag").textContent=trueEnd?"SIGNAL DELIVERED":won?"MISSION COMPLETE":"SIGNAL LOST";
+  $("#otitle").textContent=trueEnd?"중계 완료":won?"중계 성공":"신호가 끊어졌다";
+  $("#b-more").style.display=trueEnd?"":"none";
   $("#o-time").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
   $("#o-kills").textContent=G.kills;$("#o-lv").textContent=G.p.lv;
-  $("#cause").textContent=won?"":"사인: "+(G.lastHit||"—");
+  $("#cause").textContent=trueEnd?"종단 재머를 끊고 신호를 넘겼다":won?"":"사인: "+(G.lastHit||"—");
   let bh="";for(const k in G.w){const ev=EVOS.find(e=>e.w===k&&G.evo[e.id]);
     bh+=`<span class="wchip" style="--c:${WEAPONS[k].c}"><b>${ev?ev.n:WEAPONS[k].n}</b> ${ev?"MAX":"Lv"+G.lvls[k]}</span>`;}
   for(const k in PASSIVES)if(G.lvls[k])bh+=`<span class="wchip" style="--c:${PASSIVES[k].c}">${PASSIVES[k].n} ${G.lvls[k]}</span>`;
@@ -1861,6 +1911,13 @@ function menu(){
   else b.style.display="none";}
 
 $("#b-start").onclick=start;$("#b-again").onclick=start;$("#b-cont").onclick=contRun;
+/* 끝을 봤어도 더 하고 싶을 수 있다. 무한 모드를 없애는 게 아니라 선택으로 만든다.
+   rid를 되살려 한 판으로 세게 한다 — 안 그러면 분석에서 두 판으로 잡힌다. */
+$("#b-more").onclick=()=>{
+  if(!G||!G.ended)return;
+  G.over=false;G.won=false;G.endNow=false;G.bossT=100;
+  RID=G.lastRid||uid();runSaveT=0;
+  hideAll();mode="play";last=performance.now();SFX.bgm(true);call("송신 재개");};
 $("#b-resume").onclick=resume;$("#b-quit").onclick=()=>finish(false);
 $("#b-menu").onclick=()=>{showVeil("#v-menu");mode="menu";};
 $("#pausebtn").onclick=()=>{if(mode==="play")pause();};
