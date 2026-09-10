@@ -383,9 +383,9 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <div class="veil" id="v-menu"><div class="box">
   <div class="tag">SECTOR 07 · 오늘의 시드 <span id="seed"></span> · <span id="ver"></span></div>
   <h1>RELAY</h1>
-  <p style="max-width:560px;margin:14px auto 0">판이 매일 새로 바뀝니다. <b style="color:var(--pale)">오늘 판은 모두에게 똑같아서</b>, 운이 아니라 실력으로 순위가 갈립니다.<br>
-  화면 어딘가에 <b style="color:var(--gold)">황금빛 원(신호권)</b>이 있습니다. 그 안에서 싸우면 피해가 훨씬 세집니다. 원은 계속 다른 곳으로 옮겨 갑니다.<br>
-  레벨이 오르면 <b style="color:var(--pale)">두 갈래 중 하나</b>를 골라 진화합니다. 어느 쪽을 고르느냐에 따라 완전히 다른 게임이 됩니다.</p>
+  <p style="max-width:560px;margin:14px auto 0">매일 새 판이 열립니다. <b style="color:var(--pale)">오늘 판은 모두에게 똑같습니다</b> — 운이 아니라 실력 싸움.<br>
+  화면 어딘가에 <b style="color:var(--gold)">황금빛 원</b>. 이게 신호권입니다. 안에서 싸우면 피해가 크게 오릅니다. 문제는 원이 가만있지 않는다는 것.<br>
+  레벨 8에서 길이 갈립니다. <b style="color:var(--pale)">빠르게 갈지, 단단하게 버틸지</b> — 고른 쪽에 따라 무기도 궁극기도 달라집니다.</p>
   <p id="todaymod" style="margin:12px auto 0;font-size:14.5px;max-width:540px;
      padding:9px 14px;border:1px solid var(--line);border-radius:3px;background:rgba(255,209,102,.05)"></p>
   <p id="lbtop"></p>
@@ -445,7 +445,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.0.3";
+const VERSION="2.0.4";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -528,7 +528,7 @@ const SEED=dailySeed();
 const MODS=[
  {id:"swarm", n:"떼거리",    d:"적이 훨씬 많이 옵니다. 대신 하나하나는 약합니다", spawn:1.4, hp:.75},
  {id:"narrow",n:"좁은 원",   d:"황금 원이 작습니다. 대신 그 안에서 피해가 더 세집니다", zone:.7, zmul:1.25},
- {id:"bombs", n:"자폭 러시", d:"터지는 빨간 적이 세 배로 옵니다. 가까이 두지 마세요", bomb:3},
+ {id:"bombs", n:"자폭 러시", d:"터지는 빨간 적이 세 배. 곁에 두지 마세요", bomb:3},
  {id:"supply",n:"보급 풍년", d:"상자가 훨씬 자주 떨어집니다. 레벨이 빨리 오릅니다", chest:.6},
  {id:"rush",  n:"속도전",    d:"나도 적도 빨라집니다", pspd:1.25, espd:1.15},
  {id:"giants",n:"우두머리",  d:"큰 적이 자주 옵니다. 잡으면 상자를 줍니다", elite:.6, ehp:1.3},
