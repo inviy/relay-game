@@ -85,6 +85,14 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .card .kind{font-size:11px;letter-spacing:.24em;color:var(--c);font-weight:700;margin-bottom:7px}
 .card .t{font-family:"Chakra Petch",var(--kr);font-size:21px;font-weight:700;margin-bottom:8px;color:var(--pale)}
 .card .d{color:var(--ash);font-size:15px;line-height:1.5;font-weight:500}
+/* ── 시작 기체 카드 — 레벨업 카드를 축소해 재사용 ── */
+.chars{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:640px;margin:0 auto 14px}
+.card.ch{padding:14px 10px 12px}
+.card.ch .glyph{width:38px;height:38px;margin-bottom:8px}
+.card.ch .glyph i{width:14px;height:14px}
+.card.ch .t{font-size:16px;margin-bottom:4px}
+.card.ch .d{font-size:12px;line-height:1.4}
+.card.ch.on{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 12px 30px -14px var(--c)}
 .card.evo{border-color:var(--gold);animation:pulseGlow 1.6s ease-in-out infinite}
 @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 1px var(--gold),0 0 30px -6px rgba(255,209,102,.5)}
   50%{box-shadow:0 0 0 1px var(--gold),0 0 52px -4px rgba(255,209,102,.9)}}
@@ -212,6 +220,8 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   .btn.ghost{margin-left:0!important;margin-top:10px}
   .stats{gap:22px;margin:20px 0}
   .ident{flex-wrap:nowrap;gap:8px;margin:18px 0 14px}
+  .chars{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .card.ch{padding:12px 10px 10px}
   .ident select,.ident input{height:52px;padding:0 12px;font-size:16px}
   /* 국가는 줄지 않게 두고 닉네임이 남는 폭을 가져간다 — 반대로 하면 국가명이 잘린다 */
   .ident input{flex:1 1 0;width:auto;min-width:0}
@@ -272,6 +282,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     <select id="cc" title="국가"></select>
     <input id="nick" maxlength="14" placeholder="닉네임" spellcheck="false">
   </div>
+  <div id="chars" class="chars" aria-label="시작 기체 선택"></div>
   <button class="btn" id="b-start">중계 시작</button>
   <p style="margin-top:16px;font-size:14px">WASD · 방향키 · 드래그로 이동 &nbsp;·&nbsp; 공격은 자동</p>
   <div id="lb"><h3><span style="color:var(--ash);cursor:default"><b id="tab-daily" style="color:var(--gold);cursor:pointer">TODAY</b> &nbsp;/&nbsp; <b id="tab-all" style="cursor:pointer">ALL TIME</b></span><span id="lb-refresh">새로고침</span></h3><div id="lblist"><div class="lbempty">불러오는 중…</div></div></div>
@@ -311,7 +322,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.1.1";
+const VERSION="1.2.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 const cv=$("#cv"), cx=cv.getContext("2d");
@@ -389,7 +400,9 @@ const SB_H=()=>({"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type"
 const sbReady=()=>SB_KEY&&!SB_KEY.startsWith("PASTE");
 function guessCC(){const m=(navigator.language||"").match(/-([A-Z]{2})/);const c=m?m[1]:"KR";return CCS.includes(c)?c:"OT";}
 async function loadProfile(){
-  PROF=Object.assign({nick:"",cc:""},ls.get(PKEY,{}));
+  PROF=Object.assign({nick:"",cc:"",ch:"relay"},ls.get(PKEY,{}));
+  if(!CHARS[PROF.ch])PROF.ch="relay";
+  renderChars();
   if(!PROF.cc)PROF.cc=guessCC();
   if(!PROF.nick)PROF.nick="OP-"+Math.floor(1000+Math.random()*9000);
   const sel=$("#cc");sel.innerHTML=CCS.map(c=>`<option value="${c}">${flag(c)} ${ccName(c)}</option>`).join("");
@@ -470,6 +483,21 @@ const PASSIVES={
   magnet:{n:"자기장",c:C.cyan,d:"경험치 흡수 범위 +40%"},
   regen :{n:"재생기",c:C.gold,d:"초당 체력 회복 +0.9"},
 };
+/* ───── 시작 기체 ─────
+   시작 무기 + 장점 하나 + 대가 하나. 새 메커닉 없이 newRun 초기값의 프리셋이다.
+   8레벨 진화(방랑자/수호자)가 중반 분기를 맡으므로 진화 전용 무기는 시작 무기에서 뺀다. */
+const CHARS={
+  relay :{n:"중계사",c:C.cyan,  w:"dart", d:"펄스 다트 · 리롤 +1",            f:G=>{G.rerolls+=1;}},
+  runner:{n:"질주자",c:C.orange,w:"flame",d:"화염 흔적 · 이속 +15% · 체력 100", f:G=>{G.p.spd*=1.15;G.p.mhp=G.p.hp=100;}},
+  shield:{n:"방패수",c:C.gold,  w:"blade",d:"회전 검 · 체력 160 · 이속 −8%",    f:G=>{G.p.mhp=G.p.hp=160;G.p.spd*=.92;}},
+  tech  :{n:"기술자",c:C.violet,w:"chain",d:"연쇄 번개 · 공속 +12% · 체력 105", f:G=>{G.st.rate*=1.12;G.p.mhp=G.p.hp=105;}},
+};
+const charOf=()=>CHARS[PROF.ch]||CHARS.relay;
+function renderChars(){
+  $("#chars").innerHTML=Object.entries(CHARS).map(([k,c])=>
+    `<button class="card ch${k===PROF.ch?" on":""}" data-ch="${k}" style="--c:${c.c}"><div class="glyph"><i></i></div><div class="t">${c.n}</div><div class="d">${c.d}</div></button>`).join("");
+  $("#chars").querySelectorAll(".card").forEach(b=>b.onclick=()=>{PROF.ch=b.dataset.ch;ls.set(PKEY,PROF);renderChars();});
+}
 const EVOS=[
  {id:"railgun",w:"dart", p:"pierce",n:"레일건",     d:"모든 것을 관통하는 광선. 다트를 대체한다.",c:C.cyan},
  {id:"tempest",w:"blade",p:"area",  n:"검풍 폭풍",  d:"거대한 검 6자루가 폭풍처럼 돈다.",       c:C.pale},
@@ -515,7 +543,8 @@ function newRun(){
     en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],
     stars:Array.from({length:150},()=>({x:rnd(-2000,2000),y:rnd(-2000,2000),z:rnd(.2,1)}))};
   for(const k in WEAPONS)G.cd[k]=0;
-  $("#form").textContent="오퍼레이터";$("#form").style.color="";
+  const ch=charOf();G.w={[ch.w]:1};G.lvls={[ch.w]:1};ch.f(G);
+  $("#form").textContent=ch.n;$("#form").style.color="";
   $("#ultname").textContent="궁극기 · 8레벨 진화 후";
 }
 
@@ -910,7 +939,7 @@ function setForm(k){
   if(k==="none"){G.noEvo=true;call("진화 거부 · 카드 4장");}
   burst(k==="warden"?C.gold:C.cyan,40);SFX.evolve();
   shake=.8;hitstop=.12;
-  $("#form").textContent=k==="none"?"오퍼레이터 · 순수":FORMS[k].n+" · 1차";
+  $("#form").textContent=k==="none"?charOf().n+" · 순수":FORMS[k].n+" · 1차";
   $("#form").style.color=FORMS[k].c;
   $("#ultname").textContent=k==="none"?"궁극기 없음":FORMS[k].ult+" · SPACE / 탭";
 }
