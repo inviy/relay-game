@@ -122,6 +122,9 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 #right{position:absolute;top:22px;right:16px;text-align:right;font-family:"Chakra Petch",var(--kr);
   font-weight:600;font-size:15px;color:var(--ash);line-height:1.5}
 #right b{color:var(--pale)}
+/* #right가 점수 줄만큼 길어져 아래 버튼과 겹쳤다 → 버튼을 24px 내렸다 */
+/* 순위표 점수와 같은 금색 — 이게 순위에 올라갈 숫자라는 걸 색으로 잇는다 */
+#right #score{color:var(--gold);font-size:17px}
 #weapons{position:absolute;left:16px;top:52px;display:flex;flex-direction:column;gap:5px}
 .wchip{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ash);
   background:rgba(13,18,36,.7);border-left:2px solid var(--c);padding:3px 9px 3px 7px;border-radius:2px}
@@ -139,7 +142,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 #zt{position:absolute;top:60px;left:0;right:0;text-align:center;font-family:"Chakra Petch",var(--kr);font-weight:600;font-size:13px;letter-spacing:.14em;color:var(--gold)}
 #zt.soon{color:var(--pink);animation:blink .5s steps(2) infinite}
 @keyframes blink{50%{opacity:.35}}
-#mute{position:absolute;top:82px;right:92px;pointer-events:auto;background:none;border:none;color:var(--ash);font:inherit;font-size:13px;font-weight:600;letter-spacing:.14em;cursor:pointer}
+#mute{position:absolute;top:106px;right:92px;pointer-events:auto;background:none;border:none;color:var(--ash);font:inherit;font-size:13px;font-weight:600;letter-spacing:.14em;cursor:pointer}
 #mute:hover{color:var(--gold)}
 #lvtools{display:flex;justify-content:center;gap:10px;margin-top:6px}
 #lvtools button{font:inherit;font-family:"Chakra Petch",var(--kr);font-weight:600;font-size:14px;letter-spacing:.08em;color:var(--ash);
@@ -150,7 +153,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .card .n em{font-style:normal;color:var(--c)}
 .card .ev{margin-top:9px;font-size:12px;color:var(--gold);line-height:1.45}
 .card .ev.ok{color:#8ef0b0}
-#pausebtn{position:absolute;top:82px;right:16px;pointer-events:auto;background:none;border:none;
+#pausebtn{position:absolute;top:106px;right:16px;pointer-events:auto;background:none;border:none;
   color:var(--ash);font:inherit;font-size:13px;font-weight:600;letter-spacing:.14em;cursor:pointer}
 #pausebtn:hover{color:var(--gold)}
 #ult{position:absolute;right:16px;bottom:22px;width:min(190px,36vw);pointer-events:auto;cursor:pointer;
@@ -302,7 +305,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <div id="clock" class="mono">0:00</div>
   <div id="zt"></div>
   <button id="mute" aria-label="소리 끄기"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7"/><path class="wave" d="M19 6a8.5 8.5 0 0 1 0 12"/><path class="slash" d="M17 8.5l5 7M22 8.5l-5 7"/></svg><span class="lbl">소리 켬</span></button>
-  <div id="right"><div><b id="kills">0</b> 처치</div><div id="zonestate">신호권 안</div></div>
+  <div id="right"><div><b id="score" class="mono">0</b> 점</div><div><b id="kills">0</b> 처치</div><div id="zonestate">신호권 안</div></div>
   <button id="pausebtn" aria-label="일시정지"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.6" height="14" rx="1"/><rect x="13.4" y="5" width="3.6" height="14" rx="1"/></svg><span class="lbl">일시정지</span></button>
   <div id="weapons"></div>
   <div id="hptext"><span id="hpnum">120 / 120</span></div>
@@ -369,7 +372,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.4.0";
+const VERSION="1.5.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 const cv=$("#cv"), cx=cv.getContext("2d");
@@ -1358,36 +1361,49 @@ function edgeArrow(wx,wy,ox,oy,col,label){
    (0,0) 기준으로 +X를 바라본다. 이동·회전은 호출부 몫이다.
    본체는 연한 색으로 두고 기체 색은 액센트와 코어에만 쓴다 —
    본체까지 색을 입히면 보라(위스프)·주황(사수)·금색(엘리트) 적과 헷갈린다. */
-function drawChar(g,k,R,col){
-  const body=col||"#eef2ff", acc=col||(CHARS[k]||CHARS.relay).c;
-  g.lineCap="round";
-  if(k==="runner"){                      // 화살촉 — 뒤가 파여 대셔의 단순 삼각과 다르다
-    g.strokeStyle=acc;g.lineWidth=R*.26;
+/* 기체 고유 장식만 따로 뺀다. 본체 모양은 진화(방랑자·수호자)가 정하고
+   이 장식은 시작 기체가 정한다 — 그래서 진화 후에도 어디서 출발했는지 남는다.
+   (0,0) 기준, +X를 바라본다. */
+function charAccent(g,k,R,col){
+  const acc=col||(CHARS[k]||CHARS.relay).c;
+  g.save();g.lineCap="round";g.strokeStyle=acc;
+  if(k==="runner"){                      // 추진 흔적
+    g.lineWidth=R*.26;
     g.beginPath();g.moveTo(-R*.5,-R*.5);g.lineTo(-R*1.5,-R*.72);
     g.moveTo(-R*.5,R*.5);g.lineTo(-R*1.5,R*.72);g.stroke();
-    g.fillStyle=body;g.beginPath();
-    g.moveTo(R*1.75,0);g.lineTo(-R*.95,-R*1.05);g.lineTo(-R*.35,0);g.lineTo(-R*.95,R*1.05);
-    g.closePath();g.fill();
-  }else if(k==="shield"){                // 사각 본체 + 전방 방패 호 — 탱크의 민 사각과 다르다
-    g.strokeStyle=acc;g.lineWidth=R*.34;
+  }else if(k==="shield"){                // 전방 방패 호
+    g.lineWidth=R*.34;
     g.beginPath();g.arc(0,0,R*1.5,-.95,.95);g.stroke();
-    const s=R*.92;g.fillStyle=body;g.beginPath();
-    if(g.roundRect)g.roundRect(-s,-s,s*2,s*2,R*.3);else g.rect(-s,-s,s*2,s*2);
-    g.fill();
-  }else if(k==="tech"){                  // 마름모 + 대각 스파이크 — 사수의 민 마름모와 다르다
-    g.strokeStyle=acc;g.lineWidth=R*.16;
+  }else if(k==="tech"){                  // 대각 스파이크
+    g.lineWidth=R*.16;
     for(let i=0;i<4;i++){const t=Math.PI/4+i*Math.PI/2;
       g.beginPath();g.moveTo(Math.cos(t)*R*.75,Math.sin(t)*R*.75);
       g.lineTo(Math.cos(t)*R*1.3,Math.sin(t)*R*1.3);g.stroke();}
-    g.fillStyle=body;g.beginPath();
-    g.moveTo(R*1.5,0);g.lineTo(0,-R*1.15);g.lineTo(-R*1.5,0);g.lineTo(0,R*1.15);
-    g.closePath();g.fill();
-  }else{                                 // 중계사 — 원 + 노즈 + 신호 링, 위스프/파편과 구분된다
-    g.strokeStyle=acc;g.lineWidth=R*.2;g.globalAlpha=.85;
+  }else{                                 // 신호 링
+    g.lineWidth=R*.2;g.globalAlpha=.85;
     g.beginPath();g.arc(0,0,R*1.45,-2.35,-.75);g.stroke();
     g.beginPath();g.arc(0,0,R*1.45,.75,2.35);g.stroke();
-    g.globalAlpha=1;
-    g.fillStyle=body;g.beginPath();
+  }
+  g.restore();
+}
+function drawChar(g,k,R,col){
+  const body=col||"#eef2ff", acc=col||(CHARS[k]||CHARS.relay).c;
+  charAccent(g,k,R,col);
+  g.fillStyle=body;
+  if(k==="runner"){                      // 화살촉 — 뒤가 파여 대셔의 단순 삼각과 다르다
+    g.beginPath();
+    g.moveTo(R*1.75,0);g.lineTo(-R*.95,-R*1.05);g.lineTo(-R*.35,0);g.lineTo(-R*.95,R*1.05);
+    g.closePath();g.fill();
+  }else if(k==="shield"){                // 사각 본체 — 탱크의 민 사각과 다르다
+    const s=R*.92;g.beginPath();
+    if(g.roundRect)g.roundRect(-s,-s,s*2,s*2,R*.3);else g.rect(-s,-s,s*2,s*2);
+    g.fill();
+  }else if(k==="tech"){                  // 마름모 — 사수의 민 마름모와 다르다
+    g.beginPath();
+    g.moveTo(R*1.5,0);g.lineTo(0,-R*1.15);g.lineTo(-R*1.5,0);g.lineTo(0,R*1.15);
+    g.closePath();g.fill();
+  }else{                                 // 중계사 — 원 + 노즈, 위스프/파편과 구분된다
+    g.beginPath();
     g.moveTo(R*1.55,0);g.lineTo(R*.2,-R*.6);g.lineTo(R*.2,R*.6);g.closePath();g.fill();
     g.beginPath();g.arc(0,0,R,0,TAU);g.fill();
   }
@@ -1399,6 +1415,8 @@ function drawShip(x,y,dx,dy,form,stage,over){
   if(!form||form==="none"||stage===0){
     cx.rotate(a);drawChar(cx,(G&&G.ch)||"relay",13,over);
   }else if(form==="rover"){
+    /* 진행 방향 기준으로 기체 장식을 먼저 깐다 — 본체 아래에 깔려 배경처럼 읽힌다 */
+    cx.save();cx.rotate(a);charAccent(cx,(G&&G.ch)||"relay",stage===2?19:15,over);cx.restore();
     cx.rotate(a);
     if(stage===1){ // 날렵한 화살 기체
       cx.fillStyle=over||C.cyan;cx.beginPath();cx.moveTo(20,0);cx.lineTo(-12,-13);cx.lineTo(-5,0);cx.lineTo(-12,13);cx.closePath();cx.fill();
@@ -1412,6 +1430,8 @@ function drawShip(x,y,dx,dy,form,stage,over){
     }
   }else{ // warden
     const n=6,R=stage===2?22:16;
+    /* 본체는 자전하지만 장식은 진행 방향에 고정한다 — 같이 돌면 방패 호가 뒤를 막는다 */
+    cx.save();cx.rotate(a);charAccent(cx,(G&&G.ch)||"relay",stage===2?19:15,over);cx.restore();
     cx.rotate(G.t*.6);
     cx.fillStyle=over||(stage===2?C.orange:C.gold);cx.beginPath();
     for(let i=0;i<n;i++){const g=i/n*TAU;i?cx.lineTo(Math.cos(g)*R,Math.sin(g)*R):cx.moveTo(R,0);}
@@ -1435,6 +1455,7 @@ function hud(){
   $("#lvbadge").textContent="LV "+p.lv;
   $("#clock").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
   $("#kills").textContent=G.kills;
+  $("#score").textContent=calcScore().toLocaleString();
   $("#xpfill").style.width=(100*p.xp/p.need)+"%";
   $("#hpfill").style.width=Math.max(0,100*p.hp/p.mhp)+"%";
   $("#hpnum").textContent=Math.max(0,Math.ceil(p.hp))+" / "+p.mhp;
