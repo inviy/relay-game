@@ -88,8 +88,9 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 /* ── 시작 기체 카드 — 레벨업 카드를 축소해 재사용 ── */
 .chars{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:640px;margin:0 auto 14px}
 .card.ch{padding:14px 10px 12px}
-.card.ch .glyph{width:38px;height:38px;margin-bottom:8px}
-.card.ch .glyph i{width:14px;height:14px}
+/* 실루엣이 정체성이라 원형 테두리는 뺀다 — 겹쳐서 지저분해진다 */
+.card.ch .glyph{width:48px;height:48px;margin-bottom:8px;box-shadow:none}
+.card.ch .glyph canvas{width:100%;height:100%;display:block}
 .card.ch .t{font-size:16px;margin-bottom:4px}
 .card.ch .d{font-size:12px;line-height:1.4}
 .card.ch.on{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 12px 30px -14px var(--c)}
@@ -322,7 +323,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.2.0";
+const VERSION="1.2.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 const cv=$("#cv"), cx=cv.getContext("2d");
@@ -495,8 +496,12 @@ const CHARS={
 const charOf=()=>CHARS[PROF.ch]||CHARS.relay;
 function renderChars(){
   $("#chars").innerHTML=Object.entries(CHARS).map(([k,c])=>
-    `<button class="card ch${k===PROF.ch?" on":""}" data-ch="${k}" style="--c:${c.c}"><div class="glyph"><i></i></div><div class="t">${c.n}</div><div class="d">${c.d}</div></button>`).join("");
-  $("#chars").querySelectorAll(".card").forEach(b=>b.onclick=()=>{PROF.ch=b.dataset.ch;ls.set(PKEY,PROF);renderChars();});
+    `<button class="card ch${k===PROF.ch?" on":""}" data-ch="${k}" style="--c:${c.c}"><div class="glyph"><canvas width="76" height="76"></canvas></div><div class="t">${c.n}</div><div class="d">${c.d}</div></button>`).join("");
+  $("#chars").querySelectorAll(".card").forEach(b=>{
+    const k=b.dataset.ch, g=b.querySelector("canvas").getContext("2d");
+    g.translate(38,38);drawChar(g,k,15);   // 게임 화면과 같은 실루엣을 그대로 쓴다
+    b.onclick=()=>{PROF.ch=k;ls.set(PKEY,PROF);renderChars();};
+  });
 }
 const EVOS=[
  {id:"railgun",w:"dart", p:"pierce",n:"레일건",     d:"모든 것을 관통하는 광선. 다트를 대체한다.",c:C.cyan},
@@ -543,7 +548,8 @@ function newRun(){
     en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],
     stars:Array.from({length:150},()=>({x:rnd(-2000,2000),y:rnd(-2000,2000),z:rnd(.2,1)}))};
   for(const k in WEAPONS)G.cd[k]=0;
-  const ch=charOf();G.w={[ch.w]:1};G.lvls={[ch.w]:1};ch.f(G);
+  const ck=CHARS[PROF.ch]?PROF.ch:"relay", ch=CHARS[ck];
+  G.ch=ck;G.w={[ch.w]:1};G.lvls={[ch.w]:1};ch.f(G);
   $("#form").textContent=ch.n;$("#form").style.color="";
   $("#ultname").textContent="궁극기 · 8레벨 진화 후";
 }
@@ -1287,11 +1293,50 @@ function edgeArrow(wx,wy,ox,oy,col,label){
   if(label){cx.font="700 12px 'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";cx.textAlign="center";cx.fillText(label,0,ey>H/2?-16:26);}
   cx.restore();
 }
+/* 기체 실루엣 — 게임 화면과 선택 카드가 같은 함수를 쓴다.
+   (0,0) 기준으로 +X를 바라본다. 이동·회전은 호출부 몫이다.
+   본체는 연한 색으로 두고 기체 색은 액센트와 코어에만 쓴다 —
+   본체까지 색을 입히면 보라(위스프)·주황(사수)·금색(엘리트) 적과 헷갈린다. */
+function drawChar(g,k,R,col){
+  const body=col||"#eef2ff", acc=col||(CHARS[k]||CHARS.relay).c;
+  g.lineCap="round";
+  if(k==="runner"){                      // 화살촉 — 뒤가 파여 대셔의 단순 삼각과 다르다
+    g.strokeStyle=acc;g.lineWidth=R*.26;
+    g.beginPath();g.moveTo(-R*.5,-R*.5);g.lineTo(-R*1.5,-R*.72);
+    g.moveTo(-R*.5,R*.5);g.lineTo(-R*1.5,R*.72);g.stroke();
+    g.fillStyle=body;g.beginPath();
+    g.moveTo(R*1.75,0);g.lineTo(-R*.95,-R*1.05);g.lineTo(-R*.35,0);g.lineTo(-R*.95,R*1.05);
+    g.closePath();g.fill();
+  }else if(k==="shield"){                // 사각 본체 + 전방 방패 호 — 탱크의 민 사각과 다르다
+    g.strokeStyle=acc;g.lineWidth=R*.34;
+    g.beginPath();g.arc(0,0,R*1.5,-.95,.95);g.stroke();
+    const s=R*.92;g.fillStyle=body;g.beginPath();
+    if(g.roundRect)g.roundRect(-s,-s,s*2,s*2,R*.3);else g.rect(-s,-s,s*2,s*2);
+    g.fill();
+  }else if(k==="tech"){                  // 마름모 + 대각 스파이크 — 사수의 민 마름모와 다르다
+    g.strokeStyle=acc;g.lineWidth=R*.16;
+    for(let i=0;i<4;i++){const t=Math.PI/4+i*Math.PI/2;
+      g.beginPath();g.moveTo(Math.cos(t)*R*.75,Math.sin(t)*R*.75);
+      g.lineTo(Math.cos(t)*R*1.3,Math.sin(t)*R*1.3);g.stroke();}
+    g.fillStyle=body;g.beginPath();
+    g.moveTo(R*1.5,0);g.lineTo(0,-R*1.15);g.lineTo(-R*1.5,0);g.lineTo(0,R*1.15);
+    g.closePath();g.fill();
+  }else{                                 // 중계사 — 원 + 노즈 + 신호 링, 위스프/파편과 구분된다
+    g.strokeStyle=acc;g.lineWidth=R*.2;g.globalAlpha=.85;
+    g.beginPath();g.arc(0,0,R*1.45,-2.35,-.75);g.stroke();
+    g.beginPath();g.arc(0,0,R*1.45,.75,2.35);g.stroke();
+    g.globalAlpha=1;
+    g.fillStyle=body;g.beginPath();
+    g.moveTo(R*1.55,0);g.lineTo(R*.2,-R*.6);g.lineTo(R*.2,R*.6);g.closePath();g.fill();
+    g.beginPath();g.arc(0,0,R,0,TAU);g.fill();
+  }
+  g.fillStyle=acc;g.beginPath();g.arc(0,0,R*.3,0,TAU);g.fill();
+}
 function drawShip(x,y,dx,dy,form,stage,over){
   const a=Math.atan2(dy,dx);
   cx.save();cx.translate(x,y);
   if(!form||form==="none"||stage===0){
-    cx.fillStyle=over||"#ffffff";cx.beginPath();cx.arc(0,0,13,0,TAU);cx.fill();
+    cx.rotate(a);drawChar(cx,(G&&G.ch)||"relay",13,over);
   }else if(form==="rover"){
     cx.rotate(a);
     if(stage===1){ // 날렵한 화살 기체
