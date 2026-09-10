@@ -380,9 +380,12 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <p style="max-width:560px;margin:14px auto 0">매일 새 시드로 싸웁니다. 기록은 30일간 순위표에 남습니다.<br>
   황금빛 <b style="color:var(--gold)">신호권</b> 안에서 싸우면 피해가 크게 오릅니다. 신호권은 계속 옮겨 갑니다.<br>
   <b style="color:var(--pale)">8·16·24레벨</b>에 3단계 진화 — 기동계와 방어계는 전혀 다른 게임이 됩니다.</p>
+  <p id="todaymod" style="margin:12px auto 0;font-size:14.5px;max-width:540px;
+     padding:9px 14px;border:1px solid var(--line);border-radius:3px;background:rgba(255,209,102,.05)"></p>
   <div class="stats">
-    <div class="stat"><b id="best" class="mono">0:00</b><span>최고 생존</span></div>
-    <div class="stat"><b id="bestk" class="mono">0</b><span>최다 처치</span></div>
+    <div class="stat"><b id="streak" class="mono">0</b><span>연속</span></div>
+    <div class="stat"><b id="yday" class="mono">—</b><span>어제</span></div>
+    <div class="stat"><b id="tday" class="mono">—</b><span>오늘</span></div>
     <div class="stat"><b id="runs" class="mono">0</b><span>출격</span></div>
   </div>
   <div id="chars" class="chars" aria-label="시작 기체 선택"></div>
@@ -422,7 +425,8 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     <div class="stat"><b id="o-kills" class="mono">0</b><span>처치</span></div>
     <div class="stat"><b id="o-lv" class="mono">1</b><span>레벨</span></div>
   </div>
-  <p id="cause" style="margin:-10px 0 6px;font-size:15px"></p>
+  <p id="delta" style="margin:-14px 0 2px;font-size:15px"></p>
+  <p id="cause" style="margin:2px 0 6px;font-size:15px"></p>
   <div id="build" style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:22px"></div>
   <div id="rankline"></div>
   <button class="btn" id="b-again">다시 출격</button>
@@ -434,7 +438,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.16.0";
+const VERSION="2.0.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -456,11 +460,29 @@ const SB_URL="https://jljkevgeofntxqzuvzla.supabase.co";
 const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impsamtldmdlb2ZudHhxenV2emxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NzQ3NDcsImV4cCI6MjEwNDQ1MDc0N30.hTKj4p2XrZHwwyskhkurDdxcws3Uy_csK6xmupsJaMY";   // Supabase → Settings → API → anon public
 /* ═══════════════════════════════════════════════════════════ */
 
-const KEY="relay:v2"; let SAVE={best:0,bestk:0,runs:0};
+const KEY="relay:v2"; let SAVE={best:0,bestk:0,runs:0,streak:0,lastSeed:0,hist:{}};
 const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},
           set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
-function load(){SAVE=Object.assign({best:0,bestk:0,runs:0},ls.get(KEY,{}));menu();}
+function load(){SAVE=Object.assign({best:0,bestk:0,runs:0,streak:0,lastSeed:0,hist:{}},ls.get(KEY,{}));
+  if(!SAVE.hist||typeof SAVE.hist!=="object")SAVE.hist={};
+  /* 어제도 오늘도 아니면 연속이 끊긴 것이다. 메뉴를 열자마자 0으로 보여야
+     "오늘 안 하면 끊긴다"가 읽힌다. */
+  if(SAVE.lastSeed!==SEED&&SAVE.lastSeed!==seedFor(-1))SAVE.streak=0;
+  menu();}
 function save(){ls.set(KEY,SAVE);}
+/* 연속 기록 — 메타 진행이 아니라 습관 장치다. 강해지지 않지만 돌아올 이유가 된다.
+   워들이 퍼진 진짜 엔진도 이것이었다. */
+function markDaily(score){
+  if(SAVE.lastSeed!==SEED){
+    SAVE.streak=(SAVE.lastSeed===seedFor(-1))?(SAVE.streak||0)+1:1;
+    SAVE.lastSeed=SEED;
+  }
+  if(score>(SAVE.hist[SEED]||0))SAVE.hist[SEED]=score;
+  const keep=Object.keys(SAVE.hist).sort().slice(-30), h={};   // 30일치만 들고 있는다
+  keep.forEach(k=>h[k]=SAVE.hist[k]);SAVE.hist=h;
+  save();
+}
+const ydayScore=()=>SAVE.hist[seedFor(-1)]||0;
 
 /* ───── 판 이어하기 ─────
    탭을 닫으면 판이 통째로 날아갔다. 적·탄·파티클은 저장하지 않는다 — 순식간에
@@ -469,7 +491,7 @@ function save(){ls.set(KEY,SAVE);}
    오늘 시드에서만 유효하다 — 시드가 바뀌면 애초에 같은 판이 아니다.
    되살린 저장은 즉시 지운다. 안 그러면 같은 순간을 반복해 되살릴 수 있다. */
 const RKEY="relay:run", RUNV=1;
-const RUNF=["t","et","daily","pace","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
+const RUNF=["t","et","daily","pace","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
   "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ult","shield",
   "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
 let runSaveT=0;
@@ -489,9 +511,22 @@ function clearRun(){try{localStorage.removeItem(RKEY);}catch(e){}}
 /* ───── 데일리 시드 ───── */
 function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
   t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-function dailySeed(){const d=new Date(Date.now()+9*3600e3);
+function seedFor(off){const d=new Date(Date.now()+9*3600e3+off*864e5);
   return d.getUTCFullYear()*10000+(d.getUTCMonth()+1)*100+d.getUTCDate();}
+function dailySeed(){return seedFor(0);}
 const SEED=dailySeed();
+/* 오늘의 규칙 — 시드가 스폰 순서만 바꾸면 "오늘은 다르다"가 체감되지 않는다.
+   매일 규칙 하나가 바뀌어야 시드 자체가 컨텐츠가 되고, 공유할 거리도 여기서 나온다.
+   전부 곱셈 계수라 밸런스가 한쪽으로 무너지지 않는다. */
+const MODS=[
+ {id:"swarm", n:"밀집",      d:"적이 1.4배로 몰려온다. 대신 체력이 25% 낮다", spawn:1.4, hp:.75},
+ {id:"narrow",n:"협소",      d:"신호권이 30% 좁다. 대신 안에서 피해가 25% 더 오른다", zone:.7, zmul:1.25},
+ {id:"bombs", n:"폭우",      d:"자폭체가 세 배로 쏟아진다", bomb:3},
+ {id:"supply",n:"보급 과잉", d:"보급 상자가 1.7배 자주 떨어진다", chest:.6},
+ {id:"rush",  n:"강행군",    d:"모두가 빨라진다 — 나 +25%, 적 +15%", pspd:1.25, espd:1.15},
+ {id:"giants",n:"거인",      d:"엘리트가 1.7배 자주 온다. 상자도 그만큼", elite:.6, ehp:1.3},
+];
+const MOD=MODS[Math.floor(mulberry32(SEED*7+11)()*MODS.length)];
 let R={};
 function resetSeed(){R={zone:mulberry32(SEED*3+1),spawn:mulberry32(SEED*3+2),card:mulberry32(SEED*3+3)};}
 const srnd=(g,a,b)=>a+g()*(b-a), spick=(g,arr)=>arr[Math.floor(g()*arr.length)];
@@ -695,7 +730,7 @@ async function submitScore(){
         (why?`<br><span style="font-size:12px;color:var(--ash)">${esc(why)}</span>`:"");
       return;
     }
-    const [{rank,score}]=await r.json();
+    const [{rank,score}]=await r.json();G.rank=rank;
     $("#rankline").textContent=`${flag(PROF.cc)} ${PROF.nick} · 오늘 ${rank}위 · ${score.toLocaleString()}점`;
     LBMODE=G.daily?"daily":"endless";await loadLB();paintLB(PROF.nick);
   }catch(e){queueScore(base);$("#rankline").textContent="기록 제출 실패 — 다음 접속 때 다시 보냅니다";}
@@ -812,9 +847,12 @@ function newRun(daily){
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
     zone:{x:0,y:0,r:340},next:null,zt:daily?ZONE_T/DAILY_PACE:ZONE_T,
-    en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],shl:[],
+    en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],shl:[],seg:[],rank:0,
     stars:Array.from({length:150},()=>({x:rnd(-2000,2000),y:rnd(-2000,2000),z:rnd(.2,1)}))};
   for(const k in WEAPONS)G.cd[k]=0;
+  G.mod=MOD;
+  if(MOD.zone)G.zone.r*=MOD.zone;
+  if(MOD.pspd)G.p.spd*=MOD.pspd;
   const ck=CHARS[PROF.ch]?PROF.ch:"relay", ch=CHARS[ck];
   G.ch=ck;G.w={[ch.w]:1};G.lvls={[ch.w]:1};ch.f(G);
   $("#form").textContent=ch.n;$("#form").style.color="";
@@ -851,8 +889,8 @@ const TRAITS={
 };
 const TKEYS=Object.keys(TRAITS);
 function makeE(k,x,y,elite,hpMul=1){
-  const K=KIND[k],sc=1+G.et/110,hp=K.hp*sc*(elite?7:1)*hpMul;
-  return {x,y,hp,mhp:hp,spd:K.spd*(elite?.8:1),dmg:K.dmg*(elite?1.4:1),r:K.r*(elite?1.6:1),
+  const K=KIND[k],sc=1+G.et/110,hp=K.hp*sc*(elite?7:1)*hpMul*(G.mod.hp||1)*(elite?(G.mod.ehp||1):1);
+  return {x,y,hp,mhp:hp,spd:K.spd*(elite?.8:1)*(G.mod.espd||1),dmg:K.dmg*(elite?1.4:1),r:K.r*(elite?1.6:1),
     c:elite?C.gold:K.c,xp:K.xp*(elite?8:1),elite:!!elite,hit:0,slow:0,sh:K.sh,ph:rnd(0,TAU),kind:k,
     tr:elite?pick(TKEYS):null,bt:rnd(1.5,3),
     ranged:K.ranged,split:K.split,bomb:K.bomb,absorb:K.absorb,fire:rnd(1,2.5),
@@ -924,7 +962,7 @@ function update(dt){
   p.inv=Math.max(0,p.inv-dt); p.flash=Math.max(0,p.flash-dt); G.ult.t=Math.max(0,G.ult.t-dt);
 
   // 스폰 (초반은 아주 완만하게)
-  G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.et/34);  // 클리어 후에는 상한을 풀어 난이도를 이어간다
+  G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.et/34)*(G.mod.spawn||1);  // 클리어 후에는 상한을 풀어 난이도를 이어간다
   while(G.spawn>=1){G.spawn--;
     const r=R.spawn(); let k="wisp";
     if(G.et>75&&r<.38)k="dash";
@@ -942,16 +980,24 @@ function update(dt){
     if(G.et>720&&r>.30&&r<.38)k="orbiter";
     if(G.et>900&&r>.22&&r<.30)k="sniper";
     if(G.et>1080&&r>.17&&r<.22)k="shielder";
+    /* 폭우 — 밴드를 넓히면 다른 종을 밀어내므로 별도 추첨으로 얹는다.
+       무조건 뽑아야 시드 스트림이 규칙에 따라 어긋나지 않는다. */
+    const r2=R.spawn();
+    if((G.mod.bomb||1)>1&&G.et>200&&r2<((G.mod.bomb-1)*.08))k="bomber";
     spawnE(k,false);}
   // 타임라인 이벤트
   const ev=EVENTS[G.evi];
   if(ev&&!G.boss){
     if(!G.evWarn&&G.t>=ev.t-3){G.evWarn=true;call(ev.n+" 접근");SFX.warn();}
     if(G.t>=ev.t){ev.f();G.evi++;G.evWarn=false;shake=Math.max(shake,.3);}}
+  /* 30초 구간마다 신호권 안에 얼마나 있었는지를 남긴다. 공유물의 막대가 이걸 그린다 —
+     점수 숫자 하나보다 "판의 모양"이 남에게 훨씬 잘 읽힌다. */
+  {const si=Math.floor(G.t/30), sg=G.seg[si]||(G.seg[si]={in:0,tot:0});
+   sg.tot+=dt; if(p.in)sg.in+=dt;}
   // 신호권 밖 간섭 (기동계는 면역)
   if(p.in||G.form==="rover")G.outT=Math.max(0,G.outT-dt*2);else G.outT+=dt;
   G.elite-=dt;
-  if(G.elite<=0&&!G.boss){G.elite=32/G.pace;
+  if(G.elite<=0&&!G.boss){G.elite=32/G.pace*(G.mod.elite||1);
     /* 엘리트가 늘 탱크뿐이라 후반이 단조로웠다. 그 시점에 등장한 종류 중에서 고른다.
        시드 생성기를 써야 같은 날 모두가 같은 구성을 만난다. */
     const ep=G.et>540?["tank","wall","orbiter","sniper","shielder"]
@@ -959,7 +1005,7 @@ function update(dt){
             :G.et>140?["tank"]:["wisp"];
     for(let i=0;i<1+Math.floor(G.et/180);i++)spawnE(spick(R.spawn,ep),true);}
   G.chest-=dt;
-  if(G.chest<=0){G.chest=24/G.pace;const a=srnd(R.zone,0,TAU),d=srnd(R.zone,0,G.zone.r*.7);
+  if(G.chest<=0){G.chest=24/G.pace*(G.mod.chest||1);const a=srnd(R.zone,0,TAU),d=srnd(R.zone,0,G.zone.r*.7);
     dropItem(G.zone.x+Math.cos(a)*d,G.zone.y+Math.sin(a)*d,spick(R.zone,["heal","bomb","magnet","chest"]));}
 
   /* 보스를 잡아도 끝나지 않는다 — 상한이 닫혀 있으면 잘해도 점수가 안 오른다.
@@ -980,6 +1026,7 @@ function zoneMul(){
   if(f==="rover")m=1.35;
   else if(f==="warden")m=G.p.in?2.2:.85;
   else m=G.p.in?1.7:1;
+  if(G.p.in&&G.mod.zmul)m*=G.mod.zmul;
   if(G.noEvo)m*=1.15;
   return m;
 }
@@ -1930,6 +1977,7 @@ function finish(won){
     ended:!!G.endNow,score:calcScore()},G.t);
   G.lastRid=RID;RID=null;
   SAVE.runs++;if(G.t>SAVE.best)SAVE.best=G.t;if(G.kills>SAVE.bestk)SAVE.bestk=G.kills;
+  if(G.daily)markDaily(calcScore());
   save();menu();
   const trueEnd=!!G.endNow;
   $("#otag").textContent=trueEnd?"SIGNAL DELIVERED":won?"MISSION COMPLETE":"SIGNAL LOST";
@@ -1937,6 +1985,9 @@ function finish(won){
   $("#b-more").style.display=trueEnd?"":"none";
   $("#o-time").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
   $("#o-kills").textContent=G.kills;$("#o-lv").textContent=G.p.lv;
+  /* 어제의 나 — 사람이 둘뿐이어도 경쟁 상대가 생긴다 */
+  const yd=G.daily?ydayScore():0, dl=yd?calcScore()-yd:0;
+  $("#delta").innerHTML=yd?`어제보다 <b style="color:${dl>=0?"#8ef0b0":"var(--pink)"}">${dl>=0?"+":""}${dl.toLocaleString()}</b>`:"";
   $("#cause").textContent=trueEnd?"종단 재머를 끊고 신호를 넘겼다":won?"":"사인: "+(G.lastHit||"—");
   let bh="";for(const k in G.w){const ev=EVOS.find(e=>e.w===k&&G.evo[e.id]);
     bh+=`<span class="wchip" style="--c:${WEAPONS[k].c}"><b>${ev?ev.n:WEAPONS[k].n}</b> ${ev?"MAX":"Lv"+G.lvls[k]}</span>`;}
@@ -1944,8 +1995,12 @@ function finish(won){
   $("#build").innerHTML=bh;
   showVeil("#v-over");}
 function menu(){
-  $("#best").textContent=Math.floor(SAVE.best/60)+":"+String(Math.floor(SAVE.best%60)).padStart(2,"0");
-  $("#bestk").textContent=SAVE.bestk;$("#runs").textContent=SAVE.runs;
+  const y=ydayScore(), td=SAVE.hist[SEED]||0;
+  $("#streak").textContent=SAVE.streak||0;
+  $("#yday").textContent=y?y.toLocaleString():"—";
+  $("#tday").textContent=td?td.toLocaleString():"—";
+  $("#tday").style.color=td?"":"var(--gold)";
+  $("#runs").textContent=SAVE.runs;
   const r=loadRun(),b=$("#b-cont");
   if(r){b.style.display="";b.textContent="이어하기 · "+Math.floor(r.t/60)+":"+String(Math.floor(r.t%60)).padStart(2,"0")+" · LV"+r.p.lv;}
   else b.style.display="none";}
@@ -1969,13 +2024,34 @@ $("#b-reroll").onclick=reroll;$("#b-skip").onclick=skipCard;
 $("#mute").onclick=()=>setMute(SFX.toggle());
 $("#ultbtn").onclick=()=>{if(mode==="play")useUlt();};
 /* 데일리 시드 + 짧은 판 + 자랑할 숫자까지 갖춰 놓고 자랑할 수단만 없었다. */
+/* 채운 블록 = 그 30초를 신호권 안에서 싸웠다. 이 게임의 실력 축이 그것이라
+   막대 하나로 판의 성격이 드러난다. 점수만 있는 공유물은 안 해본 사람에게
+   아무 의미가 없다 — 39,935가 잘한 건지 못한 건지 알 수가 없다. */
+function shareBar(){
+  const seg=G.seg.filter(x=>x&&x.tot>.5);
+  if(!seg.length)return{bar:"",zp:0};
+  const N=Math.min(8,seg.length),out=[];let ai=0,at=0;
+  for(let i=0;i<N;i++){
+    const a=Math.floor(i*seg.length/N), b=Math.max(a+1,Math.floor((i+1)*seg.length/N));
+    let inn=0,tot=0;
+    for(let j=a;j<b;j++){inn+=seg[j].in;tot+=seg[j].tot;}
+    ai+=inn;at+=tot;
+    out.push(tot&&inn/tot>=.55?"▰":"▱");
+  }
+  return{bar:out.join(""),zp:at?Math.round(100*ai/at):0};
+}
 function shareText(){
   const t=Math.floor(G.t), FN={rover:"기동계",warden:"방어계",none:"순수"};
-  return ["RELAY #"+SEED,
-    (PROF.nick||"오퍼레이터")+" · "+charOf().n+(G.form?" / "+(FN[G.form]||""):""),
-    "LV"+G.p.lv+" · "+Math.floor(t/60)+":"+String(t%60).padStart(2,"0")+" · "+G.kills+"처치"+(G.cleared?" · 재머 격파":""),
-    calcScore().toLocaleString()+"점",
-    location.origin+location.pathname].join(String.fromCharCode(10));
+  const mm=Math.floor(t/60)+":"+String(t%60).padStart(2,"0");
+  const sb=shareBar(), sc=calcScore(), yd=G.daily?ydayScore():0;
+  const L=["RELAY #"+SEED+(G.daily?" · 오늘의 중계":" · 심층")+" · "+MOD.n];
+  if(sb.bar)L.push(sb.bar+"  신호권 "+sb.zp+"%");
+  L.push(G.ended?"종단 재머 격파":(G.daily&&t>=DAILY_LEN)?"4:00 완주":mm+"에 끊김");
+  L.push((PROF.nick||"오퍼레이터")+" · "+charOf().n+(G.form?" / "+(FN[G.form]||""):"")+" · LV"+G.p.lv);
+  L.push(sc.toLocaleString()+"점"+(G.rank?" · 오늘 "+G.rank+"위":"")+" · "+G.kills.toLocaleString()+"처치");
+  if(yd)L.push("어제보다 "+(sc-yd>=0?"+":"")+(sc-yd).toLocaleString());
+  L.push(location.origin+location.pathname);
+  return L.join(String.fromCharCode(10));
 }
 $("#b-share").onclick=async()=>{
   const btn=$("#b-share"), txt=shareText();
@@ -1990,6 +2066,7 @@ $("#b-share").onclick=async()=>{
 };
 $("#lb-refresh").onclick=loadLB;
 $("#seed").textContent="#"+SEED;
+$("#todaymod").innerHTML=`<b style="color:var(--gold)">오늘의 규칙 · ${MOD.n}</b> — ${MOD.d}`;
 $("#ver").textContent="v"+VERSION;
 $("#tab-recent").onclick=()=>{LBMODE="daily";$("#tab-recent").style.color="var(--gold)";$("#tab-all").style.color="";loadLB();};
 $("#tab-all").onclick=()=>{LBMODE="endless";$("#tab-all").style.color="var(--gold)";$("#tab-recent").style.color="";loadLB();};
