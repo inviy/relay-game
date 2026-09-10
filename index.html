@@ -323,7 +323,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <h1>RELAY</h1>
   <p style="max-width:560px;margin:14px auto 0">매일 새 시드로 싸웁니다. 기록은 30일간 순위표에 남습니다.<br>
   황금빛 <b style="color:var(--gold)">신호권</b> 안에서 싸우면 피해가 크게 오릅니다. 신호권은 계속 옮겨 갑니다.<br>
-  <b style="color:var(--pale)">8·16레벨</b>에 진화 — 방랑자와 수호자는 전혀 다른 게임이 됩니다.</p>
+  <b style="color:var(--pale)">8·16레벨</b>에 진화 — 기동계와 방어계는 전혀 다른 게임이 됩니다.</p>
   <div class="stats">
     <div class="stat"><b id="best" class="mono">0:00</b><span>최고 생존</span></div>
     <div class="stat"><b id="bestk" class="mono">0</b><span>최다 처치</span></div>
@@ -374,7 +374,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.7.0";
+const VERSION="1.7.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
 const cv=$("#cv"), cx=cv.getContext("2d");
@@ -488,7 +488,9 @@ async function loadLB(){
 function paintLB(hl){
   const el=$("#lblist");
   if(!LB.length){el.innerHTML=`<div class="lbempty">아직 기록이 없습니다. 첫 번째 이름을 올려보세요.</div>`;return;}
-  const FN={rover:"방랑자",warden:"수호자",none:"순수",null:"—"};
+  /* 진화 계열. 기체 이름(방패수·질주자…)과 어감이 겹치면 "내가 고른 게 왜 다르게 나오지"가 된다.
+     계열 이름으로 층위를 달리해 혼동을 없앤다. */
+  const FN={rover:"기동계",warden:"방어계",none:"순수",null:"—"};
   el.innerHTML=LB.slice(0,10).map((r,i)=>`<div class="lbrow${hl&&r.nick===hl?" me":""}">
     <span class="rk">${r.rank||i+1}</span><span class="fl">${flag(r.cc)}</span>
     <span class="nm">${r.ch&&CHARS[r.ch]?`<canvas class="chi" width="34" height="34" data-ch="${r.ch}"></canvas>`:""}${esc(r.nick)}<br><span class="fm">${FN[r.form]||"—"} · LV${r.lv}${r.day?" · "+r.day.slice(5):""}</span></span>
@@ -538,11 +540,11 @@ const WEAPONS={
          up:["","범위 확대","재장전 단축","넉백 강화","피해 대폭 증가"]},
 };
 const FORMS={
- rover:{n:"방랑자",c:C.cyan,
+ rover:{n:"기동계",c:C.cyan,
    d:"신호권에 매이지 않는다. 어디서든 피해 135%, 이동 속도 +25%. 이동 중 피격 25% 회피.",
    sub:"<b>전용 무기</b> 유도 미사일 · <b>궁극기</b> 잔상 질주 — 3초 무적, 이속 2배, 지나간 자리가 터진다<br><b>2차 진화 · 유령</b> (16레벨) — 잔상 분신 2체가 따라오며 다트를 같이 쏜다. 관통 +1, 이속 +15%<br><b>3차 진화 · 특이점</b> (24레벨) — 분신 4체, 관통 +1, 피해 +20%",
    ult:"잔상 질주"},
- warden:{n:"수호자",c:C.gold,
+ warden:{n:"방어계",c:C.gold,
    d:"신호권을 지킨다. 안에서 피해 220%, 받는 피해 -35%. 6초마다 피격 1회를 막는 방패.",
    sub:"<b>전용 무기</b> 충격 망치 · <b>궁극기</b> 역송신 — 신호권을 내 위치로 끌어오고 주변을 쓸어버린다<br><b>2차 진화 · 요새</b> (16레벨) — 자동 포탑 2기가 궤도를 돌며 사격. 신호권 +30%, 안의 적 감속<br><b>3차 진화 · 관제탑</b> (24레벨) — 포탑 4기, 신호권 +25%, 최대 체력 +80, 피해 +15%",
    ult:"역송신"},
@@ -562,7 +564,7 @@ const PASSIVES={
 };
 /* ───── 시작 기체 ─────
    시작 무기 + 장점 하나 + 대가 하나. 새 메커닉 없이 newRun 초기값의 프리셋이다.
-   8레벨 진화(방랑자/수호자)가 중반 분기를 맡으므로 진화 전용 무기는 시작 무기에서 뺀다. */
+   8레벨 진화(기동계/방어계)가 중반 분기를 맡으므로 진화 전용 무기는 시작 무기에서 뺀다. */
 const CHARS={
   relay :{n:"중계사",c:C.cyan,  w:"dart", d:"펄스 다트 · 리롤 +1",            f:G=>{G.rerolls+=1;}},
   runner:{n:"질주자",c:C.orange,w:"flame",d:"화염 흔적 · 이속 +15% · 체력 100", f:G=>{G.p.spd*=1.15;G.p.mhp=G.p.hp=100;}},
@@ -718,7 +720,7 @@ function update(dt){
   if(ev&&!G.boss){
     if(!G.evWarn&&G.t>=ev.t-3){G.evWarn=true;call(ev.n+" 접근");SFX.warn();}
     if(G.t>=ev.t){ev.f();G.evi++;G.evWarn=false;shake=Math.max(shake,.3);}}
-  // 신호권 밖 간섭 (방랑자는 면역)
+  // 신호권 밖 간섭 (기동계는 면역)
   if(p.in||G.form==="rover")G.outT=Math.max(0,G.outT-dt*2);else G.outT+=dt;
   G.elite-=dt;
   if(G.elite<=0&&!G.boss){G.elite=32;
@@ -814,7 +816,7 @@ function weapons(dt){
     G.pool.push({x:p.x,y:p.y,r:(evo?110:44+L*12)*A,life:(evo?4:2+L*.5),
       dps:(evo?70:16+L*7)*st.dmg*zoneMul()});
   }
-  // 유도 미사일 (방랑자)
+  // 유도 미사일 (기동계)
   if(G.w.missile&&G.cd.missile<=0){
     const L=G.w.missile, evo=G.evo.barrage;
     G.cd.missile=evo?1.0:1.35;
@@ -823,7 +825,7 @@ function weapons(dt){
       G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*300,vy:Math.sin(a)*300,r:6,dmg:(30+L*12)*st.dmg*zoneMul(),
         life:3.2,pierce:0,c:C.cyan,home:1,blast:(evo?150:70+(L>=3?25:0))*A});}
   }
-  // 충격 망치 (수호자)
+  // 충격 망치 (방어계)
   if(G.w.hammer&&G.cd.hammer<=0){
     const L=G.w.hammer, evo=G.evo.quake;
     G.cd.hammer=(L>=3?1.1:1.5);
@@ -843,7 +845,7 @@ function weapons(dt){
       for(const t of G.turrets){const tg=near(3);const e=tg[Math.floor(Math.random()*tg.length)];if(!e)continue;
         const a=Math.atan2(e.y-t.y,e.x-t.x);
         G.bul.push({x:t.x,y:t.y,vx:Math.cos(a)*600,vy:Math.sin(a)*600,r:4,dmg:22*st.dmg*zoneMul(),life:1.2,pierce:0,c:C.gold});}}}
-  // 방랑자 궁극기 잔상
+  // 기동계 궁극기 잔상
   if(G.ult.t>0){G.trail-=dt;
     if(G.trail<=0){G.trail=.09;G.bolts.push({x:p.x,y:p.y,r:95*A,life:.3,max:.3,dmg:55*st.dmg,done:0,cyan:1});}}
   // 낙뢰
@@ -1030,8 +1032,8 @@ function formChoice(){
 }
 function setForm(k){
   const p=G.p;G.form=k;G.stage=k==="none"?0:1;
-  if(k==="rover"){p.spd*=1.25;call("1차 진화 · 방랑자");G.flash={t:.7,c:"79,240,216"};}
-  if(k==="warden"){p.mhp+=40;p.hp=Math.min(p.mhp,p.hp+40);G.zone.r*=1.1;call("1차 진화 · 수호자");G.flash={t:.7,c:"255,209,102"};}
+  if(k==="rover"){p.spd*=1.25;call("1차 진화 · 기동계");G.flash={t:.7,c:"79,240,216"};}
+  if(k==="warden"){p.mhp+=40;p.hp=Math.min(p.mhp,p.hp+40);G.zone.r*=1.1;call("1차 진화 · 방어계");G.flash={t:.7,c:"255,209,102"};}
   if(k==="none"){G.noEvo=true;call("진화 거부 · 카드 4장");}
   burst(k==="warden"?C.gold:C.cyan,40);SFX.evolve();
   shake=.8;hitstop=.12;
@@ -1405,7 +1407,7 @@ function edgeArrow(wx,wy,ox,oy,col,label){
    (0,0) 기준으로 +X를 바라본다. 이동·회전은 호출부 몫이다.
    본체는 연한 색으로 두고 기체 색은 액센트와 코어에만 쓴다 —
    본체까지 색을 입히면 보라(위스프)·주황(사수)·금색(엘리트) 적과 헷갈린다. */
-/* 기체 고유 장식만 따로 뺀다. 본체 모양은 진화(방랑자·수호자)가 정하고
+/* 기체 고유 장식만 따로 뺀다. 본체 모양은 진화(기동계·방어계)가 정하고
    이 장식은 시작 기체가 정한다 — 그래서 진화 후에도 어디서 출발했는지 남는다.
    (0,0) 기준, +X를 바라본다. */
 function charAccent(g,k,R,col){
@@ -1454,7 +1456,7 @@ function drawChar(g,k,R,col){
   g.fillStyle=acc;g.beginPath();g.arc(0,0,R*.3,0,TAU);g.fill();
 }
 /* 색 축 분리 — 진화 색과 기체 색을 같은 5색 팔레트에서 뽑으면 충돌이 필연이다.
-   (중계사×방랑자1차 = 둘 다 cyan, 질주자×관제탑 = 둘 다 orange …)
+   (중계사×기동계1차 = 둘 다 cyan, 질주자×관제탑 = 둘 다 orange …)
    그래서 축을 나눈다: 형태 = 진화(화살/육각), 색 = 기체, 크기·요소 수 = 단계.
    본체를 연한 색으로 두는 건 "나는 연한 것, 적은 채도 높은 것" 대비를 지키기 위함이고,
    진화를 색이 아닌 형태로 읽게 되므로 색약 대응도 같이 좋아진다. */
