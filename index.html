@@ -391,10 +391,11 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     <select id="cc" title="국가"></select>
     <input id="nick" maxlength="14" placeholder="이름을 적어주세요" spellcheck="false">
   </div>
-  <button class="btn" id="b-start">중계 시작</button>
+  <button class="btn" id="b-start">오늘의 중계 · 4분</button>
+  <button class="btn ghost" id="b-deep" style="margin-left:10px">심층 모드</button>
   <button class="btn ghost" id="b-cont" style="margin-left:10px;display:none">이어하기</button>
   <p style="margin-top:16px;font-size:14px">WASD · 방향키 · 드래그로 이동 &nbsp;·&nbsp; 공격은 자동</p>
-  <div id="lb"><h3><span style="color:var(--ash);cursor:default"><b id="tab-recent" style="color:var(--gold);cursor:pointer">최근 30일</b> &nbsp;/&nbsp; <b id="tab-all" style="cursor:pointer">전체</b></span><span id="lb-refresh">새로고침</span></h3><div id="lblist"><div class="lbempty">불러오는 중…</div></div></div>
+  <div id="lb"><h3><span style="color:var(--ash);cursor:default"><b id="tab-recent" style="color:var(--gold);cursor:pointer">오늘의 중계</b> &nbsp;/&nbsp; <b id="tab-all" style="cursor:pointer">심층 30일</b></span><span id="lb-refresh">새로고침</span></h3><div id="lblist"><div class="lbempty">불러오는 중…</div></div></div>
 </div></div>
 
 <div class="veil off" id="v-level"><div class="box">
@@ -433,7 +434,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="1.15.0";
+const VERSION="1.16.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -468,7 +469,7 @@ function save(){ls.set(KEY,SAVE);}
    오늘 시드에서만 유효하다 — 시드가 바뀌면 애초에 같은 판이 아니다.
    되살린 저장은 즉시 지운다. 안 그러면 같은 순간을 반복해 되살릴 수 있다. */
 const RKEY="relay:run", RUNV=1;
-const RUNF=["t","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
+const RUNF=["t","et","daily","pace","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
   "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ult","shield",
   "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
 let runSaveT=0;
@@ -573,7 +574,7 @@ const flag=cc=>(cc==="OT"||cc==="ZZ")?"🌐":String.fromCodePoint(...[...cc].map
 const CCSHORT={HK:"홍콩",AU:"호주",SA:"사우디"};
 let ccName=cc=>cc;try{const dn=new Intl.DisplayNames(["ko"],{type:"region"});ccName=cc=>cc==="OT"?"기타":(CCSHORT[cc]||dn.of(cc));}catch(e){}
 const PKEY="relay:profile";
-let PROF={nick:"",cc:""}, LB=[], LBMODE="recent";
+let PROF={nick:"",cc:""}, LB=[], LBMODE="daily";
 const CLIENT=(()=>{let c=ls.get("relay:client",null);if(!c){c=(crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));ls.set("relay:client",c);}return c;})();
 const SB_H=()=>({"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"});
 const sbReady=()=>SB_KEY&&!SB_KEY.startsWith("PASTE");
@@ -619,9 +620,10 @@ async function fetchLB(view){
 }
 async function loadLB(){
   if(!sbReady()){LB=[];paintLB();$("#lblist").innerHTML=`<div class="lbempty">랭킹 서버 키가 아직 설정되지 않았습니다.</div>`;return;}
-  LB=await fetchLB(LBMODE==="recent"?"recent_top":"all_time_top");
-  /* 30일 뷰가 아직 없는 DB에서도 뜨게 한다 — 마이그레이션 전에 배포돼도 안 깨진다 */
-  if(LB===null&&LBMODE==="recent")LB=await fetchLB("daily_top");
+  LB=await fetchLB(LBMODE==="daily"?"board_daily":"recent_top");
+  /* 모드 분리 뷰가 아직 없는 DB에서도 뜨게 한다 — 마이그레이션 전 배포를 견딘다 */
+  if(LB===null)LB=await fetchLB("recent_top");
+  if(LB===null)LB=await fetchLB("daily_top");
   if(LB===null)LB=[];
   paintLB();
 }
@@ -655,7 +657,7 @@ function submitBeacon(){
     body:JSON.stringify({p_client:CLIENT,p_nick:PROF.nick||"오퍼레이터",
       p_cc:PROF.cc==="OT"?"ZZ":(PROF.cc||"ZZ"),
       p_time:Math.floor(G.t),p_kills:G.kills,p_lv:G.p.lv,p_form:G.form,
-      p_won:!!G.cleared,p_ch:G.ch})}).catch(()=>{});}catch(e){}
+      p_won:!!G.cleared,p_ch:G.ch,p_mode:G.daily?"daily":"endless"})}).catch(()=>{});}catch(e){}
 }
 function calcScore(){return G.kills*6+Math.floor(G.t)*3+G.p.lv*260+(G.cleared?12000:0);}
 /* 제출 실패한 기록을 들고 있다가 다음 접속 때 다시 보낸다.
@@ -682,7 +684,7 @@ async function flushScores(){
 async function submitScore(){
   if(!sbReady()){$("#rankline").textContent="랭킹 서버 미설정 · 이번 판 "+calcScore().toLocaleString()+"점";return;}
   const base={p_client:CLIENT,p_nick:PROF.nick,p_cc:PROF.cc==="OT"?"ZZ":PROF.cc,
-    p_time:Math.floor(G.t),p_kills:G.kills,p_lv:G.p.lv,p_form:G.form,p_won:!!G.cleared,p_ch:G.ch};
+    p_time:Math.floor(G.t),p_kills:G.kills,p_lv:G.p.lv,p_form:G.form,p_won:!!G.cleared,p_ch:G.ch,p_mode:G.daily?"daily":"endless"};
   try{
     const r=await postScore(base);
     if(!r.ok){
@@ -695,7 +697,7 @@ async function submitScore(){
     }
     const [{rank,score}]=await r.json();
     $("#rankline").textContent=`${flag(PROF.cc)} ${PROF.nick} · 오늘 ${rank}위 · ${score.toLocaleString()}점`;
-    LBMODE="recent";await loadLB();paintLB(PROF.nick);
+    LBMODE=G.daily?"daily":"endless";await loadLB();paintLB(PROF.nick);
   }catch(e){queueScore(base);$("#rankline").textContent="기록 제출 실패 — 다음 접속 때 다시 보냅니다";}
 }
 
@@ -796,14 +798,20 @@ cv.addEventListener("touchmove",e=>{if(!touch)return;const t=e.touches[0];
   touch.x=l>7?dx/STICK:0;touch.y=l>7?dy/STICK:0;},{passive:1});
 cv.addEventListener("touchend",()=>touch=null,{passive:1});
 
-const ZONE_T=32, RUN_LEN=420; // 7분
+/* 두 모드가 하나의 시간축을 공유한다.
+   G.t  = 실제 경과 시간. 점수·표시·서버 검증이 쓴다.
+   G.et = 진행 시간(= t × pace). 난이도·스폰·상자·재머가 쓴다.
+   오늘의 중계는 pace=2라 4분이 8분처럼 굴러간다 — 그냥 4분에 자르면
+   2차(16레벨)·3차(24레벨) 진화를 한 번도 못 보고 끝난다. */
+const ZONE_T=32, RUN_LEN=420;                       // 심층 — 7분에 첫 재머
+const DAILY_LEN=240, DAILY_PACE=2, DAILY_BOSS=340;  // 오늘의 중계 — 4분, et=340(실 170초)에 재머
 
-function newRun(){
-  G={t:0,kills:0,spawn:0,elite:24,chest:0,boss:null,over:false,won:false,cleared:false,ended:false,endNow:false,bosses:0,bossT:0,
+function newRun(daily){
+  G={t:0,et:0,daily:!!daily,pace:daily?DAILY_PACE:1,kills:0,spawn:0,elite:daily?12:24,chest:0,boss:null,over:false,won:false,cleared:false,ended:false,endNow:false,bosses:0,bossT:0,
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
-    zone:{x:0,y:0,r:340},next:null,zt:ZONE_T,
+    zone:{x:0,y:0,r:340},next:null,zt:daily?ZONE_T/DAILY_PACE:ZONE_T,
     en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],shl:[],
     stars:Array.from({length:150},()=>({x:rnd(-2000,2000),y:rnd(-2000,2000),z:rnd(.2,1)}))};
   for(const k in WEAPONS)G.cd[k]=0;
@@ -843,7 +851,7 @@ const TRAITS={
 };
 const TKEYS=Object.keys(TRAITS);
 function makeE(k,x,y,elite,hpMul=1){
-  const K=KIND[k],sc=1+G.t/110,hp=K.hp*sc*(elite?7:1)*hpMul;
+  const K=KIND[k],sc=1+G.et/110,hp=K.hp*sc*(elite?7:1)*hpMul;
   return {x,y,hp,mhp:hp,spd:K.spd*(elite?.8:1),dmg:K.dmg*(elite?1.4:1),r:K.r*(elite?1.6:1),
     c:elite?C.gold:K.c,xp:K.xp*(elite?8:1),elite:!!elite,hit:0,slow:0,sh:K.sh,ph:rnd(0,TAU),kind:k,
     tr:elite?pick(TKEYS):null,bt:rnd(1.5,3),
@@ -884,7 +892,10 @@ function call(t){const e=$("#call");e.textContent=t;e.classList.add("on");
 
 /* ───── 업데이트 ───── */
 function update(dt){
-  const p=G.p; G.t+=dt;
+  const p=G.p; G.t+=dt; G.et=G.t*G.pace;
+  /* 오늘의 중계는 4분에 무조건 끝난다. 매일 하는 것의 진입장벽은 재미가 아니라
+     시간이라, 길이가 고정이어야 의식이 된다. */
+  if(G.daily&&G.t>=DAILY_LEN){G.t=DAILY_LEN;finish(G.cleared);return;}
   runSaveT+=dt;if(runSaveT>=10){runSaveT=0;saveRun();}
   p.in=Math.hypot(p.x-G.zone.x,p.y-G.zone.y)<G.zone.r;
 
@@ -893,7 +904,7 @@ function update(dt){
     G.zt-=dt;
     if(G.zt<=8&&!G.next){const a=srnd(R.zone,0,TAU),d=srnd(R.zone,560,860);
       G.next={x:G.zone.x+Math.cos(a)*d,y:G.zone.y+Math.sin(a)*d};call("신호권 이동 준비");}
-    if(G.zt<=0){G.zone.x=G.next.x;G.zone.y=G.next.y;G.next=null;G.zt=ZONE_T;SFX.zone();
+    if(G.zt<=0){G.zone.x=G.next.x;G.zone.y=G.next.y;G.next=null;G.zt=ZONE_T/G.pace;SFX.zone();
       for(let i=0;i<26;i++)G.fx.push({x:G.zone.x+Math.cos(i/26*TAU)*G.zone.r,y:G.zone.y+Math.sin(i/26*TAU)*G.zone.r,
         vx:0,vy:0,life:.6,max:.6,c:C.gold,sp:1});}
   }
@@ -913,24 +924,24 @@ function update(dt){
   p.inv=Math.max(0,p.inv-dt); p.flash=Math.max(0,p.flash-dt); G.ult.t=Math.max(0,G.ult.t-dt);
 
   // 스폰 (초반은 아주 완만하게)
-  G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.t/34);  // 클리어 후에는 상한을 풀어 난이도를 이어간다
+  G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.et/34);  // 클리어 후에는 상한을 풀어 난이도를 이어간다
   while(G.spawn>=1){G.spawn--;
     const r=R.spawn(); let k="wisp";
-    if(G.t>75&&r<.38)k="dash";
-    if(G.t>100&&r>.38&&r<.5)k="shooter";
-    if(G.t>140&&r>.5&&r<.6)k="splitter";
-    if(G.t>170&&r>.86)k="tank";
-    if(G.t>200&&r>.6&&r<.68)k="bomber";
-    if(G.t>260&&r>.8&&r<.86)k="wall";
+    if(G.et>75&&r<.38)k="dash";
+    if(G.et>100&&r>.38&&r<.5)k="shooter";
+    if(G.et>140&&r>.5&&r<.6)k="splitter";
+    if(G.et>170&&r>.86)k="tank";
+    if(G.et>200&&r>.6&&r<.68)k="bomber";
+    if(G.et>260&&r>.8&&r<.86)k="wall";
     /* 여기까지가 4분 20초. 예전에는 이후로 구성이 영영 고정이었다.
        .68~.80 구간이 비어 있어(위스프 기본값) 새 종류를 그 자리에 넣는다. */
-    if(G.t>330&&r>.68&&r<.74)k="orbiter";
-    if(G.t>430&&r>.74&&r<.80)k="sniper";
-    if(G.t>540&&r<.05)k="shielder";
+    if(G.et>330&&r>.68&&r<.74)k="orbiter";
+    if(G.et>430&&r>.74&&r<.80)k="sniper";
+    if(G.et>540&&r<.05)k="shielder";
     // 후반에는 비중 자체를 올린다 — 같은 적이 더 두꺼워지기만 하면 지루하다
-    if(G.t>720&&r>.30&&r<.38)k="orbiter";
-    if(G.t>900&&r>.22&&r<.30)k="sniper";
-    if(G.t>1080&&r>.17&&r<.22)k="shielder";
+    if(G.et>720&&r>.30&&r<.38)k="orbiter";
+    if(G.et>900&&r>.22&&r<.30)k="sniper";
+    if(G.et>1080&&r>.17&&r<.22)k="shielder";
     spawnE(k,false);}
   // 타임라인 이벤트
   const ev=EVENTS[G.evi];
@@ -940,21 +951,21 @@ function update(dt){
   // 신호권 밖 간섭 (기동계는 면역)
   if(p.in||G.form==="rover")G.outT=Math.max(0,G.outT-dt*2);else G.outT+=dt;
   G.elite-=dt;
-  if(G.elite<=0&&!G.boss){G.elite=32;
+  if(G.elite<=0&&!G.boss){G.elite=32/G.pace;
     /* 엘리트가 늘 탱크뿐이라 후반이 단조로웠다. 그 시점에 등장한 종류 중에서 고른다.
        시드 생성기를 써야 같은 날 모두가 같은 구성을 만난다. */
-    const ep=G.t>540?["tank","wall","orbiter","sniper","shielder"]
-            :G.t>330?["tank","wall","orbiter"]
-            :G.t>140?["tank"]:["wisp"];
-    for(let i=0;i<1+Math.floor(G.t/180);i++)spawnE(spick(R.spawn,ep),true);}
+    const ep=G.et>540?["tank","wall","orbiter","sniper","shielder"]
+            :G.et>330?["tank","wall","orbiter"]
+            :G.et>140?["tank"]:["wisp"];
+    for(let i=0;i<1+Math.floor(G.et/180);i++)spawnE(spick(R.spawn,ep),true);}
   G.chest-=dt;
-  if(G.chest<=0){G.chest=24;const a=srnd(R.zone,0,TAU),d=srnd(R.zone,0,G.zone.r*.7);
+  if(G.chest<=0){G.chest=24/G.pace;const a=srnd(R.zone,0,TAU),d=srnd(R.zone,0,G.zone.r*.7);
     dropItem(G.zone.x+Math.cos(a)*d,G.zone.y+Math.sin(a)*d,spick(R.zone,["heal","bomb","magnet","chest"]));}
 
   /* 보스를 잡아도 끝나지 않는다 — 상한이 닫혀 있으면 잘해도 점수가 안 오른다.
      격파 후에는 일정 간격으로 더 강한 재머가 계속 온다. 끝은 죽음뿐이다. */
   if(!G.boss&&!G.over){
-    if(!G.cleared){ if(G.t>=RUN_LEN)spawnBoss(); }
+    if(!G.cleared){ if(G.et>=(G.daily?DAILY_BOSS:RUN_LEN))spawnBoss(); }
     else { G.bossT-=dt; if(G.bossT<=0)spawnBoss(); }
   }
 
@@ -1126,7 +1137,7 @@ function dmgB(d){const b=G.boss;if(!b)return;
   if(b.hp<=0){const fin=b.fin;
     for(let i=0;i<(fin?120:40);i++)G.fx.push({x:b.x,y:b.y,vx:rnd(-340,340)*(fin?1.8:1),vy:rnd(-340,340)*(fin?1.8:1),life:fin?1.4:.9,max:fin?1.4:.9,c:fin?C.pink:C.gold});
     G.boss=null;shake=fin?2.2:1.1;hitstop=fin?.3:.14;
-    G.bosses++;G.bossT=100;
+    G.bosses++;G.bossT=100/G.pace;
     const p=G.p;p.hp=Math.min(p.mhp,p.hp+p.mhp*.35);   // 격파 보상 — 다음 파도를 버틸 여지
     if(fin){G.ended=true;G.endNow=true;G.cleared=true;G.eb.length=0;call("송신 완료");finish(true);return;}
     if(!G.cleared){G.cleared=true;call("재머 격파 · 송신 계속");}
@@ -1378,7 +1389,7 @@ function useUlt(){
   u.max=50;
   if(G.form==="rover"){u.t=3;p.inv=3;p.spd*=2;setTimeout(()=>{p.spd/=2;},3000);call("잔상 질주");}
   if(G.form==="warden"){
-    G.zone.x=p.x;G.zone.y=p.y;G.next=null;G.zt=ZONE_T;
+    G.zone.x=p.x;G.zone.y=p.y;G.next=null;G.zt=ZONE_T/G.pace;
     for(const e of G.en){const d=Math.hypot(e.x-p.x,e.y-p.y);
       if(d<G.zone.r+160){dmgE(e,320*G.st.dmg,1);e.slow=2;
         const a=Math.atan2(e.y-p.y,e.x-p.x);e.x=p.x+Math.cos(a)*Math.max(60,d*.35);e.y=p.y+Math.sin(a)*Math.max(60,d*.35);}}
@@ -1841,7 +1852,10 @@ $("#ultprg").style.strokeDasharray=ULT_C.toFixed(1);
 function hud(){
   const p=G.p;
   $("#lvbadge").textContent="LV "+p.lv;
-  $("#clock").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
+  /* 오늘의 중계는 남은 시간을 센다 — 카운트다운이라야 4분이 의식으로 읽힌다 */
+  const ct=G.daily?Math.max(0,DAILY_LEN-G.t):G.t;
+  $("#clock").textContent=Math.floor(ct/60)+":"+String(Math.floor(ct%60)).padStart(2,"0");
+  $("#clock").style.color=(G.daily&&ct<30)?"var(--pink)":"";
   $("#kills").textContent=G.kills;
   $("#score").textContent=calcScore().toLocaleString();
   $("#xpfill").style.width=(100*p.xp/p.need)+"%";
@@ -1881,8 +1895,9 @@ function loop(now){requestAnimationFrame(loop);
   let dt=Math.min(.05,(now-last)/1000);last=now;
   if(hitstop>0){hitstop-=dt;dt*=.12;}
   update(dt);draw();}
-function start(){clearRun();SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun();hideAll();mode="play";last=performance.now();call("중계 개시");
-  runSaveT=0;RID=uid();track("start",{ch:G.ch,seed:SEED},0);}
+function start(daily){clearRun();SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun(daily);hideAll();
+  mode="play";last=performance.now();call(daily?"오늘의 중계 개시":"심층 중계 개시");
+  runSaveT=0;RID=uid();track("start",{ch:G.ch,seed:SEED,daily:!!daily},0);}
 /* 이어하기는 진화 단계를 건너뛰고 도착하므로 HUD 라벨을 직접 맞춰야 한다.
    setForm·finalForm·apexForm이 각자 써 놓던 것을 한 자리에 모은 것이다. */
 function relabel(){
@@ -1935,7 +1950,10 @@ function menu(){
   if(r){b.style.display="";b.textContent="이어하기 · "+Math.floor(r.t/60)+":"+String(Math.floor(r.t%60)).padStart(2,"0")+" · LV"+r.p.lv;}
   else b.style.display="none";}
 
-$("#b-start").onclick=start;$("#b-again").onclick=start;$("#b-cont").onclick=contRun;
+$("#b-start").onclick=()=>start(true);
+$("#b-deep").onclick=()=>start(false);
+$("#b-again").onclick=()=>start(G?G.daily:true);
+$("#b-cont").onclick=contRun;
 /* 끝을 봤어도 더 하고 싶을 수 있다. 무한 모드를 없애는 게 아니라 선택으로 만든다.
    rid를 되살려 한 판으로 세게 한다 — 안 그러면 분석에서 두 판으로 잡힌다. */
 $("#b-more").onclick=()=>{
@@ -1973,8 +1991,8 @@ $("#b-share").onclick=async()=>{
 $("#lb-refresh").onclick=loadLB;
 $("#seed").textContent="#"+SEED;
 $("#ver").textContent="v"+VERSION;
-$("#tab-recent").onclick=()=>{LBMODE="recent";$("#tab-recent").style.color="var(--gold)";$("#tab-all").style.color="";loadLB();};
-$("#tab-all").onclick=()=>{LBMODE="all";$("#tab-all").style.color="var(--gold)";$("#tab-recent").style.color="";loadLB();};
+$("#tab-recent").onclick=()=>{LBMODE="daily";$("#tab-recent").style.color="var(--gold)";$("#tab-all").style.color="";loadLB();};
+$("#tab-all").onclick=()=>{LBMODE="endless";$("#tab-all").style.color="var(--gold)";$("#tab-recent").style.color="";loadLB();};
 $("#nick").addEventListener("keydown",e=>e.stopPropagation());
 $("#nick").addEventListener("input",askName);
 /* 탭을 닫거나 앱을 전환하면 end가 영영 안 찍힌다. 이 신호가 없으면 이탈 지점이
