@@ -428,11 +428,11 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     <select id="cc" title="국가"></select>
     <input id="nick" maxlength="14" placeholder="이름을 적어주세요" spellcheck="false">
   </div>
-  <button class="btn" id="b-start">오늘의 중계 · 4분</button>
+  <button class="btn" id="b-start">오늘의 중계 · 5분</button>
   <button class="btn ghost" id="b-deep" style="margin-left:10px">심층 모드 · 무제한</button>
   <button class="btn ghost" id="b-cont" style="margin-left:10px;display:none">이어하기</button>
   <p id="modehint" style="margin-top:12px;font-size:13.5px;line-height:1.55">
-    <b style="color:var(--gold)">오늘의 중계</b> 4분에 딱 끝납니다. 오늘 한 판.&nbsp;
+    <b style="color:var(--gold)">오늘의 중계</b> 5분에 딱 끝납니다. 오늘 한 판.&nbsp;
     <b style="color:var(--pale)">심층 모드</b> 시간 제한이 없습니다. 7분에 첫 재머가 오고,
     4기를 끊으면 마지막 보스까지 갑니다.</p>
   <p style="margin-top:10px;font-size:14px">WASD · 방향키 · 드래그로 이동 &nbsp;·&nbsp; 공격은 자동</p>
@@ -476,7 +476,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.0.5";
+const VERSION="2.0.6";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -887,7 +887,11 @@ cv.addEventListener("touchend",()=>touch=null,{passive:1});
    오늘의 중계는 pace=2라 4분이 8분처럼 굴러간다 — 그냥 4분에 자르면
    2차(16레벨)·3차(24레벨) 진화를 한 번도 못 보고 끝난다. */
 const ZONE_T=32, RUN_LEN=420;                       // 심층 — 7분에 첫 재머
-const DAILY_LEN=240, DAILY_PACE=2, DAILY_BOSS=340;  // 오늘의 중계 — 4분, et=340(실 170초)에 재머
+/* 오늘의 중계 — 5분. 4분에서는 3차 진화(24레벨)가 안 들어왔다. 실측으로
+   240초는 LV21에서 끝나고, 300초면 223초에 3차가 들어와 77초를 그 상태로 쓴다.
+   길이만 늘린다 — pace를 올려 4분 안에 욱여넣으면 위협(tpace)은 그대로인데
+   플레이어만 세져서 힘/위협 비율이 1.38→1.72로 뛴다. */
+const DAILY_LEN=300, DAILY_PACE=2, DAILY_BOSS=340;  // et=340(실 170초)에 재머
 /* 위협은 진행보다 덜 압축한다. pace=2는 숫자를 압축하지만 사람의 반응속도는
    압축하지 못한다 — 레벨은 2배로 오르는데 초당 적 수와 체력까지 2배가 되면
    실측상 이동하는 봇도 59초에 죽었다(심층은 75초). 진행 2배 / 위협 1.45배. */
@@ -2098,7 +2102,7 @@ function shareText(){
   const sb=shareBar(), sc=calcScore(), yd=G.daily?ydayScore():0;
   const L=["RELAY #"+SEED+(G.daily?" · 오늘의 중계":" · 심층")+" · "+MOD.n];
   if(sb.bar)L.push(sb.bar+"  신호권 "+sb.zp+"%");
-  L.push(G.ended?"종단 재머 격파":(G.daily&&t>=DAILY_LEN)?"4:00 완주":mm+"에 끊김");
+  L.push(G.ended?"종단 재머 격파":(G.daily&&t>=DAILY_LEN)?"5:00 완주":mm+"에 끊김");
   L.push((PROF.nick||"오퍼레이터")+" · "+charOf().n+(G.form?" / "+(FN[G.form]||""):"")+" · LV"+G.p.lv);
   L.push(sc.toLocaleString()+"점"+(G.rank?" · 오늘 "+G.rank+"위":"")+" · "+G.kills.toLocaleString()+"처치");
   if(yd)L.push("어제보다 "+(sc-yd>=0?"+":"")+(sc-yd).toLocaleString());
