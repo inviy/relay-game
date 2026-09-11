@@ -164,8 +164,9 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   #v-menu .btn{padding:14px 22px;font-size:17.5px}
 }
 @media(max-height:610px){
-  /* 여기서는 모드 설명을 접는다 — 버튼 라벨이 "4분"과 "무제한"을 이미 말한다 */
-  #modehint{display:none}
+  /* 목표 설명은 남긴다 — 이제 판이 어떻게 끝나는지 알려주는 유일한 자리다.
+     대신 글자를 줄인다. */
+  #modehint{font-size:12px;margin-top:7px!important}
   #v-menu h1{font-size:clamp(34px,9vw,60px)}
   #v-menu .box>p{font-size:12.5px;line-height:1.4}
   .card.ch .d{display:none}
@@ -428,13 +429,11 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     <select id="cc" title="국가"></select>
     <input id="nick" maxlength="14" placeholder="이름을 적어주세요" spellcheck="false">
   </div>
-  <button class="btn" id="b-start">오늘의 중계 · 5분</button>
-  <button class="btn ghost" id="b-deep" style="margin-left:10px">심층 모드 · 무제한</button>
+  <button class="btn" id="b-start">중계 시작</button>
   <button class="btn ghost" id="b-cont" style="margin-left:10px;display:none">이어하기</button>
   <p id="modehint" style="margin-top:12px;font-size:13.5px;line-height:1.55">
-    <b style="color:var(--gold)">오늘의 중계</b> 5분에 딱 끝납니다. 오늘 한 판.&nbsp;
-    <b style="color:var(--pale)">심층 모드</b> 시간 제한이 없습니다. 7분에 첫 재머가 오고,
-    4기를 끊으면 마지막 보스까지 갑니다.</p>
+    <b style="color:var(--pale)">2분 50초</b>에 첫 재머. 넷을 끊으면
+    <b style="color:var(--gold)">종단 재머</b>가 오고, 그걸 잡으면 판이 끝납니다.</p>
   <p style="margin-top:10px;font-size:14px">WASD · 방향키 · 드래그로 이동 &nbsp;·&nbsp; 공격은 자동</p>
   <div id="lb"><h3><span style="color:var(--gold)">최고 기록</span><span id="lb-refresh">새로고침</span></h3><div id="lblist"><div class="lbempty">불러오는 중…</div></div></div>
 </div></div>
@@ -476,7 +475,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.0.6";
+const VERSION="2.1.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -529,7 +528,7 @@ const ydayScore=()=>SAVE.hist[seedFor(-1)]||0;
    오늘 시드에서만 유효하다 — 시드가 바뀌면 애초에 같은 판이 아니다.
    되살린 저장은 즉시 지운다. 안 그러면 같은 순간을 반복해 되살릴 수 있다. */
 const RKEY="relay:run", RUNV=1;
-const RUNF=["t","et","eth","daily","pace","tpace","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
+const RUNF=["t","et","eth","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
   "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ult","shield",
   "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
 let runSaveT=0;
@@ -740,7 +739,7 @@ function submitBeacon(){
     body:JSON.stringify({p_client:CLIENT,p_nick:PROF.nick||"오퍼레이터",
       p_cc:PROF.cc==="OT"?"ZZ":(PROF.cc||"ZZ"),
       p_time:Math.floor(G.t),p_kills:G.kills,p_lv:G.p.lv,p_form:G.form,
-      p_won:!!G.cleared,p_ch:G.ch,p_mode:G.daily?"daily":"endless"})}).catch(()=>{});}catch(e){}
+      p_won:!!G.cleared,p_ch:G.ch})}).catch(()=>{});}catch(e){}
 }
 function calcScore(){return G.kills*6+Math.floor(G.t)*3+G.p.lv*260+(G.cleared?12000:0);}
 /* 제출 실패한 기록을 들고 있다가 다음 접속 때 다시 보낸다.
@@ -767,7 +766,7 @@ async function flushScores(){
 async function submitScore(){
   if(!sbReady()){$("#rankline").textContent="랭킹 서버 미설정 · 이번 판 "+calcScore().toLocaleString()+"점";return;}
   const base={p_client:CLIENT,p_nick:PROF.nick,p_cc:PROF.cc==="OT"?"ZZ":PROF.cc,
-    p_time:Math.floor(G.t),p_kills:G.kills,p_lv:G.p.lv,p_form:G.form,p_won:!!G.cleared,p_ch:G.ch,p_mode:G.daily?"daily":"endless"};
+    p_time:Math.floor(G.t),p_kills:G.kills,p_lv:G.p.lv,p_form:G.form,p_won:!!G.cleared,p_ch:G.ch};
   try{
     const r=await postScore(base);
     if(!r.ok){
@@ -887,22 +886,22 @@ cv.addEventListener("touchend",()=>touch=null,{passive:1});
    오늘의 중계는 pace=2라 4분이 8분처럼 굴러간다 — 그냥 4분에 자르면
    2차(16레벨)·3차(24레벨) 진화를 한 번도 못 보고 끝난다. */
 const ZONE_T=32, RUN_LEN=420;                       // 심층 — 7분에 첫 재머
-/* 오늘의 중계 — 5분. 4분에서는 3차 진화(24레벨)가 안 들어왔다. 실측으로
-   240초는 LV21에서 끝나고, 300초면 223초에 3차가 들어와 77초를 그 상태로 쓴다.
-   길이만 늘린다 — pace를 올려 4분 안에 욱여넣으면 위협(tpace)은 그대로인데
-   플레이어만 세져서 힘/위협 비율이 1.38→1.72로 뛴다. */
-const DAILY_LEN=300, DAILY_PACE=2, DAILY_BOSS=340;  // et=340(실 170초)에 재머
-/* 위협은 진행보다 덜 압축한다. pace=2는 숫자를 압축하지만 사람의 반응속도는
-   압축하지 못한다 — 레벨은 2배로 오르는데 초당 적 수와 체력까지 2배가 되면
-   실측상 이동하는 봇도 59초에 죽었다(심층은 75초). 진행 2배 / 위협 1.45배. */
-const DAILY_TPACE=1.45;
+/* 모드는 하나다. 4분/5분 제한을 두고 그때 딱 끊었더니 "생소하다"는 실제
+   피드백이 왔고, 신규 유저 둘은 애초에 1:26·3:37에 죽어 제한을 보지도 못했다.
+   얻는 것 없이 어색함만 주는 장치였다. 시간 제한을 없애고 판이 스스로 끝나게
+   둔다 — 죽거나, 종단 재머를 끊거나(실측 8:24).
 
-function newRun(daily){
-  G={t:0,et:0,eth:0,daily:!!daily,pace:daily?DAILY_PACE:1,tpace:daily?DAILY_TPACE:1,kills:0,spawn:0,elite:daily?12:24,chest:0,boss:null,over:false,won:false,cleared:false,ended:false,endNow:false,bosses:0,bossT:0,
+   압축(pace 2)은 전원에게 유지한다. 짧게 죽는 사람일수록 압축이 게임을
+   보여준다 — 니니는 3:37에 LV32였는데 압축이 없으면 같은 시간에 LV18쯤이다.
+   위협은 1.45로 덜 압축한다(사람의 반응속도는 압축되지 않는다). */
+const PACE=2, TPACE=1.45, BOSS_AT=340;   // et=340(실 170초)에 첫 재머
+
+function newRun(){
+  G={t:0,et:0,eth:0,pace:PACE,tpace:TPACE,kills:0,spawn:0,elite:24/PACE,chest:0,boss:null,over:false,won:false,cleared:false,ended:false,endNow:false,bosses:0,bossT:0,
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
-    zone:{x:0,y:0,r:340},next:null,zt:daily?ZONE_T/DAILY_PACE:ZONE_T,
+    zone:{x:0,y:0,r:340},next:null,zt:ZONE_T/PACE,
     en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],shl:[],seg:[],rank:0,
     stars:Array.from({length:150},()=>({x:rnd(-2000,2000),y:rnd(-2000,2000),z:rnd(.2,1)}))};
   for(const k in WEAPONS)G.cd[k]=0;
@@ -987,9 +986,7 @@ function call(t){const e=$("#call");e.textContent=t;e.classList.add("on");
 /* ───── 업데이트 ───── */
 function update(dt){
   const p=G.p; G.t+=dt; G.et=G.t*G.pace; G.eth=G.t*G.tpace;
-  /* 오늘의 중계는 4분에 무조건 끝난다. 매일 하는 것의 진입장벽은 재미가 아니라
-     시간이라, 길이가 고정이어야 의식이 된다. */
-  if(G.daily&&G.t>=DAILY_LEN){G.t=DAILY_LEN;finish(G.cleared);return;}
+
   runSaveT+=dt;if(runSaveT>=10){runSaveT=0;saveRun();}
   p.in=Math.hypot(p.x-G.zone.x,p.y-G.zone.y)<G.zone.r;
 
@@ -1067,7 +1064,7 @@ function update(dt){
   /* 보스를 잡아도 끝나지 않는다 — 상한이 닫혀 있으면 잘해도 점수가 안 오른다.
      격파 후에는 일정 간격으로 더 강한 재머가 계속 온다. 끝은 죽음뿐이다. */
   if(!G.boss&&!G.over){
-    if(!G.cleared){ if(G.et>=(G.daily?DAILY_BOSS:RUN_LEN))spawnBoss(); }
+    if(!G.cleared){ if(G.et>=BOSS_AT)spawnBoss(); }
     else { G.bossT-=dt; if(G.bossT<=0)spawnBoss(); }
   }
 
@@ -1955,10 +1952,7 @@ $("#ultprg").style.strokeDasharray=ULT_C.toFixed(1);
 function hud(){
   const p=G.p;
   $("#lvbadge").textContent="LV "+p.lv;
-  /* 오늘의 중계는 남은 시간을 센다 — 카운트다운이라야 4분이 의식으로 읽힌다 */
-  const ct=G.daily?Math.max(0,DAILY_LEN-G.t):G.t;
-  $("#clock").textContent=Math.floor(ct/60)+":"+String(Math.floor(ct%60)).padStart(2,"0");
-  $("#clock").style.color=(G.daily&&ct<30)?"var(--pink)":"";
+  $("#clock").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
   $("#kills").textContent=G.kills;
   $("#score").textContent=calcScore().toLocaleString();
   $("#xpfill").style.width=(100*p.xp/p.need)+"%";
@@ -1998,9 +1992,9 @@ function loop(now){requestAnimationFrame(loop);
   let dt=Math.min(.05,(now-last)/1000);last=now;
   if(hitstop>0){hitstop-=dt;dt*=.12;}
   update(dt);draw();}
-function start(daily){clearRun();SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun(daily);hideAll();
-  mode="play";last=performance.now();call(daily?"오늘의 중계 개시":"심층 중계 개시");
-  runSaveT=0;RID=uid();track("start",{ch:G.ch,seed:SEED,daily:!!daily},0);}
+function start(){clearRun();SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun();hideAll();
+  mode="play";last=performance.now();call("중계 개시");
+  runSaveT=0;RID=uid();track("start",{ch:G.ch,seed:SEED},0);}
 /* 이어하기는 진화 단계를 건너뛰고 도착하므로 HUD 라벨을 직접 맞춰야 한다.
    setForm·finalForm·apexForm이 각자 써 놓던 것을 한 자리에 모은 것이다. */
 function relabel(){
@@ -2033,7 +2027,7 @@ function finish(won){
     ended:!!G.endNow,score:calcScore()},G.t);
   G.lastRid=RID;RID=null;
   SAVE.runs++;if(G.t>SAVE.best)SAVE.best=G.t;if(G.kills>SAVE.bestk)SAVE.bestk=G.kills;
-  if(G.daily)markDaily(calcScore());
+  markDaily(calcScore());
   save();menu();
   const trueEnd=!!G.endNow;
   $("#otag").textContent=trueEnd?"SIGNAL DELIVERED":won?"MISSION COMPLETE":"SIGNAL LOST";
@@ -2042,7 +2036,7 @@ function finish(won){
   $("#o-time").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
   $("#o-kills").textContent=G.kills;$("#o-lv").textContent=G.p.lv;
   /* 어제의 나 — 사람이 둘뿐이어도 경쟁 상대가 생긴다 */
-  const yd=G.daily?ydayScore():0, dl=yd?calcScore()-yd:0;
+  const yd=ydayScore(), dl=yd?calcScore()-yd:0;
   $("#delta").innerHTML=yd?`어제보다 <b style="color:${dl>=0?"#8ef0b0":"var(--pink)"}">${dl>=0?"+":""}${dl.toLocaleString()}</b>`:"";
   $("#cause").textContent=trueEnd?"종단 재머를 끊고 신호를 넘겼다":won?"":"사인: "+(G.lastHit||"—");
   let bh="";for(const k in G.w){const ev=EVOS.find(e=>e.w===k&&G.evo[e.id]);
@@ -2061,9 +2055,8 @@ function menu(){
   if(r){b.style.display="";b.textContent="이어하기 · "+Math.floor(r.t/60)+":"+String(Math.floor(r.t%60)).padStart(2,"0")+" · LV"+r.p.lv;}
   else b.style.display="none";}
 
-$("#b-start").onclick=()=>start(true);
-$("#b-deep").onclick=()=>start(false);
-$("#b-again").onclick=()=>start(G?G.daily:true);
+$("#b-start").onclick=start;
+$("#b-again").onclick=start;
 $("#b-cont").onclick=contRun;
 /* 끝을 봤어도 더 하고 싶을 수 있다. 무한 모드를 없애는 게 아니라 선택으로 만든다.
    rid를 되살려 한 판으로 세게 한다 — 안 그러면 분석에서 두 판으로 잡힌다. */
@@ -2099,10 +2092,10 @@ function shareBar(){
 function shareText(){
   const t=Math.floor(G.t), FN={rover:"기동계",warden:"방어계",none:"순수"};
   const mm=Math.floor(t/60)+":"+String(t%60).padStart(2,"0");
-  const sb=shareBar(), sc=calcScore(), yd=G.daily?ydayScore():0;
-  const L=["RELAY #"+SEED+(G.daily?" · 오늘의 중계":" · 심층")+" · "+MOD.n];
+  const sb=shareBar(), sc=calcScore(), yd=ydayScore();
+  const L=["RELAY #"+SEED+" · "+MOD.n];
   if(sb.bar)L.push(sb.bar+"  신호권 "+sb.zp+"%");
-  L.push(G.ended?"종단 재머 격파":(G.daily&&t>=DAILY_LEN)?"5:00 완주":mm+"에 끊김");
+  L.push(G.ended?"종단 재머 격파":mm+"에 끊김");
   L.push((PROF.nick||"오퍼레이터")+" · "+charOf().n+(G.form?" / "+(FN[G.form]||""):"")+" · LV"+G.p.lv);
   L.push(sc.toLocaleString()+"점"+(G.rank?" · 오늘 "+G.rank+"위":"")+" · "+G.kills.toLocaleString()+"처치");
   if(yd)L.push("어제보다 "+(sc-yd>=0?"+":"")+(sc-yd).toLocaleString());
