@@ -57,8 +57,11 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .stats{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;margin:16px 0}
 /* 이름 입력 — 미리 채워두면 "이미 됐다"고 읽혀 아무도 안 적는다.
    비워 두고, 비어 있는 동안만 눈에 띄게 한다. */
-.identlab{font-family:"Chakra Petch",var(--kr);font-size:13.5px;letter-spacing:.02em;
-  color:var(--ash);font-weight:600;margin:0 0 9px}
+/* 메뉴의 작은 글씨가 전부 --ash 라, 이 라벨도 "지시"가 아니라 벽지로 읽혔다.
+   대비는 6.56로 기준을 넘겼는데도 안 보인다는 피드백이 온 이유다.
+   지시문은 주변 정보보다 한 단계 위여야 한다. */
+.identlab{font-family:"Chakra Petch",var(--kr);font-size:14px;letter-spacing:.02em;
+  color:var(--pale);font-weight:700;margin:0 0 10px}
 .identlab.ask{color:var(--gold)}
 .ident{display:flex;justify-content:center;gap:8px;margin:8px 0 6px;flex-wrap:wrap}
 .ident.ask input{border-color:var(--gold);animation:askGlow 1.9s ease-in-out infinite}
@@ -493,7 +496,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.2.0";
+const VERSION="2.2.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
