@@ -24,8 +24,14 @@
   --gold:#ffd166; --cyan:#4ff0d8; --pink:#ff5c8a; --violet:#a86bff; --orange:#ff9f43;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+/* 드래그가 조작이라 텍스트 선택을 막아야 한다. HUD 글자(LV·점수·신호권)가 DOM으로
+   캔버스 위에 떠 있어서, 그 위를 끌면 iOS가 텍스트 선택으로 해석하고 콜아웃 바에
+   글쓰기 도구(Writing Tools)가 딸려 나온다. 실제 아이폰에서 판 중에 반복해서 떴다. */
 html,body{height:100%;background:var(--bg);color:var(--pale);overflow:hidden;touch-action:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
   font-family:"Rajdhani","Chakra Petch",var(--kr);-webkit-font-smoothing:antialiased}
+/* 이름 칸만 예외 — 여기선 선택·편집이 되어야 한다 */
+.ident input{-webkit-user-select:text;user-select:text}
 canvas{display:block;width:100%;height:100%}
 .mono{font-variant-numeric:tabular-nums}
 .dis{font-family:"Chakra Petch",var(--kr)}
@@ -451,7 +457,8 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     <div class="identlab" id="identlab">순위표에 올릴 이름</div>
     <div class="ident" id="ident">
       <select id="cc" title="국가"></select>
-      <input id="nick" maxlength="14" placeholder="이름을 적어주세요" spellcheck="false">
+      <input id="nick" maxlength="14" placeholder="이름을 적어주세요" spellcheck="false"
+             autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="go">
     </div>
     <button class="btn" id="b-start">게임 시작</button>
     <button class="btn ghost" id="b-cont" style="margin-left:10px;display:none">이어하기</button>
@@ -496,7 +503,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.2.2";
+const VERSION="2.2.3";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -643,6 +650,15 @@ const SFX=(()=>{let ac=null,master,muted=false,lastKill=0;
       bgmVol(muted?0:VOL,1.5);
       if(!bgmIv){bgmNext=a.currentTime+.1;bgmIv=setInterval(bgmTick,60);}
     }else if(bgmIv){bgmVol(0,.8);clearInterval(bgmIv);bgmIv=null;}
+  }catch(e){}},
+  /* iOS는 탭이 백그라운드로 가면 AudioContext를 suspended로 만들고, 돌아와도
+     저절로 깨지 않는다. 예전엔 소리를 "새로 만들 때"만 resume을 시도해서
+     BGM이 돌아오지 않았다. 복귀 시점과 다음 조작에서 명시적으로 깨운다.
+     (iOS는 사용자 제스처 안에서의 resume을 더 잘 받아준다 — 그래서 둘 다 건다.) */
+  wake(){try{
+    if(!ac)return;
+    if(ac.state==="suspended")ac.resume();
+    if(bgmIv&&bgmG&&!muted)bgmVol(VOL,.35);   // 밀린 페이드가 있으면 되돌린다
   }catch(e){}},
   kill(){const n=performance.now();if(n-lastKill<40)return;lastKill=n;tone(rnd(360,520),.07,"square",.14,-220);},
   hurt(){noise(.16,.5,900);tone(85,.22,"sawtooth",.3,-40);},
@@ -2014,7 +2030,8 @@ function loop(now){requestAnimationFrame(loop);
   let dt=Math.min(.05,(now-last)/1000);last=now;
   if(hitstop>0){hitstop-=dt;dt*=.12;}
   update(dt);draw();}
-function start(){clearRun();SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun();hideAll();
+function start(){clearRun();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun();hideAll();
   mode="play";last=performance.now();call("오늘 판 시작");
   /* 처음 두 판까지만. 세 판째부터는 알고 있다. */
   G.tip=SAVE.runs<2;
@@ -2155,7 +2172,13 @@ function leave(){
   track("abandon",{mode},playing?G.t:null);
 }
 addEventListener("pagehide",leave);
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")leave();});
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="hidden")leave();
+  else SFX.wake();
+});
+/* 제스처 안에서 한 번 더 — iOS가 타이머 안의 resume을 거부하는 경우가 있다 */
+addEventListener("pointerdown",()=>SFX.wake(),{passive:true});
+addEventListener("keydown",()=>SFX.wake());
 
 showVeil("#v-menu");load();loadProfile().then(flushScores).then(loadLB);requestAnimationFrame(loop);
 try{track("land",{w:innerWidth,h:innerHeight,touch:matchMedia("(pointer:coarse)").matches,
