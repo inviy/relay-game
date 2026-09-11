@@ -176,7 +176,6 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   #v-menu .box>p{font-size:13px;line-height:1.45;margin-top:10px}
   #todaymod{font-size:13px;padding:8px 12px;margin-top:12px!important}
   #lbtop{font-size:13px;margin-top:8px}
-  #modehint{font-size:12.5px;margin-top:9px!important}
   .chars{gap:7px;margin-bottom:10px}
   .card.ch{padding:10px 8px 9px}
   .card.ch .glyph{width:40px;height:40px;margin-bottom:6px}
@@ -186,9 +185,6 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   #v-menu .btn{padding:14px 22px;font-size:17.5px}
 }
 @media(max-height:610px){
-  /* 목표 설명은 남긴다 — 이제 판이 어떻게 끝나는지 알려주는 유일한 자리다.
-     대신 글자를 줄인다. */
-  #modehint{font-size:12px;margin-top:7px!important}
   #v-menu h1{font-size:clamp(34px,9vw,60px)}
   #v-menu .box>p{font-size:12.5px;line-height:1.4}
   .card.ch .d{display:none}
@@ -253,6 +249,14 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   font-size:clamp(22px,5vw,38px);font-weight:700;letter-spacing:.16em;color:var(--gold);opacity:0;
   text-shadow:0 0 30px rgba(255,209,102,.8);transition:opacity .3s,transform .3s;transform:scale(.94)}
 #call.on{opacity:1;transform:scale(1)}
+/* 조작 안내는 메뉴 버튼 아래가 아니라 여기가 자리다. 거기선 버튼을 먼저 눌러서
+   안 읽히고, 정작 필요한 순간은 판이 막 시작됐을 때다.
+   처음 두 판에만 띄우고 스스로 사라진다. */
+#tip{position:absolute;left:0;right:0;bottom:88px;text-align:center;font-family:"Chakra Petch",var(--kr);
+  font-weight:600;font-size:15px;color:var(--pale);opacity:0;pointer-events:none;
+  text-shadow:0 2px 14px rgba(0,0,0,.9)}
+/* 게임 시계(G.t)에 묶는다. CSS 애니메이션은 일시정지해도 계속 흐르고,
+   헤드리스 검증에서 가상 시간에 안 돌아 확인이 불가능하다. */
 #zt{position:absolute;top:60px;left:0;right:0;text-align:center;font-family:"Chakra Petch",var(--kr);font-weight:600;font-size:13px;letter-spacing:.14em;color:var(--gold)}
 #zt.soon{color:var(--pink);animation:blink .5s steps(2) infinite}
 @keyframes blink{50%{opacity:.35}}
@@ -428,6 +432,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <div id="ult"><span id="ultname">궁극기 · 8레벨 진화 후</span><div class="bar"><div id="ultfill"></div></div></div>
   <button id="ultbtn" class="locked" aria-label="궁극기"><svg viewBox="0 0 88 88" aria-hidden="true"><circle class="trk" cx="44" cy="44" r="39"/><circle id="ultprg" class="prg" cx="44" cy="44" r="39"/></svg><span class="gl">ULT</span></button>
   <div id="call"></div>
+  <div id="tip"></div>
 </div>
 
 <div class="veil" id="v-menu"><div class="box">
@@ -451,11 +456,6 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     <button class="btn" id="b-start">게임 시작</button>
     <button class="btn ghost" id="b-cont" style="margin-left:10px;display:none">이어하기</button>
   </div>
-  <p id="modehint" style="margin-top:14px;font-size:13px;line-height:1.7">
-    <b style="color:var(--pale)">황금 원</b> 안에서 피해 ↑ &nbsp;·&nbsp;
-    <b style="color:var(--pale)">8레벨</b>에 진화 선택 &nbsp;·&nbsp;
-    <b style="color:var(--pale)">2:50</b> 첫 재머<br>
-    <span style="opacity:.72">드래그로 이동 · 공격은 자동</span></p>
   <div id="lb"><h3><span style="color:var(--gold)">최고 기록</span><span id="lb-refresh">새로고침</span></h3><div id="lblist"><div class="lbempty">불러오는 중…</div></div></div>
 </div></div>
 
@@ -496,7 +496,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.2.1";
+const VERSION="2.2.2";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -1970,6 +1970,9 @@ const ULT_C=2*Math.PI*39;               // 궁극기 링 둘레
 $("#ultprg").style.strokeDasharray=ULT_C.toFixed(1);
 function hud(){
   const p=G.p;
+  /* 4초 동안 보여주고 1.5초에 걸쳐 사라진다 */
+  if(G.tip!==undefined){const a=G.t<4?Math.min(1,G.t/.4):Math.max(0,1-(G.t-4)/1.5);
+    $("#tip").style.opacity=a; if(a<=0)delete G.tip;}
   $("#lvbadge").textContent="LV "+p.lv;
   $("#clock").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
   $("#kills").textContent=G.kills;
@@ -2013,6 +2016,11 @@ function loop(now){requestAnimationFrame(loop);
   update(dt);draw();}
 function start(){clearRun();SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun();hideAll();
   mode="play";last=performance.now();call("오늘 판 시작");
+  /* 처음 두 판까지만. 세 판째부터는 알고 있다. */
+  G.tip=SAVE.runs<2;
+  $("#tip").textContent=G.tip?(matchMedia("(pointer:coarse)").matches
+      ? "손가락으로 끌어서 이동 · 공격은 자동"
+      : "WASD · 방향키 · 드래그로 이동 · 공격은 자동"):"";
   runSaveT=0;RID=uid();track("start",{ch:G.ch,seed:SEED},0);}
 /* 이어하기는 진화 단계를 건너뛰고 도착하므로 HUD 라벨을 직접 맞춰야 한다.
    setForm·finalForm·apexForm이 각자 써 놓던 것을 한 자리에 모은 것이다. */
