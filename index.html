@@ -429,7 +429,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     <select id="cc" title="국가"></select>
     <input id="nick" maxlength="14" placeholder="이름을 적어주세요" spellcheck="false">
   </div>
-  <button class="btn" id="b-start">중계 시작</button>
+  <button class="btn" id="b-start">오늘 한판</button>
   <button class="btn ghost" id="b-cont" style="margin-left:10px;display:none">이어하기</button>
   <p id="modehint" style="margin-top:12px;font-size:13.5px;line-height:1.55">
     <b style="color:var(--pale)">2분 50초</b>에 첫 재머. 넷을 끊으면
@@ -440,10 +440,10 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 
 <div class="veil off" id="v-level"><div class="box">
   <div class="tag" id="lvtag">LEVEL 2</div>
-  <h2 style="margin-top:10px">강화를 선택하라</h2>
+  <h2 style="margin-top:10px">하나 고르세요</h2>
   <div id="picks"></div>
-  <div id="lvtools"><button id="b-reroll">리롤</button><button id="b-skip">스킵 · 경험치 환급</button></div>
-  <p style="font-size:14px;margin-top:10px">숫자 키 선택 · R 리롤 · S 스킵</p>
+  <div id="lvtools"><button id="b-reroll">다시 뽑기</button><button id="b-skip">건너뛰기 · 경험치로</button></div>
+  <p style="font-size:14px;margin-top:10px">숫자 키로 선택 · R 다시 뽑기 · S 건너뛰기</p>
 </div></div>
 
 <div class="veil off" id="v-pause"><div class="box">
@@ -466,8 +466,8 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <p id="cause" style="margin:2px 0 6px;font-size:15px"></p>
   <div id="build" style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:22px"></div>
   <div id="rankline"></div>
-  <button class="btn" id="b-again">다시 출격</button>
-  <button class="btn ghost" id="b-more" style="margin-left:10px;display:none">계속 송신</button>
+  <button class="btn" id="b-again">한판 더</button>
+  <button class="btn ghost" id="b-more" style="margin-left:10px;display:none">계속 싸우기</button>
   <button class="btn ghost" id="b-share" style="margin-left:10px">결과 복사</button>
   <button class="btn ghost" id="b-menu" style="margin-left:10px">메인으로</button>
 </div></div>
@@ -475,7 +475,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.1.0";
+const VERSION="2.1.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -827,7 +827,7 @@ const PASSIVES={
    시작 무기 + 장점 하나 + 대가 하나. 새 메커닉 없이 newRun 초기값의 프리셋이다.
    8레벨 진화(기동계/방어계)가 중반 분기를 맡으므로 진화 전용 무기는 시작 무기에서 뺀다. */
 const CHARS={
-  relay :{n:"중계사",c:C.cyan,  w:"dart", d:"펄스 다트 · 리롤 +1",            f:G=>{G.rerolls+=1;}},
+  relay :{n:"중계사",c:C.cyan,  w:"dart", d:"펄스 다트 · 다시 뽑기 +1",            f:G=>{G.rerolls+=1;}},
   runner:{n:"질주자",c:C.orange,w:"flame",d:"화염 흔적 · 이속 +15% · 체력 100", f:G=>{G.p.spd*=1.15;G.p.mhp=G.p.hp=100;}},
   shield:{n:"방패수",c:C.gold,  w:"blade",d:"회전 검 · 체력 160 · 이속 −8%",    f:G=>{G.p.mhp=G.p.hp=160;G.p.spd*=.92;}},
   tech  :{n:"기술자",c:C.violet,w:"chain",d:"연쇄 번개 · 공속 +12% · 체력 105", f:G=>{G.st.rate*=1.12;G.p.mhp=G.p.hp=105;}},
@@ -880,12 +880,10 @@ cv.addEventListener("touchmove",e=>{if(!touch)return;const t=e.touches[0];
   touch.x=l>7?dx/STICK:0;touch.y=l>7?dy/STICK:0;},{passive:1});
 cv.addEventListener("touchend",()=>touch=null,{passive:1});
 
-/* 두 모드가 하나의 시간축을 공유한다.
-   G.t  = 실제 경과 시간. 점수·표시·서버 검증이 쓴다.
-   G.et = 진행 시간(= t × pace). 난이도·스폰·상자·재머가 쓴다.
-   오늘의 중계는 pace=2라 4분이 8분처럼 굴러간다 — 그냥 4분에 자르면
-   2차(16레벨)·3차(24레벨) 진화를 한 번도 못 보고 끝난다. */
-const ZONE_T=32, RUN_LEN=420;                       // 심층 — 7분에 첫 재머
+/* 시간축이 둘이다.
+   G.t  = 실제 경과 시간. 점수·시계·서버 검증이 쓴다.
+   G.et = 진행 시간(= t × PACE). 난이도·스폰·상자·재머·구역이 쓴다. */
+const ZONE_T=32;
 /* 모드는 하나다. 4분/5분 제한을 두고 그때 딱 끊었더니 "생소하다"는 실제
    피드백이 왔고, 신규 유저 둘은 애초에 1:26·3:37에 죽어 제한을 보지도 못했다.
    얻는 것 없이 어색함만 주는 장치였다. 시간 제한을 없애고 판이 스스로 끝나게
@@ -1239,8 +1237,8 @@ function dmgB(d){const b=G.boss;if(!b)return;
     G.boss=null;shake=fin?2.2:1.1;hitstop=fin?.3:.14;
     G.bosses++;G.bossT=100/G.pace;
     const p=G.p;p.hp=Math.min(p.mhp,p.hp+p.mhp*.35);   // 격파 보상 — 다음 파도를 버틸 여지
-    if(fin){G.ended=true;G.endNow=true;G.cleared=true;G.eb.length=0;call("송신 완료");finish(true);return;}
-    if(!G.cleared){G.cleared=true;call("재머 격파 · 송신 계속");}
+    if(fin){G.ended=true;G.endNow=true;G.cleared=true;G.eb.length=0;call("전부 끊었다");finish(true);return;}
+    if(!G.cleared){G.cleared=true;call("재머 격파 · 계속 간다");}
     else call("재머 "+G.bosses+"기 격파");}
 }
 function hitP(d,src){const p=G.p;if(p.inv>0)return;
@@ -1431,7 +1429,7 @@ function gainXp(n){const p=G.p;p.xp+=n;
 function formChoice(){
   if(mode==="level")return;
   mode="level";$("#lvtag").textContent="EVOLUTION · LEVEL "+G.p.lv;
-  $("#v-level h2").textContent="오퍼레이터가 진화한다";$("#lvtools").style.display="none";
+  $("#v-level h2").textContent="어느 쪽으로 갈까";$("#lvtools").style.display="none";
   const box=$("#picks");box.innerHTML="";
   ["rover","warden","none"].forEach((k,i)=>{
     const f=FORMS[k],b=document.createElement("button");
@@ -1551,7 +1549,7 @@ function renderCards(){
   const NC=G.noEvo?4:3;
   while(opts.length<NC&&pool.length){const o=pool.splice(Math.floor(R.card()*pool.length),1)[0];
     if(!opts.includes(o))opts.push(o);}
-  $("#v-level h2").textContent="강화를 선택하라";$("#lvtools").style.display="flex";
+  $("#v-level h2").textContent="하나 고르세요";$("#lvtools").style.display="flex";
   const box=$("#picks");box.innerHTML="";
   const slots=Object.keys(G.w).length;
   opts.slice(0,NC).forEach((o,i)=>{
@@ -1566,7 +1564,7 @@ function renderCards(){
       ${hint?`<div class="ev${hint.ok?" ok":""}">${hint.t}</div>`:""}`;
     b.onclick=()=>{apply(o);hideAll();mode="play";last=performance.now();};
     box.appendChild(b);});
-  const rb=$("#b-reroll");rb.textContent=`리롤 (${G.rerolls})`;rb.disabled=G.rerolls<=0;
+  const rb=$("#b-reroll");rb.textContent=`다시 뽑기 (${G.rerolls})`;rb.disabled=G.rerolls<=0;
 }
 function reroll(){if(mode!=="level"||G.rerolls<=0)return;G.rerolls--;renderCards();}
 function skipCard(){if(mode!=="level")return;G.p.xp+=G.p.need*.3;hideAll();mode="play";last=performance.now();}
@@ -1993,7 +1991,7 @@ function loop(now){requestAnimationFrame(loop);
   if(hitstop>0){hitstop-=dt;dt*=.12;}
   update(dt);draw();}
 function start(){clearRun();SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun();hideAll();
-  mode="play";last=performance.now();call("중계 개시");
+  mode="play";last=performance.now();call("오늘 판 시작");
   runSaveT=0;RID=uid();track("start",{ch:G.ch,seed:SEED},0);}
 /* 이어하기는 진화 단계를 건너뛰고 도착하므로 HUD 라벨을 직접 맞춰야 한다.
    setForm·finalForm·apexForm이 각자 써 놓던 것을 한 자리에 모은 것이다. */
@@ -2016,7 +2014,7 @@ function contRun(){
   Object.assign(G.p,r.p);
   if(r.boss)G.boss=Object.assign({x:G.p.x+520,y:G.p.y},r.boss);
   RID=r.rid;runSaveT=0;relabel();
-  hideAll();mode="play";last=performance.now();call("중계 재개");
+  hideAll();mode="play";last=performance.now();call("이어서 시작");
   track("start",{ch:G.ch,seed:SEED,resumed:true},G.t);}
 function pause(){mode="pause";saveRun();showVeil("#v-pause");}
 function resume(){mode="play";last=performance.now();hideAll();}
@@ -2031,7 +2029,7 @@ function finish(won){
   save();menu();
   const trueEnd=!!G.endNow;
   $("#otag").textContent=trueEnd?"SIGNAL DELIVERED":won?"MISSION COMPLETE":"SIGNAL LOST";
-  $("#otitle").textContent=trueEnd?"중계 완료":won?"중계 성공":"신호가 끊어졌다";
+  $("#otitle").textContent=trueEnd?"끝까지 지켰다":won?"재머를 끊었다":"신호가 끊어졌다";
   $("#b-more").style.display=trueEnd?"":"none";
   $("#o-time").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
   $("#o-kills").textContent=G.kills;$("#o-lv").textContent=G.p.lv;
@@ -2064,7 +2062,7 @@ $("#b-more").onclick=()=>{
   if(!G||!G.ended)return;
   G.over=false;G.won=false;G.endNow=false;G.bossT=100;
   RID=G.lastRid||uid();runSaveT=0;
-  hideAll();mode="play";last=performance.now();SFX.bgm(true);call("송신 재개");};
+  hideAll();mode="play";last=performance.now();SFX.bgm(true);call("계속 간다");};
 $("#b-resume").onclick=resume;$("#b-quit").onclick=()=>finish(false);
 $("#b-menu").onclick=()=>{showVeil("#v-menu");mode="menu";};
 $("#pausebtn").onclick=()=>{if(mode==="play")pause();};
