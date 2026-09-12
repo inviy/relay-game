@@ -503,7 +503,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.3.0";
+const VERSION="2.4.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -836,6 +836,12 @@ const WEAPONS={
          up:["","미사일 +1","폭발 반경 확대","미사일 +1","피해 증가"]},
   hammer:{n:"충격 망치",c:C.gold,d:"정면을 강타해 밀어낸다",only:"warden",
          up:["","범위 확대","재장전 단축","넉백 강화","피해 대폭 증가"]},
+  /* 기존 다섯이 전부 "닿는 것을 깎는" 무기라 빌드가 한 방향으로 수렴했다.
+     둘은 각각 다른 결정을 만든다 — 우물은 적을 어디로 모을지, 빔은 어느 쪽을 볼지. */
+  well :{n:"중력정",  c:C.violet,d:"우물을 열어 적을 끌어당기고 짓이긴다",
+         up:["","우물 확대","주기 단축","흡인력 강화","피해 대폭 증가"]},
+  prism:{n:"굴절 빔", c:C.pale,  d:"바라보는 축으로 관통 레이저를 교차 발사한다",
+         up:["","빔 +1","재장전 단축","관통 +2","피해 증가"]},
 };
 const FORMS={
  rover:{n:"기동계",hint:"— 빠르게",c:C.cyan,
@@ -859,6 +865,12 @@ const PASSIVES={
   armor :{n:"강골",  c:C.pink,d:"최대 체력 +30, 즉시 회복"},
   magnet:{n:"자기장",c:C.cyan,d:"경험치 흡수 범위 +40%"},
   regen :{n:"재생기",c:C.gold,d:"초당 체력 회복 +0.9"},
+  /* 여덟 개가 피해·공속·관통·범위·이속·체력·자석·재생으로 표준 스탯을 전부 덮고
+     있었다. 더 얹어 봐야 "같은 빌드를 더 오래"라서, 넷은 전부 조건부로 만든다. */
+  crit  :{n:"치명 회로",c:C.gold,  d:"직접 타격이 10% 확률로 2.2배"},
+  drain :{n:"회수기",  c:"#8ef0b0",d:"처치할 때마다 체력 +0.1"},
+  thorn :{n:"반사막",  c:C.pink,   d:"맞은 자리가 터진다 (28 피해)"},
+  surge :{n:"과부하",  c:C.orange, d:"신호권 안에서 피해 +10%"},
 };
 /* ───── 시작 기체 ─────
    시작 무기 + 장점 하나 + 대가 하나. 새 메커닉 없이 newRun 초기값의 프리셋이다.
@@ -890,6 +902,10 @@ const EVOS=[
     낙뢰만 그대로라 "왜 이것만 5레벨이 끝이냐"가 됐다. 실제 플레이에서 나온 지적이다.
     짝은 자기장 — 유일하게 아무 진화에도 안 쓰이던 패시브라 같이 살아난다. */
  {id:"maelstrom",w:"bolt",p:"magnet",n:"자기 폭풍",d:"벼락이 두 배로 쏟아지고, 떨어진 자리로 적을 끌어당긴다.",c:C.gold},
+ /* 신규 무기의 짝은 신규 패시브로 건다 — 안 그러면 새 패시브가 진화에 한 번도
+    안 쓰이는 자리가 되고, 낙뢰가 겪었던 "이것만 막다른 길"이 반복된다. */
+ {id:"maw",    w:"well", p:"drain",n:"포식 우물", d:"우물이 넓어지고 닿는 것을 전부 삼킨다.",c:C.violet},
+ {id:"lattice",w:"prism",p:"crit", n:"프리즘 격자",d:"빔이 네 방향으로 갈라지고 무엇이든 뚫는다.",c:C.pale},
 ];
 
 function setMute(m){const b=$("#mute");
@@ -944,7 +960,7 @@ const tpaceAt=t=>TPACE0+(TPACE1-TPACE0)*Math.min(1,t/TRAMP);
 function newRun(){
   G={t:0,et:0,eth:0,pace:PACE,kills:0,spawn:0,elite:24/PACE,chest:0,boss:null,over:false,won:false,cleared:false,ended:false,endNow:false,bosses:0,bossT:0,
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
-    st:{dmg:1,rate:1,area:1,pierce:0,regen:0},
+    st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
     zone:{x:0,y:0,r:340},next:null,zt:ZONE_T/PACE,
     en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],shl:[],seg:[],rank:0,
@@ -1019,7 +1035,9 @@ function spawnE(k,elite){
 /* 재머 4기를 잡으면 종단 재머가 온다 — 약 13분 50초 지점. 무한 모드에 끝이
    없어서 "할 게 없어서 중단"이 됐던 자리다. 체력은 후반 DPS 실측(정지 표적
    6,279/s, 실전 체감은 그 60%)을 근거로 2.4배 — 대략 30~60초 싸움이 된다. */
-const FINAL_AT=4;
+/* 4기였을 때 실측 8:24. "판이 너무 빨리 끝난다"는 말이 나와 5기로 늘렸다.
+   재머 간격이 50초라 대략 10분이 된다. 「계속 싸우기」는 그 뒤에도 그대로 있다. */
+const FINAL_AT=5;
 function spawnBoss(){
   const a=rnd(0,TAU);
   const fin=G.bosses>=FINAL_AT&&!G.ended;
@@ -1131,6 +1149,7 @@ function zoneMul(){
   if(f==="rover")m=1.35;
   else if(f==="warden")m=G.p.in?2.2:.85;
   else m=G.p.in?1.7:1;
+  if(G.p.in&&G.st.surge)m*=1+G.st.surge;
   if(G.p.in&&G.mod.zmul)m*=G.mod.zmul;
   if(G.noEvo)m*=1.15;
   return m;
@@ -1244,6 +1263,29 @@ function weapons(dt){
       G.bolts.push({x,y,r:rad,life:.42,max:.42,dmg:(evo?120:34+L*17)*st.dmg*zoneMul(),done:0,pull:evo?1:0,lit:1,sh:.06});
     }
   }
+  // 중력정 / 포식 우물
+  /* 장판을 겹쳐 쌓는 화염과 달리 한 번에 하나만 산다. Lv1~2는 주기(3.6s)가
+     지속(3.05~3.3s)보다 길어 잠깐 끊기고, Lv3의 「주기 단축」에서 상시 유지가 된다 —
+     그게 이 무기의 실질 분기점이다. 값어치는 초당 피해가 아니라 흡인이다. */
+  if(G.w.well&&G.cd.well<=0){
+    const L=G.w.well, evo=G.evo.maw;
+    G.cd.well=evo?2.2:(L>=3?2.8:3.6);
+    const t=near(1)[0];
+    const x=t?t.x:p.x+p.dx*140, y=t?t.y:p.y+p.dy*140;
+    G.pool.push({x,y,r:(evo?215:110+L*16)*A,life:evo?3.8:2.8+L*.25,
+      dps:(evo?105:24+L*10)*st.dmg*zoneMul(),
+      pull:evo?300:110+(L>=4?90:0),vio:1});
+  }
+  // 굴절 빔 / 프리즘 격자
+  if(G.w.prism&&G.cd.prism<=0){
+    const L=G.w.prism, evo=G.evo.lattice;
+    G.cd.prism=evo?1.15:(L>=3?1.35:1.8);
+    const cnt=evo?4:2+(L>=2?1:0), base=Math.atan2(p.dy,p.dx);
+    for(let i=0;i<cnt;i++){const a=base+i*TAU/cnt;
+      G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*740,vy:Math.sin(a)*740,r:(evo?11:7)*A,
+        dmg:(evo?76:22+L*10)*st.dmg*zoneMul(),life:1.25,
+        pierce:evo?99:st.pierce+2+(L>=4?2:0),c:C.pale,beam:1});}
+  }
 }
 function near(n){const p=G.p,a=[];
   for(const e of G.en)if(!e.dead)a.push([Math.hypot(e.x-p.x,e.y-p.y),e]);
@@ -1255,6 +1297,7 @@ function near(n){const p=G.p,a=[];
    처치는 보상이어야 하므로 반경·피해·흔들림을 낮춘다. 적에게 주는 유폭은 그대로. */
 function explodeE(e,byKill){
   if(e.dead)return;e.dead=1;G.kills++;
+  if(G.st.drain)G.p.hp=Math.min(G.p.mhp,G.p.hp+G.st.drain);
   const br=byKill?60:100, bd=byKill?Math.round(e.dmg*.45):e.dmg;
   G.bolts.push({x:e.x,y:e.y,r:br,life:.35,max:.35,dmg:0,done:1,red:1});
   if(Math.hypot(G.p.x-e.x,G.p.y-e.y)<br+G.p.r)hitP(bd,"자폭체 폭발");
@@ -1267,14 +1310,19 @@ function dmgE(e,d,showNum){
   if(G.shl.length&&!e.aura)for(const sh of G.shl)
     if(Math.hypot(e.x-sh.x,e.y-sh.y)<sh.aura){d*=.55;break;}
   if(e.tr==="armor")d*=TRAITS.armor.d;
+  /* 치명은 직접 타격에만 건다. 장판·불길은 초당 수십 틱이라 거기까지 굴리면
+     "가끔 크게"가 아니라 그냥 평균 피해 상승이 되고, 숫자도 못 읽는다. */
+  let crit=0;
+  if(showNum&&G.st.crit&&Math.random()<G.st.crit){d*=2.2;crit=1;}
   e.hp-=d; e.hit=.1;
   if(showNum&&e.hp>0&&Math.random()<.55){    // 직접 타격에만 스파크가 튄다
     const a=rnd(0,TAU);
     for(let i=0;i<2;i++)G.fx.push({x:e.x,y:e.y,vx:Math.cos(a+rnd(-.7,.7))*rnd(70,150),
       vy:Math.sin(a+rnd(-.7,.7))*rnd(70,150),life:.18,max:.18,c:"#ffffff"});}
-  if(showNum&&d>=1)G.num.push({x:e.x,y:e.y-e.r,v:Math.round(d),life:.65,c:C.pale});
+  if(showNum&&d>=1)G.num.push({x:e.x,y:e.y-e.r,v:Math.round(d),life:.65,c:crit?C.gold:C.pale});
   if(e.hp<=0&&!e.dead){
     e.dead=1;G.kills++;SFX.kill();
+    if(G.st.drain)G.p.hp=Math.min(G.p.mhp,G.p.hp+G.st.drain);
     if(e.split)for(let i=0;i<3;i++){const a=i/3*TAU;G.en.push(makeE("mote",e.x+Math.cos(a)*18,e.y+Math.sin(a)*18,false));}
     if(e.bomb||e.tr==="volat"){explodeE(Object.assign({},e,{dead:0,dmg:e.bomb?e.dmg:26}),true);}if(G.form&&G.form!=="none")G.ult.c=Math.min(G.ult.max,G.ult.c+1);
     for(let i=0;i<e.xp;i++)G.fx.push({x:e.x+rnd(-10,10),y:e.y+rnd(-10,10),xp:1});
@@ -1300,7 +1348,11 @@ function hitP(d,src){const p=G.p;if(p.inv>0)return;
   if(G.form==="warden"&&G.shield.up){G.shield.up=false;G.shield.cd=6;p.inv=.4;
     G.num.push({x:p.x,y:p.y-24,v:"방패",life:.6,c:C.gold});SFX.block();G.fx.push({x:p.x,y:p.y,vx:0,vy:0,life:.35,max:.35,ring:70});return;}
   if(G.form==="warden"&&p.in)d*=.65;
-  p.hp-=d;p.inv=.6;p.flash=.25;shake=Math.max(shake,.5);hitstop=.03;SFX.hurt();G.lastHit=src||"접촉";}
+  p.hp-=d;p.inv=.6;p.flash=.25;shake=Math.max(shake,.5);hitstop=.03;SFX.hurt();G.lastHit=src||"접촉";
+  /* 반사막 — 맞은 자리에서 터진다. 증폭기는 타되 신호권 배수는 안 탄다.
+     맞는 자리는 내가 고른 자리가 아니라서 신호권을 보상으로 걸 근거가 없다. */
+  if(G.st.thorn)G.bolts.push({x:p.x,y:p.y,r:140*G.st.area,life:.32,max:.32,
+    dmg:G.st.thorn*G.st.dmg,done:0,pink:1,sh:.1});}
 
 function enemies(dt){const p=G.p;
   /* 차폐기 목록을 프레임마다 한 번만 모은다 — dmgE는 초당 수백 번 불리므로
@@ -1434,6 +1486,11 @@ function bullets(dt){
 }
 function pools(dt){
   for(let i=G.pool.length-1;i>=0;i--){const q=G.pool[i];q.life-=dt;
+    /* 흡인 반경은 피해 반경의 2.2배 — 밖에 있던 적을 안으로 가져와야 의미가 있다.
+       d*.9 로 묶어서 우물 중심을 지나쳐 튕겨 나가지 않게 한다. */
+    if(q.pull)for(const e of G.en){if(e.dead)continue;
+      const dx=q.x-e.x,dy=q.y-e.y,d=Math.hypot(dx,dy);
+      if(d>4&&d<q.r*2.2){const k=Math.min(q.pull*dt,d*.9)/d;e.x+=dx*k;e.y+=dy*k;}}
     for(const e of G.en)if(!e.dead&&Math.hypot(e.x-q.x,e.y-q.y)<e.r+q.r)dmgE(e,q.dps*dt,0);
     if(G.boss&&Math.hypot(G.boss.x-q.x,G.boss.y-q.y)<G.boss.r+q.r)dmgB(q.dps*dt);
     if(q.life<=0)G.pool.splice(i,1);}
@@ -1567,7 +1624,7 @@ function hasCards(){
   for(const k in WEAPONS){const Wd=WEAPONS[k];
     if(Wd.only&&Wd.only!==G.form)continue;
     const n=G.lvls[k]||0;
-    if(n===0&&slots<5)return true;
+    if(n===0&&slots<6)return true;
     if(n>0&&n<5&&!isEvolved(k))return true;}
   for(const k in PASSIVES)if((G.lvls[k]||0)<5)return true;
   return false;
@@ -1589,12 +1646,18 @@ function wstat(k,L){const st=G.st,A=st.area,R=st.rate,D=st.dmg;const r1=v=>Math.
    case "bolt":return {피해:Math.round((34+L*17)*D),낙뢰:1+(L>=2)+(L>=4)*2,반경:Math.round((72+L*16)*A)};
    case "missile":return {피해:Math.round((30+L*12)*D),발:1+(L>=2)+(L>=4),폭발:Math.round((70+(L>=3?25:0))*A)};
    case "hammer":return {피해:Math.round((36+L*14)*D),범위:Math.round((130+(L>=2?40:0))*A),재장전:r1((L>=3?1.1:1.5)/R)+"s",넉백:70+(L>=4?70:0)};
+   case "well":return {"초당 피해":Math.round((24+L*10)*D),반경:Math.round((110+L*16)*A),흡인:110+(L>=4?90:0),주기:r1((L>=3?2.8:3.6)/R)+"s"};
+   case "prism":return {피해:Math.round((22+L*10)*D),빔:2+(L>=2),관통:st.pierce+2+(L>=4?2:0),재장전:r1((L>=3?1.35:1.8)/R)+"s"};
   }return {};}
 function pstat(k,n){const p=G.p;
   const t={amp:["피해",`+${18*n}%`,`+${18*(n+1)}%`],cool:["공격 속도",`+${14*n}%`,`+${14*(n+1)}%`],
    pierce:["관통",n,n+1],area:["범위",`+${16*n}%`,`+${16*(n+1)}%`],boots:["이동",`+${10*n}%`,`+${10*(n+1)}%`],
    armor:["최대 체력",p.mhp,p.mhp+30],magnet:["흡수 범위",Math.round(p.mag),Math.round(p.mag*1.4)],
-   regen:["초당 회복",G.st.regen.toFixed(1),(G.st.regen+.9).toFixed(1)]}[k];
+   regen:["초당 회복",G.st.regen.toFixed(1),(G.st.regen+.9).toFixed(1)],
+   crit:["치명 확률",`${10*n}%`,`${10*(n+1)}%`],
+   drain:["처치당 회복",(.1*n).toFixed(1),(.1*(n+1)).toFixed(1)],
+   thorn:["반사 피해",Math.round(28*n*G.st.dmg),Math.round(28*(n+1)*G.st.dmg)],
+   surge:["신호권 안 피해",`+${10*n}%`,`+${10*(n+1)}%`]}[k];
   return `${t[0]} <em>${t[1]} → ${t[2]}</em>`;}
 function numLine(o){
   if(o.wk){const a=wstat(o.wk,Math.max(1,o.lv)),b=wstat(o.wk,o.lv+1);
@@ -1614,11 +1677,12 @@ function renderCards(){
     if(!G.evo[e.id]&&(G.lvls[e.w]||0)>=4&&(G.lvls[e.p]||0)>=3)
       opts.push({evo:e,kind:"진화",title:e.n,desc:e.d,c:e.c,lv:0,max:1});
   const pool=[];
-  const fav={rover:["dart","missile","bolt","chain"],warden:["blade","hammer","flame"]}[G.form]||[];
+  /* 굴절 빔은 축을 보고 쏘므로 움직이는 쪽, 중력정은 자리를 만드는 쪽에 얹는다 */
+  const fav={rover:["dart","missile","bolt","chain","prism"],warden:["blade","hammer","flame","well"]}[G.form]||[];
   for(const k in WEAPONS){const n=G.lvls[k]||0,Wd=WEAPONS[k];
     if(Wd.only&&Wd.only!==G.form)continue;
     let o=null;
-    if(n===0&&Object.keys(G.w).length<5)o={wk:k,kind:Wd.only?"전용 무기":"새 무기",title:Wd.n,desc:Wd.d,c:Wd.c,lv:0,max:5};
+    if(n===0&&Object.keys(G.w).length<6)o={wk:k,kind:Wd.only?"전용 무기":"새 무기",title:Wd.n,desc:Wd.d,c:Wd.c,lv:0,max:5};
     else if(n>0&&n<5&&!isEvolved(k))o={wk:k,kind:"무기 강화",title:Wd.n,desc:Wd.up[n]||"피해 증가",c:Wd.c,lv:n,max:5};
     if(o){pool.push(o);if(fav.includes(k))pool.push(o);if(Wd.only&&n===0)pool.push(o);}}
   for(const k in PASSIVES){const n=G.lvls[k]||0;
@@ -1634,7 +1698,7 @@ function renderCards(){
     b.className="card"+(o.evo?" evo":"");b.style.setProperty("--c",o.c);
     let pips="";for(let j=0;j<o.max;j++)pips+=`<i class="${j<o.lv?"on":""}"></i>`;
     const hint=evoHint(o);
-    b.innerHTML=`<div class="glyph"><i></i></div><div class="kind">${i+1} · ${o.kind}${o.wk&&o.lv===0?` · 슬롯 ${slots+1}/5`:""}</div>
+    b.innerHTML=`<div class="glyph"><i></i></div><div class="kind">${i+1} · ${o.kind}${o.wk&&o.lv===0?` · 슬롯 ${slots+1}/6`:""}</div>
       <div class="t">${o.title}${o.lv?" Lv"+(o.lv+1):""}</div><div class="d">${o.desc}</div>
       ${o.evo?"":`<div class="n">${numLine(o)}</div>`}
       ${o.max>1?`<div class="lvpips">${pips}</div>`:""}
@@ -1660,6 +1724,10 @@ function apply(o){
   if(k==="armor"){p.mhp+=30;p.hp=Math.min(p.mhp,p.hp+30);}
   if(k==="magnet")p.mag*=1.4;
   if(k==="regen")st.regen+=.9;
+  if(k==="crit")st.crit+=.10;
+  if(k==="drain")st.drain+=.10;
+  if(k==="thorn")st.thorn+=28;
+  if(k==="surge")st.surge+=.10;
 }
 
 /* ───── 렌더 ───── */
@@ -1731,8 +1799,12 @@ function draw(){
   // 화염 장판
   for(const q of G.pool){const a=Math.min(1,q.life);
     const g=cx.createRadialGradient(q.x+ox,q.y+oy,2,q.x+ox,q.y+oy,q.r);
-    g.addColorStop(0,`rgba(255,159,67,${.5*a})`);g.addColorStop(1,"rgba(255,60,0,0)");
-    cx.fillStyle=g;cx.beginPath();cx.arc(q.x+ox,q.y+oy,q.r,0,TAU);cx.fill();}
+    /* 우물은 가운데가 비고 테두리가 짙다 — 불길과 반대로 칠해야 "빨려 드는 것"으로 읽힌다 */
+    if(q.vio){g.addColorStop(0,`rgba(168,107,255,${.06*a})`);g.addColorStop(.7,`rgba(168,107,255,${.30*a})`);g.addColorStop(1,"rgba(120,40,220,0)");}
+    else{g.addColorStop(0,`rgba(255,159,67,${.5*a})`);g.addColorStop(1,"rgba(255,60,0,0)");}
+    cx.fillStyle=g;cx.beginPath();cx.arc(q.x+ox,q.y+oy,q.r,0,TAU);cx.fill();
+    if(q.vio){cx.save();cx.strokeStyle=`rgba(168,107,255,${(.45*a).toFixed(2)})`;cx.lineWidth=2;
+      cx.beginPath();cx.arc(q.x+ox,q.y+oy,q.r*(.6+.4*Math.abs(Math.sin(q.life*3))),0,TAU);cx.stroke();cx.restore();}}
 
   // 경험치 · 파티클
   cx.save();cx.shadowColor=C.cyan;cx.shadowBlur=10;
@@ -1760,11 +1832,11 @@ function draw(){
   /* 맥스 빌드에서는 이 고리가 초당 열 개 넘게 겹친다. 하나하나가 밝으면
      화면이 통째로 번쩍이고 눈이 아프다. 글로우·불투명도·번개 줄기를 낮췄다. */
   for(const z of G.bolts){const k=1-z.life/z.max;
-    const col=z.red?"255,77,77":z.cyan?"79,240,216":"255,209,102";
+    const col=z.red?"255,77,77":z.cyan?"79,240,216":z.pink?"255,92,138":"255,209,102";
     cx.save();cx.shadowColor=z.cyan?C.cyan:C.gold;cx.shadowBlur=11;
     cx.strokeStyle=`rgba(${col},${((1-k)*.72).toFixed(2)})`;cx.lineWidth=z.gold?5:2;
     cx.beginPath();cx.arc(z.x+ox,z.y+oy,z.r*(.4+k*.6),0,TAU);cx.stroke();
-    if(z.cyan||z.gold||z.red){cx.fillStyle=`rgba(${col},${((1-k)*.15).toFixed(2)})`;cx.fill();}
+    if(z.cyan||z.gold||z.red||z.pink){cx.fillStyle=`rgba(${col},${((1-k)*.15).toFixed(2)})`;cx.fill();}
     /* 번개 줄기는 낙뢰 계열에만. 예전엔 자폭체 유폭에도 하늘에서 번개가 쳤다. */
     if(k>.5&&z.lit){cx.lineWidth=2.2;cx.strokeStyle=`rgba(${col},${((1-k)*.5).toFixed(2)})`;
       cx.beginPath();cx.moveTo(z.x+ox,z.y+oy-170);
