@@ -503,7 +503,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.4.2";
+const VERSION="2.5.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -617,7 +617,8 @@ const MODS=[
 const modFor=s=>MODS[Math.floor(mulberry32(s*7+11)()*MODS.length)];
 const MOD=modFor(SEED);
 let R={};
-function resetSeed(){R={zone:mulberry32(SEED*3+1),spawn:mulberry32(SEED*3+2),card:mulberry32(SEED*3+3)};}
+function resetSeed(){R={zone:mulberry32(SEED*3+1),spawn:mulberry32(SEED*3+2),card:mulberry32(SEED*3+3),
+  ev:mulberry32(SEED*3+4)};}
 const srnd=(g,a,b)=>a+g()*(b-a), spick=(g,arr)=>arr[Math.floor(g()*arr.length)];
 
 /* ───── 사운드 (Web Audio 합성) ───── */
@@ -986,6 +987,7 @@ function newRun(){
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
+    sev:null,sevT:0,sevN:SEV_FIRST,sevLast:null,
     zone:{x:0,y:0,r:340},next:null,zt:ZONE_T/PACE,
     en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],shl:[],seg:[],rank:0,
     stars:Array.from({length:150},()=>({x:rnd(-2000,2000),y:rnd(-2000,2000),z:rnd(.2,1)}))};
@@ -1052,6 +1054,37 @@ const EVENTS=[
  {t:320,n:"철벽 포위",   f:()=>ringSpawn("wall",12,600)},
  {t:380,n:"최후의 물결", f:()=>{ringSpawn("bomber",18,520);lineSpawn("dash",30);}},
 ];
+/* ───── 상태 이벤트 ─────
+   위의 EVENTS는 일회성 스폰 폭탄이고 6:20에 끝난다. 이건 다른 층이다 —
+   일정 시간 동안 판의 규칙 자체가 바뀌고, 다 이룬 뒤에도 계속 온다.
+   목적은 난이도가 아니라 리듬이다. 넷 중 하나가 「고요」인 이유가 그것이다 —
+   계속 조이기만 하면 강도가 아니라 피로가 된다.
+   추첨은 전용 생성기(R.ev)로 한다. 스폰 스트림을 건드리면 같은 날 사람마다
+   적 구성이 어긋나 데일리 순위가 깨진다. */
+const SEVS=[
+ {id:"blackout",n:"정전",d:"신호권 밖이 어두워진다",         dur:24, espd:1.2},
+ {id:"surge",   n:"폭주",d:"적이 쏟아진다 · 경험치 3배",      dur:32, spawn:3, xp:3},
+ {id:"lull",    n:"고요",d:"적이 멈춘다 · 상자가 쏟아진다",   dur:18, spawn:0, chest:.34},
+ {id:"drift",   n:"역류",d:"신호권이 계속 옮겨 다닌다",       dur:28, zt:.28},
+];
+/* 첫 45초, 이후 이벤트가 끝나고 52초 뒤. 지속이 18~32초라 대략 75초에 한 번 —
+   10분 판에서 7~8회다. 62초였을 때는 6회로, 「경험이 부족하다」는 말에 못 미쳤다. */
+const SEV_FIRST=45, SEV_GAP=52;
+/* 0을 값으로 쓰는 항목(고요의 spawn)이 있어 falsy 검사로는 안 된다 */
+const sevMul=k=>(G.sev&&G.sev[k]!==undefined)?G.sev[k]:1;
+function startSev(){
+  let e=spick(R.ev,SEVS);
+  if(G.sevLast&&e.id===G.sevLast)e=spick(R.ev,SEVS);   // 같은 게 연달아 오면 한 번만 다시 뽑는다
+  /* 재머전이면 정전을 옆으로 비킨다. 난수를 더 뽑지 않고 표에서 한 칸 옮기는 방식이라
+     추첨 스트림이 사람마다 어긋나지 않는다. */
+  if(G.boss&&e.id==="blackout")e=SEVS[(SEVS.indexOf(e)+1)%SEVS.length];
+  G.sev=e;G.sevT=e.dur;G.sevLast=e.id;
+  /* 역류는 지금 도는 타이머도 같이 줄인다 — 안 그러면 30초를 기다리다 이벤트가 끝난다 */
+  if(e.zt)G.zt=Math.min(G.zt,ZONE_T/G.pace*e.zt);
+  call(e.n+" — "+e.d);SFX.warn();shake=Math.max(shake,.4);
+  G.flash={t:.5,c:e.id==="lull"?"142,240,176":"255,209,102"};
+}
+function endSev(){G.sev=null;G.sevT=0;G.sevN=SEV_GAP;call("신호 정상화");SFX.zone();}
 function spawnE(k,elite){
   const a=rnd(0,TAU), d=Math.max(W,H)*.68;
   G.en.push(makeE(k,G.p.x+Math.cos(a)*d,G.p.y+Math.sin(a)*d,elite));
@@ -1086,7 +1119,7 @@ function update(dt){
     G.zt-=dt;
     if(G.zt<=8&&!G.next){const a=srnd(R.zone,0,TAU),d=srnd(R.zone,560,860);
       G.next={x:G.zone.x+Math.cos(a)*d,y:G.zone.y+Math.sin(a)*d};call("신호권 이동 준비");}
-    if(G.zt<=0){G.zone.x=G.next.x;G.zone.y=G.next.y;G.next=null;G.zt=ZONE_T/G.pace;SFX.zone();
+    if(G.zt<=0){G.zone.x=G.next.x;G.zone.y=G.next.y;G.next=null;G.zt=ZONE_T/G.pace*sevMul("zt");SFX.zone();
       for(let i=0;i<26;i++)G.fx.push({x:G.zone.x+Math.cos(i/26*TAU)*G.zone.r,y:G.zone.y+Math.sin(i/26*TAU)*G.zone.r,
         vx:0,vy:0,life:.6,max:.6,c:C.gold,sp:1});}
   }
@@ -1106,7 +1139,7 @@ function update(dt){
   p.inv=Math.max(0,p.inv-dt); p.flash=Math.max(0,p.flash-dt); G.ult.t=Math.max(0,G.ult.t-dt);
 
   // 스폰 (초반은 아주 완만하게)
-  G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.eth/34)*(G.mod.spawn||1);  // 클리어 후에는 상한을 풀어 난이도를 이어간다
+  G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.eth/34)*(G.mod.spawn||1)*sevMul("spawn");  // 클리어 후에는 상한을 풀어 난이도를 이어간다
   while(G.spawn>=1){G.spawn--;
     const r=R.spawn(); let k="wisp";
     if(G.et>75&&r<.38)k="dash";
@@ -1131,6 +1164,13 @@ function update(dt){
     /* 끝을 본 뒤부터 포식자가 섞인다 */
     if(G.ended&&r<.18)k="predator";
     spawnE(k,false);}
+  /* 상태 이벤트.
+     처음엔 보스전 중 전부 막았는데, 첫 재머가 2:50이고 그 뒤 50초마다 오므로
+     정작 이벤트가 필요한 후반에 기능이 죽었다(실측 300초에 2회). 그래서 일반
+     재머전에는 허용한다. 막는 건 둘뿐이다 — 종단 재머전 전체(링→나선→수렴
+     3단계를 방해하면 안 된다), 그리고 재머전의 정전(안 보이는 것을 때리게 된다). */
+  if(G.sev){ G.sevT-=dt; if(G.sevT<=0)endSev(); }
+  else if(!(G.boss&&G.boss.fin)){ G.sevN-=dt; if(G.sevN<=0)startSev(); }
   // 타임라인 이벤트
   const ev=EVENTS[G.evi];
   if(ev&&!G.boss){
@@ -1143,7 +1183,9 @@ function update(dt){
   // 신호권 밖 간섭 (기동계는 면역)
   if(p.in||G.form==="rover")G.outT=Math.max(0,G.outT-dt*2);else G.outT+=dt;
   G.elite-=dt;
-  if(G.elite<=0&&!G.boss){G.elite=32/G.pace*(G.mod.elite||1)*(G.ended?.7:1);
+  /* 고요는 일반 스폰만 막고 엘리트는 그대로 오고 있었다 — 설명이 거짓이 된다.
+     타이머는 계속 줄어드니 고요가 끝나는 순간 한 번 몰려온다. 그건 의도다. */
+  if(G.elite<=0&&!G.boss&&sevMul("spawn")>0){G.elite=32/G.pace*(G.mod.elite||1)*(G.ended?.7:1);
     /* 엘리트가 늘 탱크뿐이라 후반이 단조로웠다. 그 시점에 등장한 종류 중에서 고른다.
        시드 생성기를 써야 같은 날 모두가 같은 구성을 만난다. */
     const ep=G.ended?["predator","predator","shielder","sniper","wall"]
@@ -1152,7 +1194,7 @@ function update(dt){
             :G.et>140?["tank"]:["wisp"];
     for(let i=0;i<1+Math.floor(G.et/180);i++)spawnE(spick(R.spawn,ep),true);}
   G.chest-=dt;
-  if(G.chest<=0){G.chest=24/G.pace*(G.mod.chest||1);const a=srnd(R.zone,0,TAU),d=srnd(R.zone,0,G.zone.r*.7);
+  if(G.chest<=0){G.chest=24/G.pace*(G.mod.chest||1)*sevMul("chest");const a=srnd(R.zone,0,TAU),d=srnd(R.zone,0,G.zone.r*.7);
     dropItem(G.zone.x+Math.cos(a)*d,G.zone.y+Math.sin(a)*d,spick(R.zone,["heal","bomb","magnet","chest"]));}
 
   /* 보스를 잡아도 끝나지 않는다 — 상한이 닫혀 있으면 잘해도 점수가 안 오른다.
@@ -1395,6 +1437,7 @@ function enemies(dt){const p=G.p;
         G.fx.push({x:e.x,y:e.y,vx:0,vy:0,life:.25,max:.25,ring:e.r*2,rc:TRAITS.blink.c,rw:2});}}
     if(G.final&&G.form==="warden"&&Math.hypot(e.x-G.zone.x,e.y-G.zone.y)<G.zone.r)s*=.72;
     if(G.outT>30)s*=1.2;
+    s*=sevMul("espd");
     const dist=Math.hypot(p.x-e.x,p.y-e.y);
     if(e.ranged){
       if(dist>300){e.x+=Math.cos(a)*s*dt;e.y+=Math.sin(a)*s*dt;}
@@ -1550,7 +1593,7 @@ function fx(dt){const p=G.p;
       const d=Math.hypot(p.x-f.x,p.y-f.y);
       if(d<p.mag||f.pull){const a=Math.atan2(p.y-f.y,p.x-f.x),s=f.pull?900:Math.max(200,620-d);
         f.x+=Math.cos(a)*s*dt;f.y+=Math.sin(a)*s*dt;}
-      if(d<p.r+11){G.fx.splice(i,1);gainXp(p.in?1.5:1);}
+      if(d<p.r+11){G.fx.splice(i,1);gainXp((p.in?1.5:1)*sevMul("xp"));}
       continue;}
     f.life-=dt;if(f.vx){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=.94;f.vy*=.94;}
     if(f.life<=0)G.fx.splice(i,1);}
@@ -1755,6 +1798,31 @@ function apply(o){
 }
 
 /* ───── 렌더 ───── */
+/* 정전 마스크.
+   구멍이 둘(신호권·발밑)이고 서로 겹칠 수 있다. 한 번의 evenodd 채우기로는
+   안 된다 — 겹친 영역이 교차수 홀수가 되어 어둠이 되돌아온다(실제로 그렇게 나왔다).
+   같은 레이어에서 destination-out을 하면 게임 화면까지 지워진다(그것도 당했다).
+   그래서 별도 캔버스에 어둠을 만들어 구멍을 뚫고 통째로 얹는다.
+   해상도는 절반이다 — 부드러운 마스크라 눈에 안 보이고 채우는 픽셀이 1/4이 된다. */
+const DARK_S=.5;
+let DARK=null,DARKW=0,DARKH=0;
+function blackoutMask(zx,zy,zr,pxx,pyy,pr,A){
+  const w=Math.ceil(W*DARK_S), h=Math.ceil(H*DARK_S);
+  if(!DARK||DARKW!==w||DARKH!==h){
+    DARK=document.createElement("canvas");DARK.width=w;DARK.height=h;DARKW=w;DARKH=h;}
+  const g=DARK.getContext("2d");
+  g.globalCompositeOperation="source-over";
+  g.clearRect(0,0,w,h);
+  g.fillStyle="#03050c";g.fillRect(0,0,w,h);
+  g.globalCompositeOperation="destination-out";
+  const hole=(hx,hy,hr)=>{
+    hx*=DARK_S;hy*=DARK_S;hr*=DARK_S;
+    const rg=g.createRadialGradient(hx,hy,hr*.6,hx,hy,hr);
+    rg.addColorStop(0,"rgba(0,0,0,1)");rg.addColorStop(1,"rgba(0,0,0,0)");
+    g.fillStyle=rg;g.beginPath();g.arc(hx,hy,hr,0,TAU);g.fill();};
+  hole(zx,zy,zr);hole(pxx,pyy,pr);
+  cx.save();cx.globalAlpha=A;cx.drawImage(DARK,0,0,W,H);cx.restore();
+}
 /* 성운 — 매 프레임 그라디언트를 만들지 않도록 512 타일에 한 번만 굽는다 */
 let NEB=null;
 function makeNeb(){
@@ -2016,6 +2084,16 @@ function draw(){
   cx.strokeStyle="rgba(79,240,216,.22)";cx.lineWidth=1;
   cx.beginPath();cx.arc(px,py,p.mag,0,TAU);cx.stroke();
 
+  /* 정전 — 신호권 밖이 어두워진다.
+     destination-out으로 구멍을 뚫으려 했다가 실패했다. 월드와 어둠이 같은
+     레이어라서 지우면 게임 화면까지 함께 지워진다(통째로 검게 나왔다).
+     사각형에서 원 둘을 빼는 evenodd 채우기가 맞다 — 오프스크린 캔버스도 안 쓴다.
+     구멍이 둘인 이유: 신호권은 밝아야 "안으로 들어가라"가 읽히고, 발밑은 보여야
+     안 보이는 것에 맞아 죽지 않는다. 둘째가 없으면 긴장이 아니라 부당함이 된다. */
+  if(G.sev&&G.sev.id==="blackout"){
+    const k=Math.min(1,Math.min(G.sevT,1.2)/1.2);            // 시작·끝에서 부드럽게
+    blackoutMask(G.zone.x+ox,G.zone.y+oy,G.zone.r, px,py,170, .82*k);
+  }
   // 화면 밖 인디케이터
   if(!p.in)edgeArrow(G.zone.x,G.zone.y,ox,oy,C.gold,Math.round(Math.hypot(G.zone.x-p.x,G.zone.y-p.y)/10)+"m");
   if(G.next)edgeArrow(G.next.x,G.next.y,ox,oy,C.pink,"다음 "+Math.ceil(G.zt)+"s");
@@ -2202,9 +2280,10 @@ function hud(){
   ub.classList.toggle("ready",rdy);ub.classList.toggle("locked",!armed);
   const zt=$("#zt");
   if(G.boss)zt.textContent="";
-  else{zt.textContent=(G.zt<=8?(SMALL?"이동 ":"신호권 이동 "):(SMALL?"유지 ":"신호권 유지 "))
+  else{zt.textContent=(G.sev?G.sev.n+" "+Math.ceil(G.sevT)+"s  ·  ":"")
+      +(G.zt<=8?(SMALL?"이동 ":"신호권 이동 "):(SMALL?"유지 ":"신호권 유지 "))
       +Math.ceil(G.zt)+"s"+(G.outT>30?(SMALL?" · 간섭":"  ·  간섭 발생"):"");
-    zt.classList.toggle("soon",G.zt<=8);}
+    zt.classList.toggle("soon",G.zt<=8||!!G.sev);}
 }
 
 /* ───── 흐름 ───── */
