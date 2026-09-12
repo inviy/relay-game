@@ -503,7 +503,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.4.0";
+const VERSION="2.4.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -1893,15 +1893,58 @@ function draw(){
       if(t){cx.fillStyle=t.c;cx.font="700 11px 'Chakra Petch',"+KRF;cx.textAlign="center";
         cx.fillText(t.n,X,Y-e.r-13);}}}
 
-  // 보스
+  // 보스 — 차단기 셔터
+  /* 예전엔 보라색 원판 하나였다. 적 12종이 전부 고유 실루엣을 가진 판에서
+     보스만 민무늬 원이라 덩어리로 보였다 — "기괴하다"는 말이 나온 자리다.
+     조리개로 바꾸면서 체력을 모양에 실었다. 깎을수록 날이 열리고 중심이 탄다.
+     날을 바깥으로 "밀어내는" 방식은 버렸다. 체력이 낮을 때 조각 여섯 개로
+     흩어져 한 물체로 안 읽힌다(시안 D·D-2에서 실제로 그렇게 됐다).
+     테두리 위 경첩에서 비트는 쪽이라 테두리가 항상 몸으로 남는다.
+     그 테두리는 b.r 그대로다 — 예전 링은 r+12라 히트박스보다 커 보였다. */
   if(G.boss){const b=G.boss,X=b.x+ox,Y=b.y+oy;
-    cx.save();cx.shadowColor=C.pink;cx.shadowBlur=36;
-    cx.fillStyle="#7b3fb8";cx.beginPath();cx.arc(X,Y,b.r,0,TAU);cx.fill();
-    if(b.hit>0){cx.shadowBlur=0;cx.globalAlpha=.5;cx.fillStyle="#ffffff";cx.fill();cx.globalAlpha=1;cx.shadowBlur=36;}
-    cx.strokeStyle=C.pink;cx.lineWidth=3;cx.beginPath();cx.arc(X,Y,b.r+12,0,TAU);cx.stroke();
-    /* 종단 재머는 회전하는 호 세 겹으로 구분한다 — 크기만 키우면 그냥 큰 보스다 */
-    if(b.fin){cx.strokeStyle="rgba(255,209,102,.8)";cx.lineWidth=2.5;
-      for(let q=0;q<3;q++){const rr=b.r+26+q*15, aa=G.t*(q%2?-.6:.9)+q*2;
+    const col=b.fin?C.gold:C.violet, hp=Math.max(0,Math.min(1,b.hp/b.mhp));
+    const th=(1-hp)*1.02, NB=6, spin=G.t*.35;
+    cx.save();
+    // 몸통과 새는 빛 — 테두리 안쪽으로 잘라낸다. 빛이 밖으로 번지면 조리개가 아니다
+    cx.save();
+    cx.beginPath();cx.arc(X,Y,b.r,0,TAU);cx.clip();
+    cx.fillStyle=b.fin?"#1d1607":"#150c28";cx.fillRect(X-b.r,Y-b.r,b.r*2,b.r*2);
+    const gr=b.r*(.22+.86*(1-hp));
+    const g=cx.createRadialGradient(X,Y,1,X,Y,gr);
+    g.addColorStop(0,`rgba(255,255,255,${(.5+.45*(1-hp)).toFixed(2)})`);
+    g.addColorStop(.4,b.fin?"rgba(255,209,102,.85)":"rgba(255,92,138,.85)");
+    g.addColorStop(1,"rgba(255,92,138,0)");
+    cx.fillStyle=g;cx.beginPath();cx.arc(X,Y,gr,0,TAU);cx.fill();
+    // 날 — 경첩 간 현(弦)이 b.r이라 반폭 .54r면 닫혔을 때 서로 물린다
+    cx.shadowColor=col;cx.shadowBlur=10;
+    cx.fillStyle=b.fin?"#4a3813":"#2e1c52";cx.strokeStyle=col;cx.lineWidth=2.2;cx.lineJoin="miter";
+    for(let q=0;q<NB;q++){const a=spin+q*TAU/NB;
+      cx.save();cx.translate(X+Math.cos(a)*b.r,Y+Math.sin(a)*b.r);cx.rotate(a+Math.PI+th);
+      cx.beginPath();
+      cx.moveTo(0,-b.r*.54);
+      cx.lineTo(b.r*1.06,-b.r*.15);
+      cx.lineTo(b.r*.88, b.r*.17);
+      cx.lineTo(0, b.r*.54);
+      cx.closePath();cx.fill();cx.stroke();
+      cx.restore();}
+    cx.restore();
+    if(b.hit>0){cx.save();cx.globalAlpha=.5;cx.fillStyle="#ffffff";
+      cx.beginPath();cx.arc(X,Y,b.r,0,TAU);cx.fill();cx.restore();}
+    // 테두리 = 몸 = 히트박스
+    cx.shadowColor=col;cx.shadowBlur=22;cx.strokeStyle=col;cx.lineWidth=3.5;
+    cx.beginPath();cx.arc(X,Y,b.r,0,TAU);cx.stroke();
+    cx.fillStyle=col;cx.shadowBlur=10;
+    for(let q=0;q<NB;q++){const a=spin+q*TAU/NB;
+      cx.beginPath();cx.arc(X+Math.cos(a)*b.r,Y+Math.sin(a)*b.r,3.2,0,TAU);cx.fill();}
+    // 바깥 육각 프레임 — 날과 반대로 돈다
+    cx.shadowBlur=12;cx.strokeStyle=b.fin?"rgba(255,209,102,.6)":"rgba(168,107,255,.6)";
+    cx.lineWidth=2;cx.beginPath();
+    for(let q=0;q<6;q++){const a=-spin*.6+q*TAU/6;
+      const xx=X+Math.cos(a)*b.r*1.24,yy=Y+Math.sin(a)*b.r*1.24;q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}
+    cx.closePath();cx.stroke();
+    /* 종단 재머는 프레임 밖에 호 세 겹을 더 돌린다 — 크기 말고 격으로 구분한다 */
+    if(b.fin){cx.strokeStyle="rgba(255,209,102,.75)";cx.lineWidth=2.5;
+      for(let q=0;q<3;q++){const rr=b.r*1.4+q*15, aa=G.t*(q%2?-.6:.9)+q*2;
         cx.beginPath();cx.arc(X,Y,rr,aa,aa+TAU*.62);cx.stroke();}}
     cx.restore();
     cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54*VS,W*.68,(b.fin?13:9)*VS);
