@@ -219,6 +219,9 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .card.ch .d{font-size:12px;line-height:1.4}
 .card.ch.on{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 12px 30px -14px var(--c)}
 .card.evo{border-color:var(--gold);animation:pulseGlow 1.6s ease-in-out infinite}
+.card.ct{border-color:var(--pink)}
+.card.ct .pay{margin-top:7px;padding-top:7px;border-top:1px dashed rgba(255,92,138,.35);
+  font-size:13px;color:var(--pink);line-height:1.45}
 @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 1px var(--gold),0 0 30px -6px rgba(255,209,102,.5)}
   50%{box-shadow:0 0 0 1px var(--gold),0 0 52px -4px rgba(255,209,102,.9)}}
 .lvpips{display:flex;gap:3px;justify-content:center;margin-top:11px}
@@ -503,7 +506,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.5.0";
+const VERSION="2.6.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -578,7 +581,7 @@ function scoreDelta(){
    되살린 저장은 즉시 지운다. 안 그러면 같은 순간을 반복해 되살릴 수 있다. */
 const RKEY="relay:run", RUNV=1;
 const RUNF=["t","et","eth","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
-  "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ult","shield",
+  "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","ult","shield",
   "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
 let runSaveT=0;
 function saveRun(){
@@ -916,6 +919,24 @@ function renderChars(){
     b.onclick=()=>{PROF.ch=k;ls.set(PKEY,PROF);renderChars();};
   });
 }
+/* ───── 위험 계약 ─────
+   카드가 마르면 levelUp()이 효과음만 내고 끝났다 — LV97 이후 레벨업 15~20회가
+   빈 채로 흘러갔다. 그 자리를 이것이 받는다.
+   전부 득과 실이 함께 큰 것만 둔다. 순수 이득은 그냥 숫자 상승이고, 「더 어렵게
+   해달라는 건 아니다」와 「적절히 어려우면 좋겠다」를 동시에 만족하는 모양은
+   난이도를 플레이어가 사는 것뿐이다.
+   되돌릴 수 없다. 그래야 세 장 중 하나를 고르는 게 진짜 결정이 된다.
+   앞 셋은 3번까지 쌓이는 숫자 계약, 뒤 셋은 한 번뿐인 규칙 전환이다.
+   「암시장」(상자 3배 / 경험치 없음)은 뺐다 — 계약은 카드가 마른 뒤에만 나오므로
+   경험치를 끊어도 잃을 게 없다. 비용인 척하는 비용이다. */
+const CONTRACTS=[
+ {id:"oc",   n:"과부하 접속",  c:C.pink,  max:3, get:"모든 피해 +50%",           pay:"적 이동 속도 +30%"},
+ {id:"lite", n:"경량 프레임",  c:C.cyan,  max:3, get:"공격 속도 +60%",           pay:"최대 체력 절반"},
+ {id:"furn", n:"과열로",      c:C.orange,max:3, get:"궁극기 충전 2배",          pay:"초당 체력 −1.5"},
+ {id:"leash",n:"예속된 신호권",c:C.gold,  max:1, get:"신호권이 나를 따라온다",   pay:"신호권 크기 60%"},
+ {id:"casc", n:"연쇄 붕괴",    c:C.violet,max:1, get:"적이 죽을 때 터진다",      pay:"그 폭발이 나에게도 닿는다"},
+ {id:"inv",  n:"역극성",      c:C.pale,  max:1, get:"신호권 밖에서 피해 200%",  pay:"안에서는 70%"},
+];
 const EVOS=[
  {id:"railgun",w:"dart", p:"pierce",n:"레일건",     d:"모든 것을 관통하는 광선. 다트를 대체한다.",c:C.cyan},
  {id:"tempest",w:"blade",p:"area",  n:"검풍 폭풍",  d:"거대한 검 6자루가 폭풍처럼 돈다.",       c:C.pale},
@@ -985,7 +1006,8 @@ const tpaceAt=t=>TPACE0+(TPACE1-TPACE0)*Math.min(1,t/TRAMP);
 function newRun(){
   G={t:0,et:0,eth:0,pace:PACE,kills:0,spawn:0,elite:24/PACE,chest:0,boss:null,over:false,won:false,cleared:false,ended:false,endNow:false,bosses:0,bossT:0,
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
-    st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0},
+    st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0,eSpd:1,ultG:1},
+    ct:{},ctMode:false,
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
     sev:null,sevT:0,sevN:SEV_FIRST,sevLast:null,
     zone:{x:0,y:0,r:340},next:null,zt:ZONE_T/PACE,
@@ -1119,7 +1141,10 @@ function update(dt){
     G.zt-=dt;
     if(G.zt<=8&&!G.next){const a=srnd(R.zone,0,TAU),d=srnd(R.zone,560,860);
       G.next={x:G.zone.x+Math.cos(a)*d,y:G.zone.y+Math.sin(a)*d};call("신호권 이동 준비");}
-    if(G.zt<=0){G.zone.x=G.next.x;G.zone.y=G.next.y;G.next=null;G.zt=ZONE_T/G.pace*sevMul("zt");SFX.zone();
+    /* 예속된 신호권 — 원이 나를 따라오므로 이동 예고도 타이머도 의미가 없다.
+       「어디서 싸울지」가 사라지는 대신 크기를 60%로 낸다. */
+    if(G.ct.leash){G.zone.x=G.p.x;G.zone.y=G.p.y;G.next=null;G.zt=ZONE_T/G.pace;}
+    else if(G.zt<=0){G.zone.x=G.next.x;G.zone.y=G.next.y;G.next=null;G.zt=ZONE_T/G.pace*sevMul("zt");SFX.zone();
       for(let i=0;i<26;i++)G.fx.push({x:G.zone.x+Math.cos(i/26*TAU)*G.zone.r,y:G.zone.y+Math.sin(i/26*TAU)*G.zone.r,
         vx:0,vy:0,life:.6,max:.6,c:C.gold,sp:1});}
   }
@@ -1135,7 +1160,8 @@ function update(dt){
   G.histT-=dt;if(G.histT<=0){G.histT=.07;G.hist.unshift({x:p.x,y:p.y});if(G.hist.length>24)G.hist.pop();}
   G.flash.t=Math.max(0,G.flash.t-dt);
   if(G.form==="warden"){const sh=G.shield;if(!sh.up){sh.cd-=dt;if(sh.cd<=0)sh.up=true;}}
-  if(G.st.regen)p.hp=Math.min(p.mhp,p.hp+G.st.regen*dt);
+  if(G.st.regen){p.hp=Math.min(p.mhp,p.hp+G.st.regen*dt);
+    if(G.st.regen<0&&p.hp<=0)G.lastHit="과열로";}   // 안 그러면 결과 화면 사인이 옛 피격으로 남는다
   p.inv=Math.max(0,p.inv-dt); p.flash=Math.max(0,p.flash-dt); G.ult.t=Math.max(0,G.ult.t-dt);
 
   // 스폰 (초반은 아주 완만하게)
@@ -1215,6 +1241,9 @@ function zoneMul(){
   if(f==="rover")m=1.35;
   else if(f==="warden")m=G.p.in?2.2:.85;
   else m=G.p.in?1.7:1;
+  /* 역극성 — 갈래가 정한 배수를 통째로 덮는다. 방어계로 쌓아 온 빌드가
+     한순간 무의미해지는 유일한 카드다. 그게 이 계약의 값어치다. */
+  if(G.ct.inv)m=G.p.in?.7:2;
   if(G.p.in&&G.st.surge)m*=1+G.st.surge;
   if(G.p.in&&G.mod.zmul)m*=G.mod.zmul;
   if(G.noEvo)m*=1.15;
@@ -1389,8 +1418,13 @@ function dmgE(e,d,showNum){
   if(e.hp<=0&&!e.dead){
     e.dead=1;G.kills++;SFX.kill();
     if(G.st.drain)G.p.hp=Math.min(G.p.mhp,G.p.hp+G.st.drain);
+    /* 연쇄 붕괴 — 여기서 dmgE를 다시 부르면 연쇄가 재귀로 터진다.
+       bolts에 얹어 다음 프레임의 pools()가 처리하게 한다. 프레임 단위로
+       퍼지므로 저절로 멈추고, 처치 수도 두 번 세지 않는다. */
+    if(G.ct.casc)G.bolts.push({x:e.x,y:e.y,r:96*G.st.area,life:.3,max:.3,
+      dmg:44*G.st.dmg,done:0,red:1,sh:.05,hurtP:1});
     if(e.split)for(let i=0;i<3;i++){const a=i/3*TAU;G.en.push(makeE("mote",e.x+Math.cos(a)*18,e.y+Math.sin(a)*18,false));}
-    if(e.bomb||e.tr==="volat"){explodeE(Object.assign({},e,{dead:0,dmg:e.bomb?e.dmg:26}),true);}if(G.form&&G.form!=="none")G.ult.c=Math.min(G.ult.max,G.ult.c+1);
+    if(e.bomb||e.tr==="volat"){explodeE(Object.assign({},e,{dead:0,dmg:e.bomb?e.dmg:26}),true);}if(G.form&&G.form!=="none")G.ult.c=Math.min(G.ult.max,G.ult.c+G.st.ultG);
     for(let i=0;i<e.xp;i++)G.fx.push({x:e.x+rnd(-10,10),y:e.y+rnd(-10,10),xp:1});
     G.fx.push({x:e.x,y:e.y,vx:0,vy:0,life:.26,max:.26,ring:e.r*1.5,rc:e.c,rw:2});
     for(let i=0;i<11;i++){const a=rnd(0,TAU),v=rnd(90,260);
@@ -1437,7 +1471,7 @@ function enemies(dt){const p=G.p;
         G.fx.push({x:e.x,y:e.y,vx:0,vy:0,life:.25,max:.25,ring:e.r*2,rc:TRAITS.blink.c,rw:2});}}
     if(G.final&&G.form==="warden"&&Math.hypot(e.x-G.zone.x,e.y-G.zone.y)<G.zone.r)s*=.72;
     if(G.outT>30)s*=1.2;
-    s*=sevMul("espd");
+    s*=sevMul("espd")*G.st.eSpd;
     const dist=Math.hypot(p.x-e.x,p.y-e.y);
     if(e.ranged){
       if(dist>300){e.x+=Math.cos(a)*s*dt;e.y+=Math.sin(a)*s*dt;}
@@ -1569,6 +1603,8 @@ function pools(dt){
         const dx=z.x-e.x,dy=z.y-e.y,d=Math.hypot(dx,dy);
         if(d>1&&d<z.r*2.4){const k=Math.min(60,d*.45)/d;e.x+=dx*k;e.y+=dy*k;}}
       if(G.boss&&Math.hypot(G.boss.x-z.x,G.boss.y-z.y)<G.boss.r+z.r)dmgB(z.dmg);
+      /* 대가 — 내가 낸 폭발이 나에게도 닿는다. 무적 시간(0.6s)이 연타를 막는다 */
+      if(z.hurtP&&Math.hypot(G.p.x-z.x,G.p.y-z.y)<z.r+G.p.r)hitP(22,"연쇄 붕괴");
       /* 자주 터지는 것(화염 흔적 초당 11개, 자기 폭풍 0.85초마다 6개)이 매번
          .18씩 갱신하면 흔들림이 감쇠할 틈이 없다. 종류별로 몫을 정해 준다. */
       shake=Math.max(shake,z.sh!==undefined?z.sh:.18);}
@@ -1698,9 +1734,13 @@ function hasCards(){
 }
 function levelUp(){
   if(mode==="level")return;
-  /* 다 찍은 뒤에는 화면을 띄우지 않는다. 후반엔 레벨이 10초마다 오는데
-     카드 0장짜리 빈 화면이 그때마다 전투를 끊고 있었다. 레벨은 그대로 오른다. */
-  if(!hasCards()){SFX.level();return;}
+  /* 카드가 마른 뒤에는 계약이 받는다. 계약까지 다 가져갔으면 예전처럼 조용히
+     넘어간다 — 0장짜리 빈 화면이 전투를 끊는 것보다는 낫다. */
+  if(!hasCards()){
+    if(!hasContracts()){SFX.level();return;}
+    G.ctMode=true;mode="level";$("#lvtag").textContent="계약 · LEVEL "+G.p.lv;SFX.level();
+    renderContracts();showVeil("#v-level");return;}
+  G.ctMode=false;
   mode="level";$("#lvtag").textContent="LEVEL "+G.p.lv;SFX.level();
   renderCards();showVeil("#v-level");
 }
@@ -1738,6 +1778,25 @@ function evoHint(o){
     if(o.pk&&e.p===o.pk&&G.w[e.w]){const wl=G.lvls[e.w]||0,pl=(G.lvls[o.pk]||0)+1;
       const ok=pl>=3&&wl>=4;return {t:`진화 <b>${e.n}</b> — ${WEAPONS[e.w].n} Lv4 (${Math.min(wl,4)}/4) + ${PASSIVES[e.p].n} Lv3 (${Math.min(pl,3)}/3)`,ok};}}
   return null;}
+function renderContracts(){
+  const pool=CONTRACTS.filter(c=>(G.ct[c.id]||0)<c.max), opts=[];
+  while(opts.length<3&&pool.length)opts.push(pool.splice(Math.floor(R.card()*pool.length),1)[0]);
+  $("#v-level h2").textContent="대가를 치르고 가져간다";
+  $("#lvtools").style.display="flex";
+  const box=$("#picks");box.innerHTML="";
+  opts.forEach((c,i)=>{
+    const lv=G.ct[c.id]||0, b=document.createElement("button");
+    b.className="card ct";b.style.setProperty("--c",c.c);
+    let pips="";if(c.max>1)for(let j=0;j<c.max;j++)pips+=`<i class="${j<lv?"on":""}"></i>`;
+    b.innerHTML=`<div class="glyph"><i></i></div><div class="kind">${i+1} · 계약${c.max>1?" · 누적":" · 한 번뿐"}</div>
+      <div class="t">${c.n}${lv?" "+(lv+1):""}</div><div class="d">${c.get}</div>
+      <div class="pay">대가 — ${c.pay}</div>
+      ${c.max>1?`<div class="lvpips">${pips}</div>`:""}`;
+    b.onclick=()=>{takeContract(c.id);hideAll();mode="play";last=performance.now();};
+    box.appendChild(b);});
+  const rb=$("#b-reroll");rb.textContent=`다시 뽑기 (${G.rerolls})`;
+  rb.disabled=G.rerolls<=0||opts.length<3;
+}
 function renderCards(){
   const opts=[];
   for(const e of EVOS)
@@ -1776,8 +1835,24 @@ function renderCards(){
   /* 자리보다 카드가 적으면 풀이 마른 것이라 다시 뽑아도 같은 패가 나온다 */
   rb.disabled=G.rerolls<=0||opts.length<NC;
 }
-function reroll(){if(mode!=="level"||G.rerolls<=0)return;G.rerolls--;renderCards();}
-function skipCard(){if(mode!=="level")return;G.p.xp+=G.p.need*.3;hideAll();mode="play";last=performance.now();}
+function reroll(){if(mode!=="level"||G.rerolls<=0)return;G.rerolls--;
+  G.ctMode?renderContracts():renderCards();}
+function skipCard(){if(mode!=="level")return;
+  /* 계약을 건너뛸 때 경험치를 주면 안 된다 — 계약은 카드가 마른 뒤라 경험치가
+     다음 계약을 더 빨리 불러온다. 안 고르는 쪽이 이득이 되면 선택이 아니다. */
+  if(!G.ctMode)G.p.xp+=G.p.need*.3;
+  hideAll();mode="play";last=performance.now();}
+const hasContracts=()=>CONTRACTS.some(c=>(G.ct[c.id]||0)<c.max);
+function takeContract(k){
+  const st=G.st,p=G.p,c=CONTRACTS.find(x=>x.id===k);
+  G.ct[k]=(G.ct[k]||0)+1;
+  if(k==="oc"){st.dmg*=1.5;st.eSpd*=1.3;}
+  if(k==="lite"){st.rate*=1.6;p.mhp=Math.max(20,Math.round(p.mhp/2));p.hp=Math.min(p.hp,p.mhp);}
+  if(k==="furn"){st.ultG+=1;st.regen-=1.5;}
+  if(k==="leash"){G.zone.r*=.6;}
+  /* casc·inv은 상태 플래그만 세우고 훅 쪽에서 읽는다 */
+  call("계약 · "+c.n);shake=.9;SFX.evolve();burst(c.c,70);
+}
 function isEvolved(k){return EVOS.some(e=>e.w===k&&G.evo[e.id]);}
 function apply(o){
   if(o.evo){G.evo[o.evo.id]=1;call(o.evo.n+" 진화");shake=.8;return;}
@@ -2280,10 +2355,14 @@ function hud(){
   ub.classList.toggle("ready",rdy);ub.classList.toggle("locked",!armed);
   const zt=$("#zt");
   if(G.boss)zt.textContent="";
-  else{zt.textContent=(G.sev?G.sev.n+" "+Math.ceil(G.sevT)+"s  ·  ":"")
-      +(G.zt<=8?(SMALL?"이동 ":"신호권 이동 "):(SMALL?"유지 ":"신호권 유지 "))
-      +Math.ceil(G.zt)+"s"+(G.outT>30?(SMALL?" · 간섭":"  ·  간섭 발생"):"");
-    zt.classList.toggle("soon",G.zt<=8||!!G.sev);}
+  else{
+    /* 예속된 신호권은 타이머가 매 프레임 초기화되므로 숫자가 얼어붙는다.
+       그 상태에서 "유지 16s"를 보여 주면 거짓말이 된다. */
+    const zl=G.ct.leash?(SMALL?"예속":"신호권 예속")
+      :((G.zt<=8?(SMALL?"이동 ":"신호권 이동 "):(SMALL?"유지 ":"신호권 유지 "))+Math.ceil(G.zt)+"s");
+    zt.textContent=(G.sev?G.sev.n+" "+Math.ceil(G.sevT)+"s  ·  ":"")+zl
+      +(G.outT>30?(SMALL?" · 간섭":"  ·  간섭 발생"):"");
+    zt.classList.toggle("soon",(G.zt<=8&&!G.ct.leash)||!!G.sev);}
 }
 
 /* ───── 흐름 ───── */
