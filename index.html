@@ -503,7 +503,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.4.1";
+const VERSION="2.4.2";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -548,6 +548,27 @@ function markDaily(score){
   save();
 }
 const ydayScore=()=>SAVE.hist[seedFor(-1)]||0;
+/* 「어제보다」는 비교가 성립하지 않았다. 규칙이 매일 바뀌어서다 — 보급 풍년 날은
+   상자가 1.67배라 레벨이 앞서고, 자폭 러시 날은 일찍 죽는다. 조건이 다른 두 판의
+   점수 차를 실력 차처럼 보여 주고 있었다.
+   같은 규칙이었던 날의 내 최고점과 견준다. 그런 날이 없으면 개인 최고와 견주고,
+   어느 쪽과 견줬는지 라벨에 드러낸다 — 라벨이 없으면 같은 오해가 되돌아온다. */
+function pastBest(){
+  let same=0, any=0;
+  for(const k in SAVE.hist){
+    const sd=+k; if(sd===SEED)continue;          // 오늘 기록은 markDaily가 이미 넣어 뒀다
+    const v=SAVE.hist[k]||0;
+    if(v>any)any=v;
+    if(v>same&&modFor(sd).id===MOD.id)same=v;
+  }
+  return {same,any};
+}
+function scoreDelta(){
+  const pb=pastBest(), sc=calcScore();
+  if(pb.same)return {lbl:MOD.n+" 최고보다", d:sc-pb.same};
+  if(pb.any) return {lbl:"최고 기록보다",   d:sc-pb.any};
+  return null;
+}
 
 /* ───── 판 이어하기 ─────
    탭을 닫으면 판이 통째로 날아갔다. 적·탄·파티클은 저장하지 않는다 — 순식간에
@@ -591,7 +612,10 @@ const MODS=[
  {id:"rush",  n:"속도전",    d:"나도 적도 빨라집니다", pspd:1.25, espd:1.15},
  {id:"giants",n:"우두머리",  d:"큰 적이 자주 옵니다. 잡으면 상자를 줍니다", elite:.6, ehp:1.3},
 ];
-const MOD=MODS[Math.floor(mulberry32(SEED*7+11)()*MODS.length)];
+/* 규칙은 시드의 순수 함수다 — 지난 날짜의 규칙도 다시 계산할 수 있다.
+   점수를 "같은 규칙이었던 날"과만 견주는 데 이 성질을 쓴다(pastBest 참고). */
+const modFor=s=>MODS[Math.floor(mulberry32(s*7+11)()*MODS.length)];
+const MOD=modFor(SEED);
 let R={};
 function resetSeed(){R={zone:mulberry32(SEED*3+1),spawn:mulberry32(SEED*3+2),card:mulberry32(SEED*3+3)};}
 const srnd=(g,a,b)=>a+g()*(b-a), spick=(g,arr)=>arr[Math.floor(g()*arr.length)];
@@ -2243,9 +2267,9 @@ function finish(won){
   $("#b-more").style.display=trueEnd?"":"none";
   $("#o-time").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
   $("#o-kills").textContent=G.kills;$("#o-lv").textContent=G.p.lv;
-  /* 어제의 나 — 사람이 둘뿐이어도 경쟁 상대가 생긴다 */
-  const yd=ydayScore(), dl=yd?calcScore()-yd:0;
-  $("#delta").innerHTML=yd?`어제보다 <b style="color:${dl>=0?"#8ef0b0":"var(--pink)"}">${dl>=0?"+":""}${dl.toLocaleString()}</b>`:"";
+  /* 지난 나 — 사람이 둘뿐이어도 경쟁 상대가 생긴다. 단 조건이 같아야 한다 */
+  const sd=scoreDelta();
+  $("#delta").innerHTML=sd?`${sd.lbl} <b style="color:${sd.d>=0?"#8ef0b0":"var(--pink)"}">${sd.d>=0?"+":""}${sd.d.toLocaleString()}</b>`:"";
   $("#cause").textContent=trueEnd?"종단 재머를 끊고 신호를 넘겼다":won?"":"사인: "+(G.lastHit||"—");
   let bh="";for(const k in G.w){const ev=EVOS.find(e=>e.w===k&&G.evo[e.id]);
     bh+=`<span class="wchip" style="--c:${WEAPONS[k].c}"><b>${ev?ev.n:WEAPONS[k].n}</b> ${ev?"MAX":"Lv"+G.lvls[k]}</span>`;}
@@ -2298,13 +2322,13 @@ function shareBar(){
 function shareText(){
   const t=Math.floor(G.t), FN={rover:"기동계",warden:"방어계",none:"순수"};
   const mm=Math.floor(t/60)+":"+String(t%60).padStart(2,"0");
-  const sb=shareBar(), sc=calcScore(), yd=ydayScore();
+  const sb=shareBar(), sc=calcScore(), sd=scoreDelta();
   const L=["RELAY #"+SEED+" · "+MOD.n];
   if(sb.bar)L.push(sb.bar+"  신호권 "+sb.zp+"%");
   L.push(G.ended?"종단 재머 격파":mm+"에 끊김");
   L.push((PROF.nick||"오퍼레이터")+" · "+charOf().n+(G.form?" / "+(FN[G.form]||""):"")+" · LV"+G.p.lv);
   L.push(sc.toLocaleString()+"점"+(G.rank?" · 오늘 "+G.rank+"위":"")+" · "+G.kills.toLocaleString()+"처치");
-  if(yd)L.push("어제보다 "+(sc-yd>=0?"+":"")+(sc-yd).toLocaleString());
+  if(sd)L.push(sd.lbl+" "+(sd.d>=0?"+":"")+sd.d.toLocaleString());
   L.push(location.origin+location.pathname);
   return L.join(String.fromCharCode(10));
 }
