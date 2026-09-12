@@ -506,7 +506,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.6.0";
+const VERSION="2.6.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -960,6 +960,12 @@ function setMute(m){const b=$("#mute");
   b.setAttribute("aria-label",m?"소리 켜기":"소리 끄기");}
 
 let G=null, mode="menu", last=0, shake=0, hitstop=0;
+/* 무기 타격은 초당 여러 번 온다 — 지진은 공속이 오르면 0.14초마다, 자기 폭풍은
+   초당 52발이다(실측 흔들림 신규 발생 10.8/s). 감쇠(dt*3.2)가 따라가지 못해
+   화면이 계속 떨렸다. 무기 흔들림만 별도 문으로 보낸다: 0.22초에 한 번, 세기 55%.
+   자폭·피격·보스·궁극기는 드물고 의미가 있어 그대로 둔다. */
+let wshT=0;
+function wshake(v){if(wshT>0)return;wshT=.22;shake=Math.max(shake,v*.55);}
 const keys={};
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=1;
   if(e.key===" "&&mode==="play")useUlt();
@@ -1096,7 +1102,11 @@ const SEV_FIRST=45, SEV_GAP=52;
 const sevMul=k=>(G.sev&&G.sev[k]!==undefined)?G.sev[k]:1;
 function startSev(){
   let e=spick(R.ev,SEVS);
-  if(G.sevLast&&e.id===G.sevLast)e=spick(R.ev,SEVS);   // 같은 게 연달아 오면 한 번만 다시 뽑는다
+  /* 한 번 다시 뽑는 것으로는 부족했다 — 4종이라 재추첨도 25%는 같은 게 나온다.
+     실제로 「폭주 → 폭주」가 잡혔다. 두 번째에도 같으면 표에서 한 칸 옮긴다.
+     난수를 더 쓰지 않으므로 추첨 스트림이 사람마다 어긋나지 않는다. */
+  if(G.sevLast&&e.id===G.sevLast)e=spick(R.ev,SEVS);
+  if(G.sevLast&&e.id===G.sevLast)e=SEVS[(SEVS.indexOf(e)+1)%SEVS.length];
   /* 재머전이면 정전을 옆으로 비킨다. 난수를 더 뽑지 않고 표에서 한 칸 옮기는 방식이라
      추첨 스트림이 사람마다 어긋나지 않는다. */
   if(G.boss&&e.id==="blackout")e=SEVS[(SEVS.indexOf(e)+1)%SEVS.length];
@@ -1232,7 +1242,7 @@ function update(dt){
 
   weapons(dt); enemies(dt); boss(dt); bullets(dt); pools(dt); items(dt); fx(dt);
   if(p.hp<=0)finish(G.cleared);
-  shake=Math.max(0,shake-dt*3.2);
+  shake=Math.max(0,shake-dt*3.2);wshT=Math.max(0,wshT-dt);
   hud();
 }
 
@@ -1262,7 +1272,7 @@ function weapons(dt){
       const t=near(1)[0], a=t?Math.atan2(t.y-p.y,t.x-p.x):Math.atan2(p.dy,p.dx);
       G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*1000,vy:Math.sin(a)*1000,r:13*A,dmg:78*st.dmg*zoneMul(),
         life:1.1,pierce:99,c:C.cyan,beam:1});
-      shake=Math.max(shake,.35);
+      wshake(.35);
     }else{
       const n=1+(L>=2?1:0)+(L>=4?1:0), tg=near(n);
       for(let i=0;i<n;i++){const t=tg[i%Math.max(1,tg.length)];
@@ -1312,7 +1322,10 @@ function weapons(dt){
   if(G.w.flame&&G.cd.flame<=0){
     const L=G.w.flame, evo=G.evo.inferno;
     G.cd.flame=evo?.45:.85;
-    G.pool.push({x:p.x,y:p.y,r:(evo?110:44+L*12)*A,life:(evo?4:2+L*.5),
+    /* 상한선의 기준은 "기본 공속에서는 아무것도 안 바뀐다"다.
+       지옥불이 기본 공속에서 4 ÷ .45 = 8.9겹이므로 9로 둔다. 8이면 기본 플레이가
+       10% 깎여서, 안 건드려도 되는 것을 건드리는 셈이 된다. */
+    pushPool("flame",9,{x:p.x,y:p.y,r:(evo?110:44+L*12)*A,life:(evo?4:2+L*.5),
       dps:(evo?70:16+L*7)*st.dmg*zoneMul()});
   }
   // 유도 미사일 (기동계)
@@ -1335,7 +1348,7 @@ function weapons(dt){
       if(Math.abs(da)<=wide){dmgE(e,dmg,1);const g=Math.atan2(e.y-p.y,e.x-p.x);e.x+=Math.cos(g)*kb;e.y+=Math.sin(g)*kb;}}
     if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R+G.boss.r)dmgB(dmg);
     G.fx.push({arc:1,x:p.x,y:p.y,a,r:R,w:wide,life:.22,max:.22,c:C.gold});
-    shake=Math.max(shake,evo?.26:.18);   // 지진은 매 스윙이라 .5는 과했다
+    wshake(evo?.26:.18);   // 지진은 매 스윙이라 .5는 과했다
   }
   // 요새 포탑
   if(G.stage>=2&&G.form==="warden"){G.tcd-=dt;
@@ -1367,7 +1380,8 @@ function weapons(dt){
     G.cd.well=evo?2.2:(L>=3?2.8:3.6);
     const t=near(1)[0];
     const x=t?t.x:p.x+p.dx*140, y=t?t.y:p.y+p.dy*140;
-    G.pool.push({x,y,r:(evo?215:110+L*16)*A,life:evo?3.8:2.8+L*.25,
+    /* 기본 공속에서 1.4~1.7겹. 3이면 "우물 하나"라는 성격을 지키면서 여유가 있다 */
+    pushPool("well",3,{x,y,r:(evo?215:110+L*16)*A,life:evo?3.8:2.8+L*.25,
       dps:(evo?105:24+L*10)*st.dmg*zoneMul(),
       pull:evo?300:110+(L>=4?90:0),vio:1});
   }
@@ -1381,6 +1395,20 @@ function weapons(dt){
         dmg:(evo?76:22+L*10)*st.dmg*zoneMul(),life:1.25,
         pierce:evo?99:st.pierce+2+(L>=4?2:0),c:C.pale,beam:1});}
   }
+}
+/* 장판은 주기가 공속으로 나뉘는데 지속은 고정이라, 공속이 오르면 무한히 쌓인다.
+   실측(공속 7.89): 화염 흔적 70겹, 포식 우물 13겹.
+   화면이 한 색으로 덮이는 것보다 나쁜 건 pools()가 장판마다 피해를 따로 주는
+   것이다 — 13겹이면 DPS도 13배다. 의도한 수치가 아니다.
+   같은 무기의 오래된 장판을 잘라 상한을 지킨다. */
+function pushPool(k,cap,o){
+  o.k=k;
+  let c=0;for(const q of G.pool)if(q.k===k)c++;
+  while(c>=cap){
+    const i=G.pool.findIndex(q=>q.k===k);
+    if(i<0)break;
+    G.pool.splice(i,1);c--;}
+  G.pool.push(o);
 }
 function near(n){const p=G.p,a=[];
   for(const e of G.en)if(!e.dead)a.push([Math.hypot(e.x-p.x,e.y-p.y),e]);
@@ -1607,8 +1635,14 @@ function pools(dt){
       if(z.hurtP&&Math.hypot(G.p.x-z.x,G.p.y-z.y)<z.r+G.p.r)hitP(22,"연쇄 붕괴");
       /* 자주 터지는 것(화염 흔적 초당 11개, 자기 폭풍 0.85초마다 6개)이 매번
          .18씩 갱신하면 흔들림이 감쇠할 틈이 없다. 종류별로 몫을 정해 준다. */
-      shake=Math.max(shake,z.sh!==undefined?z.sh:.18);}
+      wshake(z.sh!==undefined?z.sh:.18);}
     if(z.life<=0)G.bolts.splice(i,1);}
+  /* 피해는 life<max*.66에서 한 번만 준다. 그래서 done 처리된 낙뢰를 잘라도
+     피해 손실이 없다. 화면 겹침과 프레임 비용만 줄어든다.
+     궁극기 고리(gold)는 한 번뿐인 연출이라 남긴다. */
+  if(G.bolts.length>12)
+    for(let i=0;i<G.bolts.length&&G.bolts.length>12;){
+      if(G.bolts[i].done&&!G.bolts[i].gold)G.bolts.splice(i,1);else i++;}
 }
 function dropItem(x,y,type){G.items.push({x,y,type,ph:rnd(0,TAU)});}
 function items(dt){const p=G.p;
@@ -1964,7 +1998,9 @@ function draw(){
     cx.beginPath();cx.arc(G.next.x+ox,G.next.y+oy,zr,0,TAU);cx.stroke();cx.restore();}
 
   // 화염 장판
-  for(const q of G.pool){const a=Math.min(1,q.life);
+  /* 상한을 둬도 여덟 겹이면 한 색으로 덮인다. 겹친 수로 나눠 총량을 묶는다. */
+  const pd=Math.min(1,3.5/Math.max(1,G.pool.length));
+  for(const q of G.pool){const a=Math.min(1,q.life)*pd;
     const g=cx.createRadialGradient(q.x+ox,q.y+oy,2,q.x+ox,q.y+oy,q.r);
     /* 우물은 가운데가 비고 테두리가 짙다 — 불길과 반대로 칠해야 "빨려 드는 것"으로 읽힌다 */
     if(q.vio){g.addColorStop(0,`rgba(168,107,255,${.06*a})`);g.addColorStop(.7,`rgba(168,107,255,${.30*a})`);g.addColorStop(1,"rgba(120,40,220,0)");}
@@ -1984,8 +2020,29 @@ function draw(){
     if(f.ring){const k=1-f.life/f.max,col=f.rc||C.gold;cx.save();cx.shadowColor=col;cx.shadowBlur=18;
       cx.globalAlpha=Math.max(0,1-k);cx.strokeStyle=col;cx.lineWidth=f.rw||3;
       cx.beginPath();cx.arc(f.x+ox,f.y+oy,f.ring*(.5+k),0,TAU);cx.stroke();cx.restore();continue;}
-    if(f.arc){cx.save();cx.globalAlpha=f.life/f.max*.55;cx.fillStyle=f.c;cx.shadowColor=f.c;cx.shadowBlur=24;
-      cx.beginPath();cx.moveTo(f.x+ox,f.y+oy);cx.arc(f.x+ox,f.y+oy,f.r,f.a-f.w,f.a+f.w);cx.closePath();cx.fill();cx.restore();continue;}
+    /* 지진은 wide=π라 "부채꼴"이 아니라 360도 원판이었다. 반경 230×확장기(2.1)=483px를
+       55% 알파로 통째로 칠하고, 스윙마다(공속 오르면 0.14초마다) 새로 깔렸다.
+       화면이 금색으로 덮이고 스윙 리듬대로 깜빡여 「못 하겠다」는 말이 나왔다.
+       채우기를 버린다. 정보는 "어디까지 닿았나"이고 그건 테두리가 나른다.
+       퍼지는 고리 + 중심에서 뻗는 균열로 바꾼다 — 여러 장 겹쳐도 화면을 안 덮는다. */
+    if(f.arc){
+      const t=f.life/f.max, k=1-t, full=f.w>2.9;
+      const X=f.x+ox, Y=f.y+oy, rr=f.r*(.45+.55*k);
+      cx.save();cx.shadowColor=f.c;cx.shadowBlur=10;
+      if(!full){   // 정면 강타 — 방향이 정보라 옅게라도 면을 남긴다
+        cx.globalAlpha=t*.16;cx.fillStyle=f.c;
+        cx.beginPath();cx.moveTo(X,Y);cx.arc(X,Y,f.r,f.a-f.w,f.a+f.w);cx.closePath();cx.fill();}
+      cx.globalAlpha=t*.85;cx.strokeStyle=f.c;cx.lineWidth=(full?3.5:3)*t+1;
+      cx.beginPath();cx.arc(X,Y,rr,f.a-f.w,f.a+f.w);cx.stroke();
+      // 균열 — 고리 안쪽으로 짧게 뻗는다. 땅이 갈라진 것으로 읽힌다
+      cx.globalAlpha=t*.5;cx.lineWidth=2;
+      const NC=full?7:4;
+      for(let q=0;q<NC;q++){
+        const a=f.a-f.w+(q+.5)*(f.w*2/NC);
+        cx.beginPath();
+        cx.moveTo(X+Math.cos(a)*rr*.42,Y+Math.sin(a)*rr*.42);
+        cx.lineTo(X+Math.cos(a)*rr*.95,Y+Math.sin(a)*rr*.95);cx.stroke();}
+      cx.restore();continue;}
     if(f.chain){cx.save();cx.strokeStyle=f.c;cx.shadowColor=f.c;cx.shadowBlur=18;
       cx.lineWidth=3*(f.life/f.max)+1;cx.beginPath();
       f.chain.forEach((q,i)=>i?cx.lineTo(q.x+ox,q.y+oy):cx.moveTo(q.x+ox,q.y+oy));
@@ -1998,14 +2055,18 @@ function draw(){
   // 낙뢰
   /* 맥스 빌드에서는 이 고리가 초당 열 개 넘게 겹친다. 하나하나가 밝으면
      화면이 통째로 번쩍이고 눈이 아프다. 글로우·불투명도·번개 줄기를 낮췄다. */
+  /* 자기 폭풍은 6발씩 나오고 공속이 오르면 초당 52발, 동시 21개까지 간다(실측).
+     고리 하나하나가 같은 밝기면 합이 흰색이 된다. 살아 있는 수로 나눠 총량을 묶는다. */
+  const bd=Math.min(1,7/Math.max(1,G.bolts.length));
   for(const z of G.bolts){const k=1-z.life/z.max;
     const col=z.red?"255,77,77":z.cyan?"79,240,216":z.pink?"255,92,138":"255,209,102";
-    cx.save();cx.shadowColor=z.cyan?C.cyan:C.gold;cx.shadowBlur=11;
-    cx.strokeStyle=`rgba(${col},${((1-k)*.72).toFixed(2)})`;cx.lineWidth=z.gold?5:2;
+    cx.save();cx.shadowColor=z.cyan?C.cyan:C.gold;cx.shadowBlur=11*bd;
+    cx.strokeStyle=`rgba(${col},${((1-k)*.72*(z.gold?1:bd)).toFixed(2)})`;cx.lineWidth=z.gold?5:2;
     cx.beginPath();cx.arc(z.x+ox,z.y+oy,z.r*(.4+k*.6),0,TAU);cx.stroke();
-    if(z.cyan||z.gold||z.red||z.pink){cx.fillStyle=`rgba(${col},${((1-k)*.15).toFixed(2)})`;cx.fill();}
-    /* 번개 줄기는 낙뢰 계열에만. 예전엔 자폭체 유폭에도 하늘에서 번개가 쳤다. */
-    if(k>.5&&z.lit){cx.lineWidth=2.2;cx.strokeStyle=`rgba(${col},${((1-k)*.5).toFixed(2)})`;
+    if(z.cyan||z.gold||z.red||z.pink){cx.fillStyle=`rgba(${col},${((1-k)*.15*(z.gold?1:bd)).toFixed(2)})`;cx.fill();}
+    /* 번개 줄기는 낙뢰 계열에만. 예전엔 자폭체 유폭에도 하늘에서 번개가 쳤다.
+       빽빽할 때는 절반만 긋는다 — 21줄이 동시에 치면 화면이 하얘진다. */
+    if(k>.5&&z.lit&&bd>.5){cx.lineWidth=2.2;cx.strokeStyle=`rgba(${col},${((1-k)*.5*bd).toFixed(2)})`;
       cx.beginPath();cx.moveTo(z.x+ox,z.y+oy-170);
       cx.lineTo(z.x+ox+rnd(-10,10),z.y+oy-80);cx.lineTo(z.x+ox,z.y+oy);cx.stroke();}
     cx.restore();}
