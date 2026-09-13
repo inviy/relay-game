@@ -540,7 +540,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.3.0";
+const VERSION="3.3.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -1688,15 +1688,15 @@ function spawnBoss(){
   if(A&&A.init)A.init(G.boss);
   /* 등장 — 이름이 뜨고 화면이 잠깐 선다. 「재머 강림」 한 줄로는 어떤 놈인지 몰랐다 */
   callBig("제"+G.boss.no+"사도 "+(fin?"종단":A.n),
-    fin?"체력에 따라 공격이 3번 바뀌어요. 계속 움직이세요":A.how);
+    fin?"체력에 따라 공격이 3번 바뀌어요. 계속 움직이세요":A.how, 3600);
   SFX.boss();hitstop=.3;shake=Math.max(shake,1.2);
   G.flash={t:.6,c:fin?"255,209,102":"238,242,255"};
   track("boss",{ang:aid||"final",n:G.bosses},G.t);
 }
 function call(t){const e=$("#call");e.textContent=t;e.classList.add("on");
   clearTimeout(call._);call._=setTimeout(()=>e.classList.remove("on"),1800);}
-function callBig(t,sub){const e=$("#callbig");e.querySelector(".t").textContent=t;e.querySelector(".s").textContent=sub||"";
-  e.classList.add("on");clearTimeout(callBig._);callBig._=setTimeout(()=>e.classList.remove("on"),2200);}
+function callBig(t,sub,ms){const e=$("#callbig");e.querySelector(".t").textContent=t;e.querySelector(".s").textContent=sub||"";
+  e.classList.add("on");clearTimeout(callBig._);callBig._=setTimeout(()=>e.classList.remove("on"),ms||2200);}
 /* 궁극기 라벨 — 데스크톱은 이름+효과 두 줄, 모바일 버튼은 「ULT」 대신 이름.
    매 프레임 부르되 문자열이 같으면 DOM을 안 건드린다 */
 function ultLabel(){
@@ -2266,6 +2266,7 @@ function finalBoss(dt,b,a){
     for(let i=0;i<3+ph;i++)spawnE(k,false);}
 }
 function boss(dt){const b=G.boss;if(!b)return;const p=G.p;
+  b.age=(b.age||0)+dt;
   b.hit=Math.max(0,b.hit-dt);
   const a=Math.atan2(p.y-b.y,p.x-b.x), A=b.ang?ANGELS[b.ang]:null;
   if(!(A&&A.move&&A.move(dt,b,a))){b.x+=Math.cos(a)*b.spd*dt;b.y+=Math.sin(a)*b.spd*dt;}
@@ -2952,6 +2953,18 @@ function draw(){
     cx.restore();
     }
     const AN=b.ang?ANGELS[b.ang]:null, bc=b.fin?C.gold:AN?AN.c:C.pink;
+    /* 이름표 — 등장 4초는 크게, 그 뒤엔 작게 남는다. 무엇과 싸우는지 계속 보여야 한다 */
+    {const age=b.age||0, big=age<4, sc=big?1.5:1, al=big?1:.72;
+     const nm="제"+b.no+"사도 "+(b.fin?"종단":AN?AN.n:"재머");
+     cx.save();cx.textAlign="center";
+     cx.font="700 "+(13*VS*sc).toFixed(1)+"px "+KRF;
+     const tw=cx.measureText(nm).width, ty=Y-b.r-(big?26:18)*VS;
+     cx.globalAlpha=al;
+     cx.fillStyle="rgba(8,11,24,.72)";
+     cx.fillRect(X-tw/2-8*VS,ty-13*VS*sc,tw+16*VS,19*VS*sc);
+     cx.fillStyle=bc;cx.shadowColor=bc;cx.shadowBlur=big?16:8;
+     cx.fillText(nm,X,ty);
+     cx.restore();}
     /* 무적이면 바가 회색이 된다 — 숫자 대신 색으로 「지금은 안 통한다」를 보여 준다 */
     const inv=!!(AN&&AN.shielded&&AN.shielded(b)), bh=(b.fin?13:9)*VS;
     cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54*VS,W*.68,bh);
