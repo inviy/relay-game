@@ -506,7 +506,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.6.1";
+const VERSION="2.7.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -873,12 +873,12 @@ const WEAPONS={
 };
 const FORMS={
  rover:{n:"기동계",hint:"— 빠르게",c:C.cyan,
-   d:"원 밖에서도 강합니다. 어디서든 피해 135%, 이동 속도 +25%, 움직이는 동안 공격을 25% 확률로 피합니다.",
-   sub:"<span><b>전용 무기</b> 유도 미사일 · <b>궁극기</b> 잔상 질주 — 3초 무적, 이속 2배, 지나간 자리가 터진다</span><span><b>2차 진화 · 유령</b> (16레벨) — 잔상 분신 2체가 따라오며 다트를 같이 쏜다. 관통 +1, 이속 +15%</span><span><b>3차 진화 · 특이점</b> (24레벨) — 분신 4체, 관통 +1, 피해 +20%</span>",
+   d:"원 밖에서도 강합니다. 어디서든 피해 145%, 이동 속도 +25%, 움직이는 동안 공격을 30% 확률로 피합니다.",
+   sub:"<span><b>전용 무기</b> 유도 미사일 · <b>궁극기</b> 잔상 질주 — 3초 무적, 이속 2배, 지나간 자리가 터진다 (20초 간격)</span><span><b>2차 진화 · 유령</b> (16레벨) — 잔상 분신 2체가 따라오며 다트를 같이 쏜다. 관통 +1, 이속 +15%</span><span><b>3차 진화 · 특이점</b> (24레벨) — 분신 4체, 관통 +1, 피해 +20%</span>",
    ult:"잔상 질주"},
  warden:{n:"방어계",hint:"— 단단하게",c:C.gold,
-   d:"원 안을 지킵니다. 원 안에서 피해 220%(밖은 85%), 받는 피해 -35%, 6초마다 한 대를 막아줍니다.",
-   sub:"<span><b>전용 무기</b> 충격 망치 · <b>궁극기</b> 역송신 — 신호권을 내 위치로 끌어오고 주변을 쓸어버린다</span><span><b>2차 진화 · 요새</b> (16레벨) — 자동 포탑 2기가 궤도를 돌며 사격. 신호권 +30%, 안의 적 감속</span><span><b>3차 진화 · 관제탑</b> (24레벨) — 포탑 4기, 신호권 +25%, 최대 체력 +80, 피해 +15%</span>",
+   d:"원 안을 지킵니다. 원 안에서 피해 195%(밖은 85%), 받는 피해 -25%, 7.5초마다 한 대를 막아줍니다.",
+   sub:"<span><b>전용 무기</b> 충격 망치 · <b>궁극기</b> 역송신 — 신호권을 내 위치로 끌어오고 그 안을 쓸어버린다 (20초 간격)</span><span><b>2차 진화 · 요새</b> (16레벨) — 자동 포탑 2기가 궤도를 돌며 사격. 신호권 +30%, 안의 적 감속</span><span><b>3차 진화 · 관제탑</b> (24레벨) — 포탑 4기, 신호권 +25%, 최대 체력 +80, 피해 +15%</span>",
    ult:"역송신"},
  none:{n:"진화 거부",c:C.pale,
    d:"진화하지 않습니다. 대신 레벨업 카드가 3장에서 4장으로 늘고, 피해가 15% 오릅니다.",
@@ -989,6 +989,10 @@ cv.addEventListener("touchend",()=>touch=null,{passive:1});
    G.t  = 실제 경과 시간. 점수·시계·서버 검증이 쓴다.
    G.et = 진행 시간(= t × PACE). 난이도·스폰·상자·재머·구역이 쓴다. */
 const ZONE_T=32;
+/* 궁극기는 처치 수로만 찼다. 후반 처치 속도가 초당 15~20이라 50처치가 2.5초다.
+   「쿨도 짧다」는 말이 나온 자리다. 처치 조건은 남기되 시간 바닥을 깐다 —
+   잘 잡을수록 빨리 차는 성질은 유지하고, 상한만 막는다. */
+const ULT_CD=20;
 /* 모드는 하나다. 4분/5분 제한을 두고 그때 딱 끊었더니 "생소하다"는 실제
    피드백이 왔고, 신규 유저 둘은 애초에 1:26·3:37에 죽어 제한을 보지도 못했다.
    얻는 것 없이 어색함만 주는 장치였다. 시간 제한을 없애고 판이 스스로 끝나게
@@ -1014,7 +1018,7 @@ function newRun(){
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0,eSpd:1,ultG:1},
     ct:{},ctMode:false,
-    w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
+    w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0,cd:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
     sev:null,sevT:0,sevN:SEV_FIRST,sevLast:null,
     zone:{x:0,y:0,r:340},next:null,zt:ZONE_T/PACE,
     en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],shl:[],seg:[],rank:0,
@@ -1173,6 +1177,7 @@ function update(dt){
   if(G.st.regen){p.hp=Math.min(p.mhp,p.hp+G.st.regen*dt);
     if(G.st.regen<0&&p.hp<=0)G.lastHit="과열로";}   // 안 그러면 결과 화면 사인이 옛 피격으로 남는다
   p.inv=Math.max(0,p.inv-dt); p.flash=Math.max(0,p.flash-dt); G.ult.t=Math.max(0,G.ult.t-dt);
+  G.ult.cd=Math.max(0,G.ult.cd-dt);
 
   // 스폰 (초반은 아주 완만하게)
   G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.eth/34)*(G.mod.spawn||1)*sevMul("spawn");  // 클리어 후에는 상한을 풀어 난이도를 이어간다
@@ -1248,8 +1253,11 @@ function update(dt){
 
 function zoneMul(){
   const f=G.form; let m;
-  if(f==="rover")m=1.35;
-  else if(f==="warden")m=G.p.in?2.2:.85;
+  /* 실효 배수가 관제탑 2.53 vs 특이점 1.62였다 — 56% 차이라 안 고를 이유가 없었다.
+     방어계를 내리고 기동계를 올려 간격을 좁힌다. 방어계의 「밖에서 약하다」는
+     그대로 둔다. 그게 두 갈래를 가르는 선이다. */
+  if(f==="rover")m=1.45;
+  else if(f==="warden")m=G.p.in?1.95:.85;
   else m=G.p.in?1.7:1;
   /* 역극성 — 갈래가 정한 배수를 통째로 덮는다. 방어계로 쌓아 온 빌드가
      한순간 무의미해지는 유일한 카드다. 그게 이 계약의 값어치다. */
@@ -1472,10 +1480,10 @@ function dmgB(d){const b=G.boss;if(!b)return;
     else call("재머 "+G.bosses+"기 격파");}
 }
 function hitP(d,src){const p=G.p;if(p.inv>0)return;
-  if(G.form==="rover"&&G.moving&&Math.random()<.25){p.inv=.25;G.num.push({x:p.x,y:p.y-24,v:"회피",life:.6,c:C.cyan});return;}
-  if(G.form==="warden"&&G.shield.up){G.shield.up=false;G.shield.cd=6;p.inv=.4;
+  if(G.form==="rover"&&G.moving&&Math.random()<.30){p.inv=.25;G.num.push({x:p.x,y:p.y-24,v:"회피",life:.6,c:C.cyan});return;}
+  if(G.form==="warden"&&G.shield.up){G.shield.up=false;G.shield.cd=7.5;p.inv=.4;
     G.num.push({x:p.x,y:p.y-24,v:"방패",life:.6,c:C.gold});SFX.block();G.fx.push({x:p.x,y:p.y,vx:0,vy:0,life:.35,max:.35,ring:70});return;}
-  if(G.form==="warden"&&p.in)d*=.65;
+  if(G.form==="warden"&&p.in)d*=.75;   // -35% → -25%. 원 안 배수와 겹쳐 이중으로 강했다
   p.hp-=d;p.inv=.6;p.flash=.25;shake=Math.max(shake,.5);hitstop=.03;SFX.hurt();G.lastHit=src||"접촉";
   /* 반사막 — 맞은 자리에서 터진다. 증폭기는 타되 신호권 배수는 안 탄다.
      맞는 자리는 내가 고른 자리가 아니라서 신호권을 보상으로 걸 근거가 없다. */
@@ -1736,17 +1744,22 @@ function burst(c,n){for(let i=0;i<n;i++){const a=rnd(0,TAU),v=rnd(120,420);
   G.fx.push({x:G.p.x,y:G.p.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rnd(.5,1),max:1,c});}}
 function useUlt(){
   const p=G.p,u=G.ult;
-  if(!G.form||G.form==="none"||u.c<u.max||G.over)return;
-  u.c=0;G.ultReady=false;SFX.ult();
+  if(!G.form||G.form==="none"||u.c<u.max||u.cd>0||G.over)return;
+  u.c=0;u.cd=ULT_CD;G.ultReady=false;SFX.ult();
   u.max=50;
   if(G.form==="rover"){u.t=3;p.inv=3;p.spd*=2;setTimeout(()=>{p.spd/=2;},3000);call("잔상 질주");}
   if(G.form==="warden"){
+    /* 반경이 신호권+160이었다. 관제탑 신호권이 608이라 768 — 화면 전체였다.
+       신호권 크기로 줄인다. 피해도 320 → 240.
+       신호권을 내 위치로 끌어오는 것은 남긴다. 그게 이 궁극기의 정체성이고,
+       빈도는 위의 20초 바닥이 이미 1/8로 줄였다. */
+    const R=G.zone.r;
     G.zone.x=p.x;G.zone.y=p.y;G.next=null;G.zt=ZONE_T/G.pace;
     for(const e of G.en){const d=Math.hypot(e.x-p.x,e.y-p.y);
-      if(d<G.zone.r+160){dmgE(e,320*G.st.dmg,1);e.slow=2;
+      if(d<R){dmgE(e,240*G.st.dmg,1);e.slow=2;
         const a=Math.atan2(e.y-p.y,e.x-p.x);e.x=p.x+Math.cos(a)*Math.max(60,d*.35);e.y=p.y+Math.sin(a)*Math.max(60,d*.35);}}
-    if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<G.zone.r+160)dmgB(600*G.st.dmg);
-    G.bolts.push({x:p.x,y:p.y,r:G.zone.r+160,life:.5,max:.5,dmg:0,done:1,gold:1});
+    if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R)dmgB(480*G.st.dmg);
+    G.bolts.push({x:p.x,y:p.y,r:R,life:.5,max:.5,dmg:0,done:1,gold:1});
     call("역송신");}
   shake=1;hitstop=.1;
 }
@@ -2399,18 +2412,21 @@ function hud(){
   $("#hpfill").style.width=Math.max(0,100*p.hp/p.mhp)+"%";
   $("#hpnum").textContent=Math.max(0,Math.ceil(p.hp))+" / "+p.mhp;
   const z=$("#zonestate");
-  z.textContent=p.in?(SMALL?"권내 170%":"신호권 · 피해 170%")
-                    :(SMALL?"권외 100%":"신호권 밖 · 피해 100%");
+  /* 170%가 박혀 있었다. 갈래마다 배수가 다르고 계약·사도로도 바뀌므로 실제 값을 쓴다 */
+  const zm=Math.round(zoneMul()*100);
+  z.textContent=(SMALL?(p.in?"권내 ":"권외 "):(p.in?"신호권 · 피해 ":"신호권 밖 · 피해 "))+zm+"%";
   z.style.color=p.in?C.gold:"#8a93bb";
   let html="";
   for(const k in G.w){const ev=EVOS.find(e=>e.w===k&&G.evo[e.id]);
     html+=`<div class="wchip" style="--c:${WEAPONS[k].c}"><b>${ev?ev.n:WEAPONS[k].n}</b> ${ev?"MAX":"Lv"+G.lvls[k]}</div>`;}
   $("#weapons").innerHTML=html;
   const u=G.ult,ue=$("#ult"),ub=$("#ultbtn"),armed=!!G.form&&G.form!=="none";
-  const pct=armed?Math.min(1,u.c/u.max):0;
+  /* 처치 충전과 시간 바닥 중 덜 찬 쪽을 보여 준다 — 안 그러면 게이지가 꽉 찼는데
+     발동이 안 되는 상태가 되고, 플레이어는 버그로 읽는다. */
+  const pct=armed?Math.max(0,Math.min(u.c/u.max, u.cd>0?1-u.cd/ULT_CD:1)):0;
   $("#ultfill").style.width=(pct*100)+"%";
   $("#ultprg").style.strokeDashoffset=(ULT_C*(1-pct)).toFixed(1);
-  const rdy=armed&&u.c>=u.max;
+  const rdy=armed&&u.c>=u.max&&u.cd<=0;
   if(rdy&&!G.ultReady){G.ultReady=true;SFX.ready();}
   ue.classList.toggle("ready",rdy);
   ub.classList.toggle("ready",rdy);ub.classList.toggle("locked",!armed);
