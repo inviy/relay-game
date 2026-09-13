@@ -540,7 +540,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.2.0";
+const VERSION="3.3.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -615,7 +615,7 @@ function scoreDelta(){
    되살린 저장은 즉시 지운다. 안 그러면 같은 순간을 반복해 되살릴 수 있다. */
 const RKEY="relay:run", RUNV=1;
 const RUNF=["t","et","eth","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
-  "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","roster","ang","plate","res","resT","resCap","rank","top1","ult","shield",
+  "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","roster","endRoster","ang","plate","res","resT","resCap","rank","top1","ult","shield",
   "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
 let runSaveT=0;
 function saveRun(){
@@ -1206,11 +1206,251 @@ const ANGELS={
      cx.restore();
    },
    rw:{id:"shard",n:"파편",d:"파편 3개가 주위를 돈다"}},
+
+ /* ── 무한모드 전용 (end:1) ── */
+ mirror:{no:8,n:"거울",c:"#cfd6ff",tier:9,end:1,hpM:1.2,spd:74,r:52,dmg:26,
+   d:"내가 준 피해의 일부를 되돌려 준다",
+   how:"세게 때릴수록 아파요. 체력이 적으면 살살 때리세요",
+   init(b){b.store=0;b.fire=1.6;},
+   onHit(b){b.store+=1;},
+   f(dt,b,a){
+     /* 오버킬을 벌한다. 저장한 만큼 3초마다 되쏜다 — 화력만 올린 빌드에 제동 */
+     b.fire-=dt;
+     if(b.fire<=0){b.fire=3;
+       const k=Math.min(14,2+Math.floor(b.store/6));b.store=0;
+       for(let i=0;i<k;i++){const g=i/k*TAU+a;
+         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*250,vy:Math.sin(g)*250,r:8,dmg:16,life:4});}
+       call("거울 — 되돌아온다");}
+   },
+   draw(X,Y,b){
+     const r=b.r,col="#cfd6ff",t=G.t,k=Math.min(1,b.store/80);
+     cx.save();cx.shadowColor=col;cx.shadowBlur=16;
+     cx.fillStyle="#1a1f3d";cx.strokeStyle=col;cx.lineWidth=2.6;cx.lineJoin="miter";
+     cx.beginPath();
+     for(let q=0;q<4;q++){const g=t*.5+q*TAU/4,xx=X+Math.cos(g)*r,yy=Y+Math.sin(g)*r;q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}
+     cx.closePath();cx.fill();cx.stroke();
+     /* 안쪽 마름모가 저장량만큼 밝아진다 — 되쏘기 직전이 보인다 */
+     cx.fillStyle=`rgba(255,255,255,${(.15+.75*k).toFixed(2)})`;cx.shadowBlur=10+26*k;
+     cx.beginPath();
+     for(let q=0;q<4;q++){const g=-t*.9+q*TAU/4,xx=X+Math.cos(g)*r*.42,yy=Y+Math.sin(g)*r*.42;q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}
+     cx.closePath();cx.fill();
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"mirror",n:"반사판",d:"받은 피해의 40%를 주변에 되돌린다"}},
+
+ famine:{no:10,n:"기갈",c:"#9a7bd6",tier:9,end:1,hpM:1,spd:80,r:48,dmg:24,
+   d:"가까이 있으면 경험치와 체력을 빨아간다",
+   how:"붙어 있으면 체력이 줄어요. 멀리서 때리세요",
+   init(b){b.fire=1.8;},
+   f(dt,b,a){
+     const d=Math.hypot(b.x-G.p.x,b.y-G.p.y);
+     if(d<380){G.p.hp-=6*dt;if(G.p.hp<=0)G.lastHit="제"+b.no+"사도 기갈";
+       if(Math.random()<dt*3)G.fx.push({x:G.p.x+rnd(-20,20),y:G.p.y+rnd(-20,20),
+         vx:(b.x-G.p.x)*.5,vy:(b.y-G.p.y)*.5,life:.5,max:.5,c:"#9a7bd6"});}
+     b.fire-=dt;
+     if(b.fire<=0){b.fire=2.1;b.ring+=.4;
+       for(let i=0;i<10;i++){const g=b.ring+i*TAU/10;
+         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*195,vy:Math.sin(g)*195,r:8,dmg:15,life:4});}}
+   },
+   draw(X,Y,b){
+     const r=b.r,col="#9a7bd6",t=G.t;
+     const near=Math.hypot(b.x-G.p.x,b.y-G.p.y)<380;
+     cx.save();cx.shadowColor=col;cx.shadowBlur=18;
+     /* 빨아들이는 고리 — 안쪽으로 조여든다. 사거리 안이면 빨라진다 */
+     cx.strokeStyle=col;cx.lineWidth=2.4;
+     for(let q=0;q<3;q++){const k=((t*(near?1.6:.6)+q/3)%1);
+       cx.globalAlpha=.25+.6*(1-k);
+       cx.beginPath();cx.arc(X,Y,r*(1.5-k*1.05),0,TAU);cx.stroke();}
+     cx.globalAlpha=1;
+     cx.fillStyle="#241a3d";cx.strokeStyle=col;cx.lineWidth=2.8;
+     cx.beginPath();cx.arc(X,Y,r*.5,0,TAU);cx.fill();cx.stroke();
+     cx.fillStyle="#e3d6ff";cx.shadowBlur=22;
+     cx.beginPath();cx.arc(X,Y,r*.18,0,TAU);cx.fill();
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"leech",n:"흡수관",d:"처치할 때마다 체력 +0.4"}},
+
+ clockwork:{no:11,n:"태엽",c:"#ffb347",tier:9,end:1,hpM:1.1,spd:66,r:50,dmg:25,
+   d:"주기적으로 시간을 늦춘다 — 내 공격만",
+   how:"주황 고리가 차면 내 공격이 느려져요. 그때는 피하는 데 집중하세요",
+   init(b){b.cyc=8;b.slow=0;},
+   f(dt,b,a){
+     b.cyc-=dt;
+     if(b.cyc<=0){b.cyc=11;b.slow=4;call("태엽 — 4초간 공격이 느려져요");SFX.warn();
+       G.flash={t:.4,c:"255,179,71"};}
+     if(b.slow>0)b.slow-=dt;
+     b.fire-=dt;
+     if(b.fire<=0){b.fire=1.5;b.ring+=.33;
+       for(let i=0;i<12;i++){const g=b.ring+i*TAU/12;
+         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*215,vy:Math.sin(g)*215,r:8,dmg:15,life:4});}}
+   },
+   draw(X,Y,b){
+     const r=b.r,col="#ffb347",t=G.t,on=b.slow>0;
+     cx.save();cx.shadowColor=col;cx.shadowBlur=on?26:14;
+     /* 톱니 — 느려지는 동안 반대로 돈다 */
+     const sp=on?-t*1.6:t*.5, N=12;
+     cx.fillStyle="#3a2408";cx.strokeStyle=col;cx.lineWidth=2.4;cx.lineJoin="miter";
+     cx.beginPath();
+     for(let q=0;q<N*2;q++){const g=sp+q*TAU/(N*2),rr=r*(q%2?.74:1);
+       const xx=X+Math.cos(g)*rr,yy=Y+Math.sin(g)*rr;q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}
+     cx.closePath();cx.fill();cx.stroke();
+     /* 게이지 — 다음 감속까지 */
+     cx.strokeStyle=on?"#fff":col;cx.lineWidth=4;
+     cx.beginPath();cx.arc(X,Y,r*.5,-Math.PI/2,-Math.PI/2+TAU*(on?b.slow/4:1-b.cyc/11));cx.stroke();
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"gear",n:"태엽 장치",d:"공격 속도 +20%"}},
+
+ veil:{no:12,n:"장막",c:"#7ad6ff",tier:9,end:1,hpM:1,spd:92,r:46,dmg:22,
+   d:"주변을 가려 아무것도 안 보이게 한다",
+   how:"파란 안개가 시야를 가려요. 안개 밖으로 나가서 싸우세요",
+   init(b){b.fog=0;b.fire=1.4;},
+   f(dt,b,a){
+     b.fog=Math.min(1,b.fog+dt*.4);
+     b.fire-=dt;
+     if(b.fire<=0){b.fire=1.7;
+       for(let i=-2;i<=2;i++){const g=a+i*.3;
+         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*270,vy:Math.sin(g)*270,r:7,dmg:14,life:3.4});}}
+   },
+   draw(X,Y,b){
+     const r=b.r,col="#7ad6ff",t=G.t;
+     cx.save();
+     /* 안개 — 보스 주변만. 정전과 달리 「보스에게서 나오는 것」이라 반대로 칠한다 */
+     const FR=440*b.fog;
+     if(FR>10){const g=cx.createRadialGradient(X,Y,FR*.2,X,Y,FR);
+       g.addColorStop(0,"rgba(40,80,120,.62)");g.addColorStop(.7,"rgba(30,60,100,.42)");
+       g.addColorStop(1,"rgba(20,40,80,0)");
+       cx.fillStyle=g;cx.beginPath();cx.arc(X,Y,FR,0,TAU);cx.fill();}
+     cx.shadowColor=col;cx.shadowBlur=18;
+     cx.strokeStyle=col;cx.lineWidth=2.6;
+     for(let q=0;q<3;q++){const g=t*(q%2?-.8:1.1)+q*2;
+       cx.beginPath();cx.arc(X,Y,r*(.6+q*.28),g,g+TAU*.4);cx.stroke();}
+     cx.fillStyle="#0d2438";cx.strokeStyle=col;cx.lineWidth=2.6;
+     cx.beginPath();cx.arc(X,Y,r*.36,0,TAU);cx.fill();cx.stroke();
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"lens",n:"렌즈",d:"경험치 흡수 범위 2배"}},
+
+ anvil:{no:13,n:"모루",c:"#c0c6d4",tier:9,end:1,hpM:2.2,spd:40,r:62,dmg:30,
+   d:"아주 단단하다 — 한 번에 들어가는 피해에 상한이 있다",
+   how:"한 방 큰 공격이 안 통해요. 여러 번 때리는 무기가 좋아요",
+   init(b){b.cap=Math.round(b.mhp*.012);b.summon=5;},
+   /* 단타 상한 — 진화 한 방으로 녹이는 빌드에 제동. 연사·장판이 유리해진다 */
+   capHit(b,d){return Math.min(d,b.cap);},
+   f(dt,b,a){
+     b.fire-=dt;
+     if(b.fire<=0){b.fire=2.6;
+       /* 내려찍기 — 느린 대신 한 번에 무겁다 */
+       const R=300;
+       for(const e of[0]){}
+       G.bolts.push({x:b.x,y:b.y,r:R,life:.5,max:.5,dmg:0,done:1,red:1});
+       if(Math.hypot(G.p.x-b.x,G.p.y-b.y)<R)hitP(26,"제"+b.no+"사도 모루");
+       shake=Math.max(shake,.7);}
+     b.summon-=dt;if(b.summon<=0){b.summon=7;for(let i=0;i<2;i++)spawnE("wall",false);}
+   },
+   draw(X,Y,b){
+     const r=b.r,col="#c0c6d4",t=G.t;
+     cx.save();cx.shadowColor=col;cx.shadowBlur=14;
+     cx.fillStyle="#262b3d";cx.strokeStyle=col;cx.lineWidth=3.4;cx.lineJoin="miter";
+     /* 두꺼운 육각 블록 두 겹 — 「단단하다」가 실루엣으로 */
+     for(let L=0;L<2;L++){const rr=r*(L?.62:1);
+       cx.beginPath();
+       for(let q=0;q<6;q++){const g=(L?-t*.2:t*.15)+q*TAU/6,xx=X+Math.cos(g)*rr,yy=Y+Math.sin(g)*rr;
+         q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}
+       cx.closePath();cx.fill();cx.stroke();}
+     cx.strokeStyle="rgba(192,198,212,.5)";cx.lineWidth=1.6;
+     for(let q=0;q<6;q++){const g=t*.15+q*TAU/6;
+       cx.beginPath();cx.moveTo(X+Math.cos(g)*r*.62,Y+Math.sin(g)*r*.62);
+       cx.lineTo(X+Math.cos(g)*r,Y+Math.sin(g)*r);cx.stroke();}
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"temper",n:"단조",d:"최대 체력 +120, 즉시 회복"}},
+
+ hydra:{no:14,n:"머리",c:"#ff6b9d",tier:9,end:1,hpM:1.3,spd:70,r:50,dmg:26,
+   d:"때릴수록 머리가 늘어난다",
+   how:"때리면 머리가 늘어나요. 늘어난 머리부터 빨리 정리하세요",
+   init(b){b.heads=0;b.mark=b.mhp;b.fire=1.5;},
+   onHit(b){
+     /* 체력이 15%씩 깎일 때마다 머리 하나. 처치가 느리면 머리가 쌓인다 */
+     if(b.hp<b.mark-b.mhp*.15&&b.heads<6){b.mark=b.hp;b.heads++;
+       const g=rnd(0,TAU),e=makeE("shooter",b.x+Math.cos(g)*70,b.y+Math.sin(g)*70,false);
+       e.hp=e.mhp=Math.round(b.mhp*.06);e.r=17;e.c="#ff6b9d";e.sh="diamond";e.head=1;e.spd=104;e.xp=5;
+       G.en.push(e);call("머리 — 하나 더 생겼어요");}
+   },
+   f(dt,b,a){
+     let alive=0;for(const e of G.en)if(e.head&&!e.dead)alive++;
+     b.live=alive;
+     b.fire-=dt;
+     if(b.fire<=0){b.fire=1.6;b.ring+=.36;
+       const k=8+alive*2;
+       for(let i=0;i<k;i++){const g=b.ring+i*TAU/k;
+         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*205,vy:Math.sin(g)*205,r:8,dmg:14,life:4});}}
+   },
+   draw(X,Y,b){
+     const r=b.r,col="#ff6b9d",t=G.t,hn=1+(b.live||0);
+     cx.save();cx.shadowColor=col;cx.shadowBlur=16;
+     /* 목이 머리 수만큼 뻗는다 */
+     cx.strokeStyle=col;cx.lineWidth=4;cx.lineCap="round";
+     for(let q=0;q<hn;q++){const g=t*.4+q*TAU/hn;
+       cx.beginPath();cx.moveTo(X,Y);
+       cx.quadraticCurveTo(X+Math.cos(g)*r*.9,Y+Math.sin(g)*r*.9,X+Math.cos(g+.3)*r*1.25,Y+Math.sin(g+.3)*r*1.25);
+       cx.stroke();
+       cx.fillStyle="#3d0f22";cx.beginPath();
+       cx.arc(X+Math.cos(g+.3)*r*1.25,Y+Math.sin(g+.3)*r*1.25,r*.2,0,TAU);cx.fill();cx.stroke();}
+     cx.fillStyle="#2b0a18";cx.strokeStyle=col;cx.lineWidth=3;
+     cx.beginPath();cx.arc(X,Y,r*.55,0,TAU);cx.fill();cx.stroke();
+     cx.fillStyle="#ffd0e0";cx.shadowBlur=20;
+     cx.beginPath();cx.arc(X,Y,r*.2,0,TAU);cx.fill();
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"crown",n:"관",d:"처치 시 5% 확률로 경험치 구슬이 두 배"}},
+
+ tide:{no:9,n:"밀물",c:"#4fd6a0",tier:9,end:1,hpM:1,spd:58,r:54,dmg:24,
+   d:"밀어내는 파도를 보낸다",
+   how:"초록 파도가 나를 밀어내요. 밀리는 방향을 보고 미리 움직이세요",
+   init(b){b.wave=2.5;b.wr=0;},
+   f(dt,b,a){
+     if(b.wr>0){b.wr+=dt*420;
+       const d=Math.hypot(G.p.x-b.x,G.p.y-b.y);
+       /* 파도 고리가 나를 지나갈 때만 민다 */
+       if(Math.abs(d-b.wr)<70&&!G.ang.surf){const g=Math.atan2(G.p.y-b.y,G.p.x-b.x);
+         G.p.x+=Math.cos(g)*260*dt*4;G.p.y+=Math.sin(g)*260*dt*4;}
+       if(b.wr>900)b.wr=0;}
+     else{b.wave-=dt;if(b.wave<=0){b.wave=4.5;b.wr=60;SFX.zone();}}
+     b.fire-=dt;
+     if(b.fire<=0){b.fire=2;b.ring+=.3;
+       for(let i=0;i<9;i++){const g=b.ring+i*TAU/9;
+         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*190,vy:Math.sin(g)*190,r:8,dmg:14,life:4});}}
+   },
+   draw(X,Y,b){
+     const r=b.r,col="#4fd6a0",t=G.t;
+     cx.save();cx.shadowColor=col;cx.shadowBlur=16;
+     if(b.wr>0){const k=b.wr/900;
+       cx.strokeStyle=`rgba(79,214,160,${(.85*(1-k)).toFixed(2)})`;cx.lineWidth=7*(1-k)+2;
+       cx.beginPath();cx.arc(X,Y,b.wr,0,TAU);cx.stroke();}
+     cx.strokeStyle=col;cx.lineWidth=2.6;
+     for(let q=0;q<3;q++){const g=t*.7+q*TAU/3;
+       cx.beginPath();cx.arc(X,Y,r*(.65+q*.2),g,g+TAU*.3);cx.stroke();}
+     cx.fillStyle="#0d3328";cx.strokeStyle=col;cx.lineWidth=3;
+     cx.beginPath();
+     for(let q=0;q<3;q++){const g=-t*.5+q*TAU/3,xx=X+Math.cos(g)*r*.44,yy=Y+Math.sin(g)*r*.44;
+       q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}
+     cx.closePath();cx.fill();cx.stroke();
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"surf",n:"파도타기",d:"이동 속도 +15%, 밀려나지 않는다"}},
 };
 /* 오늘의 시드로 사도 순서를 뽑는다. 앞 둘은 tier 1에서. 같은 날은 모두 같은 순서다 —
    스폰 스트림(R.spawn)과 별개 생성기라 사도를 늘려도 적 구성이 안 어긋난다. */
 function makeRoster(){
-  const g=mulberry32(SEED*3+5), ids=Object.keys(ANGELS);
+  const g=mulberry32(SEED*3+5), ids=Object.keys(ANGELS).filter(k=>!ANGELS[k].end);
   const sh=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(g()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;};
   const t1=sh(ids.filter(k=>ANGELS[k].tier===1)), t2=sh(ids.filter(k=>ANGELS[k].tier!==1));
   const first=t1.splice(0,Math.min(2,t1.length));
@@ -1305,7 +1545,7 @@ function newRun(){
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0,eSpd:1,ultG:1,resDmg:.015,resHold:1,resBeat:0},
     ct:{},ctMode:false,
-    roster:[],ang:{},lastAng:null,plate:{up:true,cd:0},gazeT:0,shardA:0,
+    roster:[],endRoster:[],ang:{},lastAng:null,plate:{up:true,cd:0},gazeT:0,shardA:0,
     res:0,resT:0,resCap:40,resLvl:0,pend:0,bossXp:0,rank:0,top1:0,
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0,cd:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
     sev:null,sevT:0,sevN:SEV_FIRST,sevLast:null,
@@ -1313,7 +1553,7 @@ function newRun(){
     en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],shl:[],seg:[],rank:0,
     stars:Array.from({length:150},()=>({x:rnd(-2000,2000),y:rnd(-2000,2000),z:rnd(.2,1)}))};
   for(const k in WEAPONS)G.cd[k]=0;
-  G.roster=makeRoster();
+  G.roster=makeRoster();G.endRoster=makeEndRoster();
   G.mod=MOD;
   if(MOD.zone)G.zone.r*=MOD.zone;
   if(MOD.pspd)G.p.spd*=MOD.pspd;
@@ -1423,11 +1663,20 @@ function spawnE(k,elite){
    재머 간격이 50초라 대략 10분이 된다. 「계속 싸우기」는 그 뒤에도 그대로 있다. */
 /* 사도 6기 + 종단. 약 11분. */
 const FINAL_AT=6;
+/* 무한모드 로스터 — 제8~14사도. 끝을 본 사람만 만난다.
+   본편과 같은 시드를 쓰되 스트림을 나눈다(+6) — 같은 날 모두가 같은 순서다. */
+function makeEndRoster(){
+  const g=mulberry32(SEED*3+6), ids=Object.keys(ANGELS).filter(k=>ANGELS[k].end);
+  for(let i=ids.length-1;i>0;i--){const j=Math.floor(g()*(i+1));const t=ids[i];ids[i]=ids[j];ids[j]=t;}
+  return ids;
+}
 function spawnBoss(){
   const a=rnd(0,TAU);
   const fin=G.bosses>=FINAL_AT&&!G.ended;
-  /* G.roster[G.bosses]가 범위를 넘으면 [0]으로 떨어져 첫 사도만 영원히 반복됐다 */
-  const aid=fin?null:(G.roster.length?G.roster[G.bosses%G.roster.length]:null), A=aid?ANGELS[aid]:null;
+  /* 끝을 본 뒤에는 제8~14사도만 나온다 — 「왜 추적자만 나와?」의 답이다.
+     본편 로스터를 [0]으로 떨어뜨려 첫 사도만 반복하던 것도 여기서 없어진다. */
+  const R2=G.ended?(G.endRoster.length?G.endRoster:G.roster):G.roster;
+  const aid=fin?null:(R2.length?R2[G.bosses%R2.length]:null), A=aid?ANGELS[aid]:null;
   const bhp=Math.round(9000*Math.pow(1.55,G.bosses)*(fin?2.4:(A?A.hpM:1)));
   G.boss={x:G.p.x+Math.cos(a)*520,y:G.p.y+Math.sin(a)*520,hp:bhp,mhp:bhp,
     spd:fin?86:(A?A.spd:70)+G.bosses*6,r:fin?78:(A?A.r:46),dmg:fin?34:(A?A.dmg:24)+G.bosses*4,
@@ -1435,7 +1684,7 @@ function spawnBoss(){
     /* 번호는 등장 순서다 — 1부터 올라가고 종단이 7. 에바식으로 3·4·5·6·7·9·12를
        띄엄띄엄 붙였더니 「1사도부터 7사도까지 순서대로 나오는 거 맞지?」가 나왔다.
        정체는 날마다 섞이되 번호는 늘 1→7이어야 진행으로 읽힌다 */
-    no:fin?FINAL_AT+1:Math.min(FINAL_AT,G.bosses+1)};
+    no:fin?FINAL_AT+1:(A&&A.end?A.no:Math.min(FINAL_AT,G.bosses+1))};
   if(A&&A.init)A.init(G.boss);
   /* 등장 — 이름이 뜨고 화면이 잠깐 선다. 「재머 강림」 한 줄로는 어떤 놈인지 몰랐다 */
   callBig("제"+G.boss.no+"사도 "+(fin?"종단":A.n),
@@ -1598,7 +1847,9 @@ function zoneMul(){
 
 function weapons(dt){
   const p=G.p,st=G.st,A=st.area;
-  for(const k in G.cd)G.cd[k]-=dt*st.rate;
+  /* 태엽(제11사도)이 내 공격만 늦춘다. 적 탄막은 그대로라 「피하는 데 집중」이 답이 된다 */
+  const tw=(G.boss&&G.boss.ang==="clockwork"&&G.boss.slow>0)?.45:1;
+  for(const k in G.cd)G.cd[k]-=dt*st.rate*tw;
 
   // 다트 / 레일건
   if(G.w.dart&&G.cd.dart<=0){
@@ -1821,6 +2072,9 @@ function dmgE(e,d,showNum){
     e.dead=1;G.kills++;SFX.kill();
     if(G.st.drain)G.p.hp=Math.min(G.p.mhp,G.p.hp+G.st.drain);
     if(G.form==="pulse")addRes();
+    if(G.ang.leech)G.p.hp=Math.min(G.p.mhp,G.p.hp+.4);           // 권능 · 흡수관
+    if(G.ang.crown&&Math.random()<.05)for(let q=0;q<e.xp;q++)     // 권능 · 관 — 구슬 두 배
+      G.fx.push({x:e.x+rnd(-10,10),y:e.y+rnd(-10,10),xp:1});
     /* 연쇄 붕괴 — 여기서 dmgE를 다시 부르면 연쇄가 재귀로 터진다.
        bolts에 얹어 다음 프레임의 pools()가 처리하게 한다. 프레임 단위로
        퍼지므로 저절로 멈추고, 처치 수도 두 번 세지 않는다. */
@@ -1843,6 +2097,7 @@ function dmgB(d){const b=G.boss;if(!b)return;
   /* 무적 — 추적자는 신호권 안에서, 차폐는 닫혀 있을 때. 「무효」가 떠야 버그로 안 읽힌다 */
   if(A&&A.shielded&&A.shielded(b)){b.hit=.05;
     if(Math.random()<.12)G.num.push({x:b.x,y:b.y-b.r,v:"무효",life:.5,c:C.pale});return;}
+  if(A&&A.capHit)d=A.capHit(b,d);   // 모루 — 한 방 큰 공격에 상한
   b.hp-=d;b.hit=.09;
   if(A&&A.onHit)A.onHit(b);
   if(b.hp<=0){const fin=b.fin;
@@ -1871,7 +2126,13 @@ function showReward(A){
   const have=!!G.ang[A.rw.id];
   const opts=[
     have?{t:"잔향",d:"이미 가진 권능 — 대신 최대 체력 +60",c:A.c,k:"권능",f:()=>{G.p.mhp+=60;G.p.hp=Math.min(G.p.mhp,G.p.hp+60);}}
-        :{t:A.rw.n,d:A.rw.d,c:A.c,k:"권능",f:()=>{G.ang[A.rw.id]=1;call(A.rw.n+" 얻음");}},
+        :{t:A.rw.n,d:A.rw.d,c:A.c,k:"권능",f:()=>{G.ang[A.rw.id]=1;
+            /* 즉시 스탯에 얹히는 권능은 여기서 한 번만 건다 */
+            if(A.rw.id==="gear")G.st.rate*=1.2;
+            if(A.rw.id==="temper"){G.p.mhp+=120;G.p.hp=Math.min(G.p.mhp,G.p.hp+120);}
+            if(A.rw.id==="lens")G.p.mag*=2;
+            if(A.rw.id==="surf")G.p.spd*=1.15;
+            call(A.rw.n+" 얻음");}},
     {t:"재정비",d:"체력 전부 회복 · 레벨 +1 더",c:"#7fe3b0",k:"보급",f:()=>{G.p.hp=G.p.mhp;G.bossXp+=G.p.need;}},
     {t:"여유",d:"다시 뽑기 +2",c:C.cyan,k:"보급",f:()=>{G.rerolls+=2;}},
   ];
@@ -1896,6 +2157,9 @@ function hitP(d,src){const p=G.p;if(p.inv>0)return;
     G.fx.push({x:p.x,y:p.y,vx:0,vy:0,life:.35,max:.35,ring:70,rc:"#7fe3b0"});return;}
   if(G.form==="warden"&&p.in)d*=.75;   // -35% → -25%. 원 안 배수와 겹쳐 이중으로 강했다
   p.hp-=d;p.inv=.6;p.flash=.25;shake=Math.max(shake,.5);hitstop=.03;SFX.hurt();G.lastHit=src||"접촉";
+  /* 권능 · 반사판 — 받은 피해의 40%를 주변에. 계약 반사막과 같은 경로라 같이 터진다 */
+  if(G.ang.mirror)G.bolts.push({x:p.x,y:p.y,r:150*G.st.area,life:.3,max:.3,
+    dmg:d*.4,done:0,pink:1,sh:.08});
   /* 반사막 — 맞은 자리에서 터진다. 증폭기는 타되 신호권 배수는 안 탄다.
      맞는 자리는 내가 고른 자리가 아니라서 신호권을 보상으로 걸 근거가 없다. */
   if(G.st.thorn)G.bolts.push({x:p.x,y:p.y,r:140*G.st.area,life:.32,max:.32,
@@ -2436,7 +2700,8 @@ function blackoutMask(zx,zy,zr,pxx,pyy,pr,A){
     const rg=g.createRadialGradient(hx,hy,hr*.6,hx,hy,hr);
     rg.addColorStop(0,"rgba(0,0,0,1)");rg.addColorStop(1,"rgba(0,0,0,0)");
     g.fillStyle=rg;g.beginPath();g.arc(hx,hy,hr,0,TAU);g.fill();};
-  hole(zx,zy,zr);hole(pxx,pyy,pr);
+  if(zr>0)hole(zx,zy,zr);   // 장막은 신호권 구멍이 없다 — 발밑만 보인다
+  hole(pxx,pyy,pr);
   cx.save();cx.globalAlpha=A;cx.drawImage(DARK,0,0,W,H);cx.restore();
 }
 /* 성운 — 매 프레임 그라디언트를 만들지 않도록 512 타일에 한 번만 굽는다 */
@@ -2748,6 +3013,13 @@ function draw(){
   cx.strokeStyle="rgba(79,240,216,.22)";cx.lineWidth=1;
   cx.beginPath();cx.arc(px,py,p.mag,0,TAU);cx.stroke();
 
+  /* 장막(제12사도) — 보스에게서 퍼지는 안개. 정전 마스크를 그대로 쓰되 구멍을
+     내 발밑에만 둔다. 안개 밖으로 나가면 풀리는 게 이 사도의 답이다 */
+  if(G.boss&&G.boss.ang==="veil"&&G.boss.fog>.05){
+    const b=G.boss, FR=440*b.fog, bx=b.x+ox, by=b.y+oy;
+    const d=Math.hypot(G.p.x-b.x,G.p.y-b.y);
+    if(d<FR+200)blackoutMask(bx,by,-1, px,py,150, .78*b.fog*Math.min(1,(FR+200-d)/200));
+  }
   /* 정전 — 신호권 밖이 어두워진다.
      destination-out으로 구멍을 뚫으려 했다가 실패했다. 월드와 어둠이 같은
      레이어라서 지우면 게임 화면까지 함께 지워진다(통째로 검게 나왔다).
