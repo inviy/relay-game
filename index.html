@@ -581,7 +581,7 @@ function scoreDelta(){
    되살린 저장은 즉시 지운다. 안 그러면 같은 순간을 반복해 되살릴 수 있다. */
 const RKEY="relay:run", RUNV=1;
 const RUNF=["t","et","eth","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
-  "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","ult","shield",
+  "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","roster","ang","ult","shield",
   "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
 let runSaveT=0;
 function saveRun(){
@@ -589,8 +589,10 @@ function saveRun(){
   const p=G.p,o={v:RUNV,seed:SEED,rid:RID,at:Date.now()};
   RUNF.forEach(k=>o[k]=G[k]);
   o.p={hp:p.hp,mhp:p.mhp,spd:p.spd,lv:p.lv,xp:p.xp,need:p.need,mag:p.mag,x:p.x,y:p.y,dx:p.dx,dy:p.dy};
+  /* fin과 ang이 빠져 있었다 — 이어하기에서 종단 재머가 일반 재머가 되고, 사도가 재머가 됐다 */
   o.boss=G.boss?{hp:G.boss.hp,mhp:G.boss.mhp,spd:G.boss.spd,r:G.boss.r,dmg:G.boss.dmg,
-                 fire:G.boss.fire,ring:0,summon:5,hit:0}:null;
+                 fire:G.boss.fire,ring:0,summon:5,hit:0,fin:G.boss.fin||0,ang:G.boss.ang||null,
+                 ph:0,spiral:0,conv:0}:null;
   ls.set(RKEY,o);
 }
 function loadRun(){const r=ls.get(RKEY,null);
@@ -937,6 +939,94 @@ const CONTRACTS=[
  {id:"casc", n:"연쇄 붕괴",    c:C.violet,max:1, get:"적이 죽을 때 터진다",      pay:"그 폭발이 나에게도 닿는다"},
  {id:"inv",  n:"역극성",      c:C.pale,  max:1, get:"신호권 밖에서 피해 200%",  pay:"안에서는 70%"},
 ];
+/* ───── 사도 ─────
+   재머 5기가 전부 같은 놈이었다 — 돌진 + 14발 링 + 탱크 소환, 체력 숫자만 1.55배씩.
+   2:50부터 판 끝까지 같은 보스가 여섯 번 왔다.
+   사도마다 신호권을 다른 방식으로 망가뜨린다. 탄막만 다르면 「모양 다른 같은 놈」이다.
+   번호는 에바처럼 띄엄띄엄이다 — 나머지 사도가 존재한다는 뜻이고 나중에 채울 자리다.
+   tier 1은 읽기 쉬운 것. 2:50에 처음 만나는 사도가 차폐면 반격법을 모른 채 죽는다.
+   shielded(b)가 true면 피해가 안 들어간다. move(dt,b,a)가 true를 돌려주면 기본 추적을 건너뛴다. */
+const ANGELS={
+ stalker:{no:7,n:"추적자",c:C.pale,tier:1,hpM:1,spd:62,r:50,dmg:22,
+   d:"신호권 밖에서만 피해를 받는다",
+   init(b){b.aim=1.2;b.summon=6;},
+   f(dt,b,a){
+     b.aim-=dt;
+     if(b.aim<=0){b.aim=1.25;
+       for(let i=-1;i<=1;i++){const g=a+i*.22;
+         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*300,vy:Math.sin(g)*300,r:7,dmg:14,life:3});}}
+     b.summon-=dt;
+     if(b.summon<=0){b.summon=8;for(let i=0;i<3;i++)spawnE("dash",false);}
+   },
+   shielded(b){return Math.hypot(b.x-G.zone.x,b.y-G.zone.y)<G.zone.r;},
+   /* 거대한 눈. 동공이 나를 본다. 신호권 안이면 점선 장막이 돈다 */
+   draw(X,Y,b){
+     const r=b.r, p=G.p, a=Math.atan2(p.y-b.y,p.x-b.x), sh=this.shielded(b);
+     cx.save();cx.shadowColor=C.pale;cx.shadowBlur=18;
+     cx.fillStyle="#161a33";cx.strokeStyle=C.pale;cx.lineWidth=2.8;
+     cx.beginPath();cx.moveTo(X-r,Y);cx.quadraticCurveTo(X,Y-r*.92,X+r,Y);
+     cx.quadraticCurveTo(X,Y+r*.92,X-r,Y);cx.closePath();cx.fill();cx.stroke();
+     const px=X+Math.cos(a)*r*.3, py=Y+Math.sin(a)*r*.15;
+     cx.fillStyle="rgba(255,92,138,.22)";cx.shadowColor=C.pink;cx.shadowBlur=24;
+     cx.beginPath();cx.arc(px,py,r*.40,0,TAU);cx.fill();
+     cx.strokeStyle=C.pink;cx.lineWidth=2.4;cx.beginPath();cx.arc(px,py,r*.40,0,TAU);cx.stroke();
+     cx.fillStyle="#08070d";cx.shadowBlur=0;cx.beginPath();cx.arc(px,py,r*.19,0,TAU);cx.fill();
+     cx.strokeStyle="rgba(255,92,138,.55)";cx.lineWidth=1.4;cx.shadowBlur=10;
+     for(let q=0;q<10;q++){const g=G.t*.4+q*TAU/10;cx.beginPath();
+       cx.moveTo(px+Math.cos(g)*r*.21,py+Math.sin(g)*r*.21);
+       cx.lineTo(px+Math.cos(g)*r*.38,py+Math.sin(g)*r*.38);cx.stroke();}
+     if(sh){cx.strokeStyle="rgba(238,242,255,.7)";cx.lineWidth=2;cx.setLineDash([9,7]);cx.lineDashOffset=-G.t*40;
+       cx.beginPath();cx.arc(X,Y,r*1.28,0,TAU);cx.stroke();cx.setLineDash([]);}
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"gaze",n:"응시",d:"가장 먼 적에게 광선이 닿는다"}},
+ inverse:{no:5,n:"역상",c:C.gold,tier:1,hpM:1,spd:70,r:48,dmg:24,
+   d:"3초 예고 후 신호권 안팎이 뒤집힌다",
+   init(b){b.cyc=9;b.warn=0;b.flip=0;},
+   f(dt,b,a){
+     b.cyc-=dt;
+     if(b.cyc<=0&&!b.warn){b.warn=3;call("역상 · 극성 전환 예고");SFX.warn();}
+     if(b.warn>0){b.warn-=dt;
+       if(b.warn<=0){b.warn=0;b.flip=b.flip?0:1;b.cyc=9;
+         call(b.flip?"극성 반전":"극성 복귀");
+         G.flash={t:.4,c:b.flip?"168,107,255":"255,209,102"};shake=Math.max(shake,.5);}}
+     b.fire-=dt;
+     if(b.fire<=0){b.fire=1.7;b.ring+=.3;
+       for(let i=0;i<12;i++){const g=b.ring+i*TAU/12;
+         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*200,vy:Math.sin(g)*200,r:8,dmg:14,life:4});}}
+   },
+   /* 맞물린 반고리 두 겹이 반대로 돈다. 코어가 반은 금 반은 보라 — 극성이 그림으로 보인다.
+      뒤집히면 색이 통째로 바뀐다. 예고 중엔 흰 게이지가 코어를 감는다 */
+   draw(X,Y,b){
+     const r=b.r, t=G.t, A=b.flip?C.violet:C.gold, B=b.flip?C.gold:C.violet;
+     cx.save();cx.shadowColor=A;cx.shadowBlur=18;cx.lineCap="butt";
+     cx.strokeStyle=A;cx.lineWidth=r*.17;
+     for(let q=0;q<2;q++){const g=t*.6+q*Math.PI;cx.beginPath();cx.arc(X,Y,r*1.05,g,g+TAU*.34);cx.stroke();}
+     cx.strokeStyle=B;cx.lineWidth=r*.13;
+     for(let q=0;q<2;q++){const g=-t*.95+q*Math.PI;cx.beginPath();cx.arc(X,Y,r*.72,g,g+TAU*.30);cx.stroke();}
+     cx.shadowBlur=22;
+     cx.beginPath();cx.moveTo(X,Y);cx.arc(X,Y,r*.44,-Math.PI/2+t,Math.PI/2+t);cx.closePath();cx.fillStyle=A;cx.fill();
+     cx.beginPath();cx.moveTo(X,Y);cx.arc(X,Y,r*.44,Math.PI/2+t,Math.PI*1.5+t);cx.closePath();cx.fillStyle=B;cx.fill();
+     cx.strokeStyle="rgba(238,242,255,.85)";cx.lineWidth=2;cx.beginPath();cx.arc(X,Y,r*.44,0,TAU);cx.stroke();
+     if(b.warn>0){const k=1-b.warn/3;cx.shadowBlur=26;cx.strokeStyle="rgba(238,242,255,.95)";cx.lineWidth=4;
+       cx.beginPath();cx.arc(X,Y,r*.58,-Math.PI/2,-Math.PI/2+TAU*k);cx.stroke();}
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"pole",n:"극성 전환",d:"신호권 밖 피해 +30%"}},
+};
+/* 오늘의 시드로 사도 순서를 뽑는다. 앞 둘은 tier 1에서. 같은 날은 모두 같은 순서다 —
+   스폰 스트림(R.spawn)과 별개 생성기라 사도를 늘려도 적 구성이 안 어긋난다. */
+function makeRoster(){
+  const g=mulberry32(SEED*3+5), ids=Object.keys(ANGELS);
+  const sh=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(g()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;};
+  const t1=sh(ids.filter(k=>ANGELS[k].tier===1)), t2=sh(ids.filter(k=>ANGELS[k].tier!==1));
+  const first=t1.splice(0,Math.min(2,t1.length));
+  const out=first.concat(sh(t1.concat(t2)));
+  let i=0;while(out.length<FINAL_AT&&ids.length)out.push(out[i++%out.length]);   // 사도가 자리보다 적으면 돌려 쓴다
+  return out.slice(0,FINAL_AT);
+}
 const EVOS=[
  {id:"railgun",w:"dart", p:"pierce",n:"레일건",     d:"모든 것을 관통하는 광선. 다트를 대체한다.",c:C.cyan},
  {id:"tempest",w:"blade",p:"area",  n:"검풍 폭풍",  d:"거대한 검 6자루가 폭풍처럼 돈다.",       c:C.pale},
@@ -1018,12 +1108,14 @@ function newRun(){
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0,eSpd:1,ultG:1},
     ct:{},ctMode:false,
+    roster:[],ang:{},lastAng:null,
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0,cd:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
     sev:null,sevT:0,sevN:SEV_FIRST,sevLast:null,
     zone:{x:0,y:0,r:340},next:null,zt:ZONE_T/PACE,
     en:[],bul:[],eb:[],fx:[],num:[],pool:[],items:[],bolts:[],shl:[],seg:[],rank:0,
     stars:Array.from({length:150},()=>({x:rnd(-2000,2000),y:rnd(-2000,2000),z:rnd(.2,1)}))};
   for(const k in WEAPONS)G.cd[k]=0;
+  G.roster=makeRoster();
   G.mod=MOD;
   if(MOD.zone)G.zone.r*=MOD.zone;
   if(MOD.pspd)G.p.spd*=MOD.pspd;
@@ -1130,15 +1222,22 @@ function spawnE(k,elite){
    6,279/s, 실전 체감은 그 60%)을 근거로 2.4배 — 대략 30~60초 싸움이 된다. */
 /* 4기였을 때 실측 8:24. "판이 너무 빨리 끝난다"는 말이 나와 5기로 늘렸다.
    재머 간격이 50초라 대략 10분이 된다. 「계속 싸우기」는 그 뒤에도 그대로 있다. */
-const FINAL_AT=5;
+/* 사도 6기 + 종단. 약 11분. */
+const FINAL_AT=6;
 function spawnBoss(){
   const a=rnd(0,TAU);
   const fin=G.bosses>=FINAL_AT&&!G.ended;
-  const bhp=Math.round(9000*Math.pow(1.55,G.bosses)*(fin?2.4:1));
+  const aid=fin?null:(G.roster[G.bosses]||G.roster[0]||null), A=aid?ANGELS[aid]:null;
+  const bhp=Math.round(9000*Math.pow(1.55,G.bosses)*(fin?2.4:(A?A.hpM:1)));
   G.boss={x:G.p.x+Math.cos(a)*520,y:G.p.y+Math.sin(a)*520,hp:bhp,mhp:bhp,
-    spd:fin?86:70+G.bosses*8,r:fin?78:46,dmg:fin?34:24+G.bosses*6,
-    fire:1.4,ring:0,summon:5,hit:0,fin:fin?1:0,ph:0,spiral:0,conv:0};
-  call(fin?"종단 재머 강림":"재머 강림");SFX.boss();
+    spd:fin?86:(A?A.spd:70)+G.bosses*6,r:fin?78:(A?A.r:46),dmg:fin?34:(A?A.dmg:24)+G.bosses*4,
+    fire:1.4,ring:0,summon:5,hit:0,fin:fin?1:0,ph:0,spiral:0,conv:0,ang:aid};
+  if(A&&A.init)A.init(G.boss);
+  /* 강림 — 이름이 뜨고 화면이 잠깐 선다. 「재머 강림」 한 줄로는 어떤 놈인지 몰랐다 */
+  call(fin?"제12사도 「종단」 강림":"제"+A.no+"사도 「"+A.n+"」 강림");
+  SFX.boss();hitstop=.3;shake=Math.max(shake,1.2);
+  G.flash={t:.6,c:fin?"255,209,102":"238,242,255"};
+  track("boss",{ang:aid||"final",n:G.bosses},G.t);
 }
 function call(t){const e=$("#call");e.textContent=t;e.classList.add("on");
   clearTimeout(call._);call._=setTimeout(()=>e.classList.remove("on"),1800);}
@@ -1256,14 +1355,17 @@ function zoneMul(){
   /* 실효 배수가 관제탑 2.53 vs 특이점 1.62였다 — 56% 차이라 안 고를 이유가 없었다.
      방어계를 내리고 기동계를 올려 간격을 좁힌다. 방어계의 「밖에서 약하다」는
      그대로 둔다. 그게 두 갈래를 가르는 선이다. */
+  /* 역상이 극성을 뒤집었으면 안팎을 바꿔 계산한다. 갈래 배수·계약·과부하 전부 따라간다 */
+  const inn=(G.boss&&G.boss.ang==="inverse"&&G.boss.flip)?!G.p.in:G.p.in;
   if(f==="rover")m=1.45;
-  else if(f==="warden")m=G.p.in?1.95:.85;
-  else m=G.p.in?1.7:1;
+  else if(f==="warden")m=inn?1.95:.85;
+  else m=inn?1.7:1;
   /* 역극성 — 갈래가 정한 배수를 통째로 덮는다. 방어계로 쌓아 온 빌드가
      한순간 무의미해지는 유일한 카드다. 그게 이 계약의 값어치다. */
-  if(G.ct.inv)m=G.p.in?.7:2;
-  if(G.p.in&&G.st.surge)m*=1+G.st.surge;
-  if(G.p.in&&G.mod.zmul)m*=G.mod.zmul;
+  if(G.ct.inv)m=inn?.7:2;
+  if(inn&&G.st.surge)m*=1+G.st.surge;
+  if(inn&&G.mod.zmul)m*=G.mod.zmul;
+  if(!inn&&G.ang.pole)m*=1.3;   // 권능 · 극성 전환
   if(G.noEvo)m*=1.15;
   return m;
 }
@@ -1469,15 +1571,46 @@ function dmgE(e,d,showNum){
   }
 }
 function dmgB(d){const b=G.boss;if(!b)return;
+  const A=b.ang?ANGELS[b.ang]:null;
+  /* 무적 — 추적자는 신호권 안에서, 차폐는 닫혀 있을 때. 「무효」가 떠야 버그로 안 읽힌다 */
+  if(A&&A.shielded&&A.shielded(b)){b.hit=.05;
+    if(Math.random()<.12)G.num.push({x:b.x,y:b.y-b.r,v:"무효",life:.5,c:C.pale});return;}
   b.hp-=d;b.hit=.09;
+  if(A&&A.onHit)A.onHit(b);
   if(b.hp<=0){const fin=b.fin;
     for(let i=0;i<(fin?120:40);i++)G.fx.push({x:b.x,y:b.y,vx:rnd(-340,340)*(fin?1.8:1),vy:rnd(-340,340)*(fin?1.8:1),life:fin?1.4:.9,max:fin?1.4:.9,c:fin?C.pink:C.gold});
     G.boss=null;shake=fin?2.2:1.1;hitstop=fin?.3:.14;
     G.bosses++;G.bossT=100/G.pace;
     const p=G.p;p.hp=Math.min(p.mhp,p.hp+p.mhp*.35);   // 격파 보상 — 다음 파도를 버틸 여지
     if(fin){G.ended=true;G.endNow=true;G.cleared=true;G.eb.length=0;call("전부 끊었다");finish(true);return;}
-    if(!G.cleared){G.cleared=true;call("재머 격파 · 계속 간다");}
+    if(A&&A.onDeath)A.onDeath(b);
+    G.cleared=true;
+    if(A){G.lastAng=b.ang;showReward(A);}
     else call("재머 "+G.bosses+"기 격파");}
+}
+/* 사도의 힘 — 셋 중 하나. 권능만 주면 매번 같은 선택이 되고,
+   셋이면 「지금 뭐가 급한가」가 결정이 된다. */
+function showReward(A){
+  G.ctMode=false;mode="level";
+  $("#lvtag").textContent="제"+A.no+"사도 「"+A.n+"」 격파";
+  $("#v-level h2").textContent="사도의 힘 — 하나를 가져간다";
+  $("#lvtools").style.display="none";
+  const have=!!G.ang[A.rw.id];
+  const opts=[
+    have?{t:"잔향",d:"이미 가진 권능 — 대신 최대 체력 +60",c:A.c,k:"권능",f:()=>{G.p.mhp+=60;G.p.hp=Math.min(G.p.mhp,G.p.hp+60);}}
+        :{t:A.rw.n,d:A.rw.d,c:A.c,k:"권능",f:()=>{G.ang[A.rw.id]=1;call("권능 · "+A.rw.n);}},
+    {t:"재정비",d:"체력 전부 회복 · 즉시 1레벨",c:"#7fe3b0",k:"보급",f:()=>{G.p.hp=G.p.mhp;gainXp(G.p.need);}},
+    {t:"여유",d:"다시 뽑기 +2",c:C.cyan,k:"보급",f:()=>{G.rerolls+=2;}},
+  ];
+  const box=$("#picks");box.innerHTML="";
+  opts.forEach((o,i)=>{const b=document.createElement("button");
+    b.className="card"+(i===0?" evo":"");b.style.setProperty("--c",o.c);
+    b.innerHTML=`<div class="glyph"><i></i></div><div class="kind">${i+1} · ${o.k}</div><div class="t">${o.t}</div><div class="d">${o.d}</div>`;
+    /* 효과는 화면을 닫은 뒤에 건다 — 재정비의 레벨업이 카드 화면을 열어야 하는데
+       mode가 level이면 levelUp()이 그냥 돌아온다 */
+    b.onclick=()=>{hideAll();mode="play";last=performance.now();o.f();};
+    box.appendChild(b);});
+  showVeil("#v-level");
 }
 function hitP(d,src){const p=G.p;if(p.inv>0)return;
   if(G.form==="rover"&&G.moving&&Math.random()<.30){p.inv=.25;G.num.push({x:p.x,y:p.y-24,v:"회피",life:.6,c:C.cyan});return;}
@@ -1585,10 +1718,13 @@ function finalBoss(dt,b,a){
 }
 function boss(dt){const b=G.boss;if(!b)return;const p=G.p;
   b.hit=Math.max(0,b.hit-dt);
-  const a=Math.atan2(p.y-b.y,p.x-b.x);
-  b.x+=Math.cos(a)*b.spd*dt;b.y+=Math.sin(a)*b.spd*dt;
-  if(Math.hypot(p.x-b.x,p.y-b.y)<p.r+b.r)hitP(b.dmg,b.fin?"종단 재머":"재머");
+  const a=Math.atan2(p.y-b.y,p.x-b.x), A=b.ang?ANGELS[b.ang]:null;
+  if(!(A&&A.move&&A.move(dt,b,a))){b.x+=Math.cos(a)*b.spd*dt;b.y+=Math.sin(a)*b.spd*dt;}
+  if(!(A&&A.ghost)&&Math.hypot(p.x-b.x,p.y-b.y)<p.r+b.r)
+    hitP(b.dmg,b.fin?"종단 재머":A?"제"+A.no+"사도 "+A.n:"재머");
   if(b.fin){finalBoss(dt,b,a);return;}
+  if(A){A.f(dt,b,a);return;}
+  /* 아래는 사도가 없을 때의 예비 경로다 — 로스터가 비는 일은 없어야 한다 */
   b.fire-=dt;
   if(b.fire<=0){b.fire=1.5;b.ring+=.3;
     for(let i=0;i<14;i++){const g=b.ring+i*TAU/14;
@@ -2145,6 +2281,9 @@ function draw(){
   if(G.boss){const b=G.boss,X=b.x+ox,Y=b.y+oy;
     const col=b.fin?C.gold:C.violet, hp=Math.max(0,Math.min(1,b.hp/b.mhp));
     const th=(1-hp)*1.02, NB=6, spin=G.t*.35;
+    const AD=b.ang&&ANGELS[b.ang]&&ANGELS[b.ang].draw;
+    if(AD){ANGELS[b.ang].draw(X,Y,b);}
+    else{
     cx.save();
     // 몸통과 새는 빛 — 테두리 안쪽으로 잘라낸다. 빛이 밖으로 번지면 조리개가 아니다
     cx.save();
@@ -2188,8 +2327,14 @@ function draw(){
       for(let q=0;q<3;q++){const rr=b.r*1.4+q*15, aa=G.t*(q%2?-.6:.9)+q*2;
         cx.beginPath();cx.arc(X,Y,rr,aa,aa+TAU*.62);cx.stroke();}}
     cx.restore();
+    }
+    const AN=b.ang?ANGELS[b.ang]:null, bc=b.fin?C.gold:AN?AN.c:C.pink;
     cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54*VS,W*.68,(b.fin?13:9)*VS);
-    cx.fillStyle=b.fin?C.gold:C.pink;cx.fillRect(W*.16,54*VS,W*.68*Math.max(0,b.hp/b.mhp),(b.fin?13:9)*VS);}
+    cx.fillStyle=bc;cx.fillRect(W*.16,54*VS,W*.68*Math.max(0,b.hp/b.mhp),(b.fin?13:9)*VS);
+    /* 이름과 성질을 바 아래에 — 어떤 놈이고 뭘 하는지 싸우는 내내 보여야 한다 */
+    cx.save();cx.textAlign="center";cx.font="700 "+(12*VS).toFixed(1)+"px "+KRF;cx.fillStyle=bc;
+    cx.fillText(b.fin?"제12사도 「종단」":AN?"제"+AN.no+"사도 「"+AN.n+"」 — "+AN.d:"재머",W/2,(54+(b.fin?13:9)+15)*VS);
+    cx.restore();}
 
   // 탄
   cx.save();cx.shadowBlur=16;cx.lineCap="round";
@@ -2481,7 +2626,8 @@ function contRun(){
   SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun();
   RUNF.forEach(k=>{if(r[k]!==undefined)G[k]=r[k];});
   Object.assign(G.p,r.p);
-  if(r.boss)G.boss=Object.assign({x:G.p.x+520,y:G.p.y},r.boss);
+  if(r.boss){G.boss=Object.assign({x:G.p.x+520,y:G.p.y},r.boss);
+    const A=G.boss.ang?ANGELS[G.boss.ang]:null;if(A&&A.init)A.init(G.boss);}
   RID=r.rid;runSaveT=0;relabel();
   hideAll();mode="play";last=performance.now();call("이어서 시작");
   track("start",{ch:G.ch,seed:SEED,resumed:true},G.t);}
