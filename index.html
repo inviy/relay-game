@@ -562,7 +562,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.5.1";
+const VERSION="3.5.2";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -3414,17 +3414,17 @@ function hud(){
   $("#clock").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
   $("#kills").textContent=G.kills;
   $("#score").textContent=calcScore().toLocaleString();
-  /* 실시간 순위 — 올라갈 때만 알린다. 3위 안은 크게, 1위는 축포 */
+  /* 실시간 순위 — 알리는 건 1위뿐이다.
+     2~5위 갱신까지 배너를 띄웠더니 판이 계속 끊겼다. 넘어서는 재미는 1위에만 있다.
+     나머지 등수는 구석의 「오늘 N위」 글자로 조용히만 보여 준다. */
   const rk=$("#rank");
   if(LB.length){
     const r=liveRank();
     rk.hidden=false;rk.textContent=r===1?"👑 1위":"오늘 "+r+"위";
     rk.classList.toggle("near",r<=3&&r>1);rk.classList.toggle("top1",r===1);
-    if(G.rank&&r<G.rank){
-      const beat=rankPassed(r);
-      if(r===1&&!G.top1){G.top1=1;callBig("1위",beat?beat.nick+"를 넘었다":"오늘 최고 기록");topBurst();}
-      else if(r<=3)callBig(r+"위",beat?beat.nick+"를 넘었다":"");
-      else if(r<=5)call(r+"위로 올라섰다");
+    if(G.rank&&r<G.rank&&r===1&&!G.top1){
+      const beat=rankPassed(1);
+      G.top1=1;callBig("1위",beat?beat.nick+"를 넘었다":"오늘 최고 기록");topBurst();
     }
     G.rank=r;
   }else rk.hidden=true;
