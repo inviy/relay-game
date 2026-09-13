@@ -553,7 +553,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.4.0";
+const VERSION="3.5.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -2146,7 +2146,7 @@ function dmgE(e,d,showNum){
 function dmgB(d){const b=G.boss;if(!b)return;
   const A=b.ang?ANGELS[b.ang]:null;
   /* 무적 — 추적자는 신호권 안에서, 차폐는 닫혀 있을 때. 「무효」가 떠야 버그로 안 읽힌다 */
-  if(A&&A.shielded&&A.shielded(b)){b.hit=.05;
+  if(A&&A.shielded&&A.shielded(b)){b.hit=.05;b.at=1;
     if(Math.random()<.12)G.num.push({x:b.x,y:b.y-b.r,v:"무효",life:.5,c:C.pale});return;}
   if(A&&A.capHit)d=A.capHit(b,d);   // 모루 — 한 방 큰 공격에 상한
   b.hp-=d;b.hit=.09;
@@ -2320,6 +2320,7 @@ function finalBoss(dt,b,a){
 function boss(dt){const b=G.boss;if(!b)return;const p=G.p;
   b.age=(b.age||0)+dt;
   b.hit=Math.max(0,b.hit-dt);
+  b.at=Math.max(0,(b.at||0)-dt*2.6);   // 차단막 점등
   const a=Math.atan2(p.y-b.y,p.x-b.x), A=b.ang?ANGELS[b.ang]:null;
   if(!(A&&A.move&&A.move(dt,b,a))){b.x+=Math.cos(a)*b.spd*dt;b.y+=Math.sin(a)*b.spd*dt;}
   if(!(A&&A.ghost)&&Math.hypot(p.x-b.x,p.y-b.y)<p.r+b.r)
@@ -2975,6 +2976,60 @@ function draw(){
       if(t){cx.fillStyle=t.c;cx.font="700 11px 'Chakra Petch',"+KRF;cx.textAlign="center";
         cx.fillText(t.n,X,Y-e.r-13);}}}
 
+  /* 코어 — 사도의 약점. 체력이 깎일수록 금이 가고, 무적일 땐 식어서 잠긴다.
+     무적 상태를 색으로 가르는 게 핵심이다. 붉게 뛰면 지금 때릴 수 있다는 뜻. */
+  function drawCore(X,Y,b,sh){
+    const r=b.r, hp=Math.max(0,Math.min(1,b.hp/b.mhp)), cr=r*.17;
+    /* 맥박 — 체력이 적을수록 빨라진다. 죽어가는 것이 보인다 */
+    const beat=.5+.5*Math.sin(G.t*(3.4+(1-hp)*7));
+    cx.save();
+    if(sh){
+      /* 잠김 — 회청색으로 식는다. 때려도 안 박히는 이유가 코어에 있다 */
+      cx.fillStyle="#2b3450";cx.strokeStyle="rgba(150,170,210,.75)";cx.lineWidth=2;
+      cx.beginPath();cx.arc(X,Y,cr*.8,0,TAU);cx.fill();cx.stroke();
+    }else{
+      cx.shadowColor="#ff3b5c";cx.shadowBlur=14+10*beat;
+      const g=cx.createRadialGradient(X,Y,.5,X,Y,cr);
+      g.addColorStop(0,"#fff");g.addColorStop(.35,"#ff6b7f");g.addColorStop(1,"#c4102c");
+      cx.fillStyle=g;cx.beginPath();cx.arc(X,Y,cr*(.92+.12*beat),0,TAU);cx.fill();
+      cx.shadowBlur=0;cx.strokeStyle="rgba(255,255,255,.8)";cx.lineWidth=1.4;
+      cx.beginPath();cx.arc(X,Y,cr*(.92+.12*beat),0,TAU);cx.stroke();
+      /* 금 — 체력 3/4부터 한 줄씩, 최대 4줄. 각도는 사도마다 고정이라 안 흔들린다 */
+      const cracks=Math.floor((1-hp)*5.2);
+      if(cracks>0){cx.strokeStyle="rgba(30,0,10,.85)";cx.lineWidth=1.6;cx.lineCap="round";
+        for(let q=0;q<Math.min(4,cracks);q++){const a=(b.no||1)*1.7+q*1.9;
+          cx.beginPath();cx.moveTo(X+Math.cos(a)*cr*.15,Y+Math.sin(a)*cr*.15);
+          cx.lineTo(X+Math.cos(a+.35)*cr*.95,Y+Math.sin(a+.35)*cr*.95);cx.stroke();}}
+    }
+    cx.restore();
+  }
+  /* 차단막 — 무적인 동안 나를 향한 쪽에 육각 격자가 선다.
+     때릴 때마다 그 자리에서 밝아진다("무효" 글자는 그대로 두되, 글자 없이도 읽히게). */
+  function drawAT(X,Y,b){
+    const r=b.r, p=G.p, a=Math.atan2(p.y-b.y,p.x-b.x);
+    const flash=Math.max(0,b.at||0);
+    cx.save();
+    cx.translate(X,Y);cx.rotate(a);
+    const base=.16+.5*flash;
+    cx.strokeStyle=`rgba(255,170,60,${base.toFixed(2)})`;
+    cx.shadowColor="#ffaa3c";cx.shadowBlur=flash>0?16*flash:5;
+    cx.lineWidth=1.6+1.8*flash;
+    /* 육각 셀 세 겹. 나를 향한 60° 부채에만 그린다 — 몸 전체를 감싸면 껍질로 보인다 */
+    const cell=r*.32;
+    for(let ring=0;ring<2;ring++){
+      const rad=r*1.24+ring*cell*1.22, cnt=5+ring*2;
+      for(let q=-(cnt>>1);q<=(cnt>>1);q++){
+        const t=q*(cell*1.22/rad)+(ring?cell*.61/rad:0), hx=Math.cos(t)*rad, hy=Math.sin(t)*rad;
+        cx.beginPath();
+        for(let k=0;k<6;k++){const g=k*TAU/6+t;
+          const px=hx+Math.cos(g)*cell*.5, py=hy+Math.sin(g)*cell*.5;
+          k?cx.lineTo(px,py):cx.moveTo(px,py);}
+        cx.closePath();
+        if(flash>.35){cx.fillStyle=`rgba(255,190,90,${(.09*flash).toFixed(2)})`;cx.fill();}
+        cx.stroke();}}
+    cx.restore();
+  }
+
   // 보스 — 차단기 셔터
   /* 예전엔 보라색 원판 하나였다. 적 12종이 전부 고유 실루엣을 가진 판에서
      보스만 민무늬 원이라 덩어리로 보였다 — "기괴하다"는 말이 나온 자리다.
@@ -2987,7 +3042,11 @@ function draw(){
     const col=b.fin?C.gold:C.violet, hp=Math.max(0,Math.min(1,b.hp/b.mhp));
     const th=(1-hp)*1.02, NB=6, spin=G.t*.35;
     const AD=b.ang&&ANGELS[b.ang]&&ANGELS[b.ang].draw;
-    if(AD){ANGELS[b.ang].draw(X,Y,b);}
+    if(AD){const AN=ANGELS[b.ang];AN.draw(X,Y,b);
+      const sh=!!(AN.shielded&&AN.shielded(b));
+      /* 군체는 본체가 없다 — r을 음수로 둬서 아무것도 안 맞게 만든 사도다.
+         몸이 없는 놈에게 코어를 그리면 허공에 약점이 뜬다 */
+      if(b.r>0){if(sh||b.at>0)drawAT(X,Y,b);drawCore(X,Y,b,sh);}}
     else{
     cx.save();
     // 몸통과 새는 빛 — 테두리 안쪽으로 잘라낸다. 빛이 밖으로 번지면 조리개가 아니다
