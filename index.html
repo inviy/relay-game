@@ -5,13 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RELAY — 중계</title>
 <!-- 홈 화면에 추가 — iOS 사파리는 매니페스트를 거의 안 보고 이 apple- 태그들을 본다.
-     아이콘은 게임 안의 drawChar로 그렸다(신호권 파선 + 중계사). 그림이 둘로 갈릴 수 없게.
+     아이콘은 R 모노그램이다. 처음엔 게임의 중계사 글리프를 썼는데 「원 안에 점」이라
+     어디에나 있는 모양이었다. 글자를 획이 아니라 면으로 짜야 60px에서 안 뭉개진다.
      상태 표시줄을 black-translucent가 아니라 black으로 두는 이유: 반투명이면 상태 표시줄이
      화면 맨 위를 덮는데, 거기가 경험치 바 자리다(top:0, 높이 14px). 시계·배터리에 가린다. -->
 <link rel="apple-touch-icon" href="icon-180.png">
 <!-- 탭 아이콘은 파일이 아니라 여기 박는다. 파일로 두면 방문할 때마다 40KB를 받는다.
-     32px에서는 파선도 중계사도 안 보이므로 금색 원과 청록 점만 남긴 판이다. -->
-<link rel="icon" href="data:image/png;base64,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" type="image/png">
+     32px에서는 파선도 신호점도 안 보이므로 글자만 꽉 채운 판이다. -->
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAADOklEQVR4AcSWbUhTYRTH//Pd/KAlvs2XEiLBCGvSh9QkGdmQ2WhoMG0iQihCwYQM9EsRWpZkGQWBptUHQYtSQ0wi0DQNMXNaMmeK2wzESs0pqenqmezu5d5dvdvCC/+d85xz7zm/e8/23Ln5Bew37KTcsMMHK0Dy8UTcrCijqbAwHwrFRaPk8iwIBIfh4+Pt0K2wAsTEHIBMdpamlBPJKFJcMKq87CqaXzZhWDmAgoLz4PF4nEBYAexVMjAkyBMoLSlGa8tzBPj7M5zBHHIIgNyjXq/HkHIYUxoNDAYzUlzcIdyqvM7cjSHKGWBjYwN19U8Re1AAsViKpCQhEhJT0N8/QJUXnTqJ9PQ0as3mcAaoffQYbW3tVnet000jLy8fc/PzVC+5PJvy2RzOAB0dbxjrzS8sYHRUReX2RkVRPpvDGUCr1dmtp9OZc3x+qN3zLBOcASIjIyyvt/IjIsy5rxOTVjl7C84AmZlSxlrh4XzEC45Quc8jXyifzeEMID0jgUQittpwSPMH9+/C29uL6lVTU0f5bA5nAA8PD5zLlkEzNQatRm1UX2+ncTs2NWpoaMTgpyHTktVyBiDVzNsOWVlLqRzBtbL/uBGRdmQnJNZSKyuruFFRCXG6FIu/9JYpVt+hJ6BSqXG76h56XlxBz7MiND/MwZMKCfyXO5CTtr2fn4nKIYAxtRpVVdWYmeqHOH4Juam+KJZHoSQ3GncUMQgK8DTV39I6BGCq2tr93eRS1tPTDaeTg6j1Vo5TAJ0f57C4tEbrkSEMocXsBZwCWPtjwOu+n7TaSXEB2Bfmg+0cTgGQBq+6Z4mxEo/HQ5YozCpmb+E0QHvfD8YxyFLJGNh2jE0kpwH0y+uMY4jm78LRWP/NLiyfTgOQ2kxjIPEMYTAxrHIJABnD6to6rVGmMBQe7kz7pvlUlwCQMXQNmv+OmcoH7/aCKCHQtGS0LgEglZvezhBDU0YK+TLSwlTAZQDNnbNgGoPoWCD8fN2phrYOK4BKNQbybrfVuHrctg7IGC5Vq1FeP2ml6kYtQvbYfzewAnS960Hx5VKa3vd+oAGQQG3LN5TX/QOw0cT0b5JmFCsA4xUcg1ud/hcAAP//KN0lUAAAAAZJREFUAwDCVjYQlrye8AAAAABJRU5ErkJggg==" type="image/png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -576,7 +577,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.5.4";
+const VERSION="3.5.5";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
