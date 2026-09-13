@@ -263,7 +263,8 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   box-shadow:0 0 18px rgba(255,59,107,.6);transition:width .12s}
 #hptext{position:absolute;left:0;right:0;bottom:38px;text-align:center;font-family:"Chakra Petch",var(--kr);
   font-size:13px;font-weight:600;color:#ff8fa8;letter-spacing:.1em}
-#call{position:absolute;left:0;right:0;top:34%;text-align:center;font-family:"Chakra Petch",var(--kr);
+/* 등장 배너가 두 줄(이름+잡는 법)이라 34%에선 그 위에 겹쳐 찍혔다 */
+#call{position:absolute;left:0;right:0;top:42%;text-align:center;font-family:"Chakra Petch",var(--kr);
   font-size:clamp(22px,5vw,38px);font-weight:700;letter-spacing:.16em;color:var(--gold);opacity:0;
   text-shadow:0 0 30px rgba(255,209,102,.8);transition:opacity .3s,transform .3s;transform:scale(.94)}
 #call.on{opacity:1;transform:scale(1)}
@@ -273,7 +274,9 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 #callbig.on{opacity:1;transform:scale(1)}
 #callbig .t{font-family:"Chakra Petch",var(--kr);font-weight:700;font-size:clamp(30px,7vw,52px);letter-spacing:.14em;
   color:#f0e6ff;text-shadow:0 0 34px var(--violet),0 0 8px rgba(255,255,255,.6)}
-#callbig .s{margin-top:4px;font-size:clamp(13px,2.4vw,16px);font-weight:600;letter-spacing:.06em;color:var(--pale);opacity:.85}
+#callbig .s{margin-top:4px;font-size:clamp(13px,2.4vw,16px);font-weight:600;letter-spacing:.06em;color:var(--pale);opacity:.85;
+  padding:0 18px;line-height:1.45}   /* 좁은 화면에서 문장이 화면 밖으로 나갔다 */
+#callbig .t{padding:0 12px}
 /* 조작 안내는 메뉴 버튼 아래가 아니라 여기가 자리다. 거기선 버튼을 먼저 눌러서
    안 읽히고, 정작 필요한 순간은 판이 막 시작됐을 때다.
    처음 두 판에만 띄우고 스스로 사라진다. */
@@ -336,7 +339,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 /* 공명 게이지 — 텍스트 한 줄로는 초당 수십 번 바뀌는 값을 못 읽는다. 눈금은 2차(30 가속)·3차(40 갈라짐)에서만 */
 /* 받고 있는 것 — 계약·권능·이벤트·사도 효과가 전부 숨은 상태였다.
    아이콘 대신 짧은 글자칩으로 둔다. 이 게임엔 아이콘 세트가 없고, 글자가 더 정확하다. */
-#buffs{position:absolute;left:16px;top:52px;display:flex;flex-wrap:wrap;gap:4px;
+#buffs{position:absolute;left:16px;bottom:72px;display:flex;flex-wrap:wrap-reverse;gap:4px;
   max-width:min(300px,52vw);font-family:"Chakra Petch",var(--kr);font-size:11px;font-weight:700;letter-spacing:.04em}
 #buffs .bf{padding:2px 7px;border-radius:2px;border:1px solid currentColor;background:rgba(11,16,36,.72)}
 #buffs .bf.dn{opacity:.9;animation:bfp .9s ease-in-out infinite}
@@ -368,8 +371,14 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   #clock{top:calc(env(safe-area-inset-top) + 14px);font-size:27px}
   #zt{top:calc(env(safe-area-inset-top) + 48px);font-size:12px;letter-spacing:.08em}
   #right{top:calc(env(safe-area-inset-top) + 70px);right:calc(env(safe-area-inset-right) + 14px);font-size:13px}
-  #buffs{top:calc(env(safe-area-inset-top) + 52px);left:calc(env(safe-area-inset-left) + 14px);max-width:62vw}
-  #weapons{top:calc(env(safe-area-inset-top) + 150px);left:calc(env(safe-area-inset-left) + 14px)}
+  /* 보스 안내가 두 줄까지 가운데로 뻗는다 — 좁은 화면에선 점수 줄과 만난다.
+     사도가 떠 있는 동안만 비켜 준다 */
+  #right.low{top:calc(env(safe-area-inset-top) + 132px)}
+  /* 좌하단은 진화명 22 · 체력바 44 · 체력글자 62 · 신호권 86까지 차 있다. 그 위로 */
+  #buffs{top:auto;bottom:calc(env(safe-area-inset-bottom) + 112px);
+    left:calc(env(safe-area-inset-left) + 14px);max-width:62vw}
+  /* 보스 안내가 두 줄까지 늘어난다(y 51~121). 그 아래에서 시작한다 */
+  #weapons{top:calc(env(safe-area-inset-top) + 128px);left:calc(env(safe-area-inset-left) + 14px)}
   #call{top:38%}
 
   /* 상단 우측 46×46 원형 아이콘 버튼 */
@@ -553,7 +562,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.5.0";
+const VERSION="3.5.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -2818,6 +2827,74 @@ function bakeBG(){
 const STARB=[{lo:.2,hi:.5,c:"rgba(150,170,240,.22)"},
              {lo:.5,hi:.78,c:"rgba(175,195,255,.40)"},
              {lo:.78,hi:1.01,c:"rgba(215,230,255,.68)"}];
+/* 코어 — 사도의 약점. 체력이 깎일수록 금이 가고, 무적일 땐 식어서 잠긴다.
+   무적 상태를 색으로 가르는 게 핵심이다. 붉게 뛰면 지금 때릴 수 있다는 뜻. */
+function drawCore(X,Y,b,sh){
+  const r=b.r, hp=Math.max(0,Math.min(1,b.hp/b.mhp)), cr=r*.17;
+  /* 맥박 — 체력이 적을수록 빨라진다. 죽어가는 것이 보인다 */
+  const beat=.5+.5*Math.sin(G.t*(3.4+(1-hp)*7));
+  cx.save();
+  if(sh){
+    /* 잠김 — 회청색으로 식는다. 때려도 안 박히는 이유가 코어에 있다 */
+    cx.fillStyle="#2b3450";cx.strokeStyle="rgba(150,170,210,.75)";cx.lineWidth=2;
+    cx.beginPath();cx.arc(X,Y,cr*.8,0,TAU);cx.fill();cx.stroke();
+  }else{
+    cx.shadowColor="#ff3b5c";cx.shadowBlur=14+10*beat;
+    const g=cx.createRadialGradient(X,Y,.5,X,Y,cr);
+    g.addColorStop(0,"#fff");g.addColorStop(.35,"#ff6b7f");g.addColorStop(1,"#c4102c");
+    cx.fillStyle=g;cx.beginPath();cx.arc(X,Y,cr*(.92+.12*beat),0,TAU);cx.fill();
+    cx.shadowBlur=0;cx.strokeStyle="rgba(255,255,255,.8)";cx.lineWidth=1.4;
+    cx.beginPath();cx.arc(X,Y,cr*(.92+.12*beat),0,TAU);cx.stroke();
+    /* 금 — 체력 3/4부터 한 줄씩, 최대 4줄. 각도는 사도마다 고정이라 안 흔들린다 */
+    const cracks=Math.floor((1-hp)*5.2);
+    if(cracks>0){cx.strokeStyle="rgba(30,0,10,.85)";cx.lineWidth=1.6;cx.lineCap="round";
+      for(let q=0;q<Math.min(4,cracks);q++){const a=(b.no||1)*1.7+q*1.9;
+        cx.beginPath();cx.moveTo(X+Math.cos(a)*cr*.15,Y+Math.sin(a)*cr*.15);
+        cx.lineTo(X+Math.cos(a+.35)*cr*.95,Y+Math.sin(a+.35)*cr*.95);cx.stroke();}}
+  }
+  cx.restore();
+}
+/* 차단막 — 무적인 동안 나를 향한 쪽에 육각 격자가 선다.
+   때릴 때마다 그 자리에서 밝아진다("무효" 글자는 그대로 두되, 글자 없이도 읽히게). */
+function drawAT(X,Y,b){
+  const r=b.r, p=G.p, a=Math.atan2(p.y-b.y,p.x-b.x);
+  const flash=Math.max(0,b.at||0);
+  cx.save();
+  cx.translate(X,Y);cx.rotate(a);
+  const base=.16+.5*flash;
+  cx.strokeStyle=`rgba(255,170,60,${base.toFixed(2)})`;
+  cx.shadowColor="#ffaa3c";cx.shadowBlur=flash>0?16*flash:5;
+  cx.lineWidth=1.6+1.8*flash;
+  /* 육각 셀 세 겹. 나를 향한 60° 부채에만 그린다 — 몸 전체를 감싸면 껍질로 보인다 */
+  const cell=r*.32;
+  for(let ring=0;ring<2;ring++){
+    const rad=r*1.24+ring*cell*1.22, cnt=5+ring*2;
+    for(let q=-(cnt>>1);q<=(cnt>>1);q++){
+      const t=q*(cell*1.22/rad)+(ring?cell*.61/rad:0), hx=Math.cos(t)*rad, hy=Math.sin(t)*rad;
+      cx.beginPath();
+      for(let k=0;k<6;k++){const g=k*TAU/6+t;
+        const px=hx+Math.cos(g)*cell*.5, py=hy+Math.sin(g)*cell*.5;
+        k?cx.lineTo(px,py):cx.moveTo(px,py);}
+      cx.closePath();
+      if(flash>.35){cx.fillStyle=`rgba(255,190,90,${(.09*flash).toFixed(2)})`;cx.fill();}
+      cx.stroke();}}
+  cx.restore();
+}
+/* 캔버스엔 줄바꿈이 없다. 공백으로 끊되, 한 어절이 폭보다 길면 글자로 자른다 */
+function wrapT(txt,max){
+  const out=[],words=txt.split(" ");let cur="";
+  for(const w of words){
+    const t=cur?cur+" "+w:w;
+    if(cx.measureText(t).width<=max){cur=t;continue;}
+    if(cur){out.push(cur);cur="";}
+    if(cx.measureText(w).width<=max){cur=w;continue;}
+    let c="";for(const ch of w){
+      if(cx.measureText(c+ch).width>max&&c){out.push(c);c=ch;}else c+=ch;}
+    cur=c;}
+  if(cur)out.push(cur);
+  return out.slice(0,2);   // 두 줄까지. 그보다 길면 문구 자체가 잘못된 것이다
+}
+
 function draw(){
   const p=G.p,sx=shake?rnd(-shake*11,shake*11):0,sy=shake?rnd(-shake*11,shake*11):0;
   const ox=W/2-p.x+sx, oy=H/2-p.y+sy;
@@ -2976,59 +3053,7 @@ function draw(){
       if(t){cx.fillStyle=t.c;cx.font="700 11px 'Chakra Petch',"+KRF;cx.textAlign="center";
         cx.fillText(t.n,X,Y-e.r-13);}}}
 
-  /* 코어 — 사도의 약점. 체력이 깎일수록 금이 가고, 무적일 땐 식어서 잠긴다.
-     무적 상태를 색으로 가르는 게 핵심이다. 붉게 뛰면 지금 때릴 수 있다는 뜻. */
-  function drawCore(X,Y,b,sh){
-    const r=b.r, hp=Math.max(0,Math.min(1,b.hp/b.mhp)), cr=r*.17;
-    /* 맥박 — 체력이 적을수록 빨라진다. 죽어가는 것이 보인다 */
-    const beat=.5+.5*Math.sin(G.t*(3.4+(1-hp)*7));
-    cx.save();
-    if(sh){
-      /* 잠김 — 회청색으로 식는다. 때려도 안 박히는 이유가 코어에 있다 */
-      cx.fillStyle="#2b3450";cx.strokeStyle="rgba(150,170,210,.75)";cx.lineWidth=2;
-      cx.beginPath();cx.arc(X,Y,cr*.8,0,TAU);cx.fill();cx.stroke();
-    }else{
-      cx.shadowColor="#ff3b5c";cx.shadowBlur=14+10*beat;
-      const g=cx.createRadialGradient(X,Y,.5,X,Y,cr);
-      g.addColorStop(0,"#fff");g.addColorStop(.35,"#ff6b7f");g.addColorStop(1,"#c4102c");
-      cx.fillStyle=g;cx.beginPath();cx.arc(X,Y,cr*(.92+.12*beat),0,TAU);cx.fill();
-      cx.shadowBlur=0;cx.strokeStyle="rgba(255,255,255,.8)";cx.lineWidth=1.4;
-      cx.beginPath();cx.arc(X,Y,cr*(.92+.12*beat),0,TAU);cx.stroke();
-      /* 금 — 체력 3/4부터 한 줄씩, 최대 4줄. 각도는 사도마다 고정이라 안 흔들린다 */
-      const cracks=Math.floor((1-hp)*5.2);
-      if(cracks>0){cx.strokeStyle="rgba(30,0,10,.85)";cx.lineWidth=1.6;cx.lineCap="round";
-        for(let q=0;q<Math.min(4,cracks);q++){const a=(b.no||1)*1.7+q*1.9;
-          cx.beginPath();cx.moveTo(X+Math.cos(a)*cr*.15,Y+Math.sin(a)*cr*.15);
-          cx.lineTo(X+Math.cos(a+.35)*cr*.95,Y+Math.sin(a+.35)*cr*.95);cx.stroke();}}
-    }
-    cx.restore();
-  }
-  /* 차단막 — 무적인 동안 나를 향한 쪽에 육각 격자가 선다.
-     때릴 때마다 그 자리에서 밝아진다("무효" 글자는 그대로 두되, 글자 없이도 읽히게). */
-  function drawAT(X,Y,b){
-    const r=b.r, p=G.p, a=Math.atan2(p.y-b.y,p.x-b.x);
-    const flash=Math.max(0,b.at||0);
-    cx.save();
-    cx.translate(X,Y);cx.rotate(a);
-    const base=.16+.5*flash;
-    cx.strokeStyle=`rgba(255,170,60,${base.toFixed(2)})`;
-    cx.shadowColor="#ffaa3c";cx.shadowBlur=flash>0?16*flash:5;
-    cx.lineWidth=1.6+1.8*flash;
-    /* 육각 셀 세 겹. 나를 향한 60° 부채에만 그린다 — 몸 전체를 감싸면 껍질로 보인다 */
-    const cell=r*.32;
-    for(let ring=0;ring<2;ring++){
-      const rad=r*1.24+ring*cell*1.22, cnt=5+ring*2;
-      for(let q=-(cnt>>1);q<=(cnt>>1);q++){
-        const t=q*(cell*1.22/rad)+(ring?cell*.61/rad:0), hx=Math.cos(t)*rad, hy=Math.sin(t)*rad;
-        cx.beginPath();
-        for(let k=0;k<6;k++){const g=k*TAU/6+t;
-          const px=hx+Math.cos(g)*cell*.5, py=hy+Math.sin(g)*cell*.5;
-          k?cx.lineTo(px,py):cx.moveTo(px,py);}
-        cx.closePath();
-        if(flash>.35){cx.fillStyle=`rgba(255,190,90,${(.09*flash).toFixed(2)})`;cx.fill();}
-        cx.stroke();}}
-    cx.restore();
-  }
+
 
   // 보스 — 차단기 셔터
   /* 예전엔 보라색 원판 하나였다. 적 12종이 전부 고유 실루엣을 가진 판에서
@@ -3110,12 +3135,29 @@ function draw(){
     cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54*VS,W*.68,bh);
     cx.fillStyle=inv?"#5a6280":bc;cx.fillRect(W*.16,54*VS,W*.68*Math.max(0,b.hp/b.mhp),bh);
     cx.save();cx.textAlign="center";
-    cx.font="700 "+(13*VS).toFixed(1)+"px "+KRF;cx.fillStyle=inv?"#8a93bb":bc;
-    cx.fillText("제"+b.no+"사도 "+(b.fin?"종단":AN?AN.n:"재머"),W/2,(54+9)*VS+bh);
     /* 잡는 법은 싸우는 내내 보여야 한다 — 한 번 스쳐 간 배너로는 못 읽는다 */
+    const nm2="제"+b.no+"사도 "+(b.fin?"종단":AN?AN.n:"재머");
     const guide=inv?"지금은 안 통해요 — "+(AN&&AN.how?AN.how:""):(b.fin?"체력에 따라 공격이 3번 바뀌어요":AN&&AN.how?AN.how:"");
-    if(guide){cx.font="600 "+(11.5*VS).toFixed(1)+"px "+KRF;cx.fillStyle=inv?"#ff8aa8":"rgba(238,242,255,.78)";
-      cx.fillText(guide,W/2,(54+26)*VS+bh);}
+    const nf="700 "+(14*VS).toFixed(1)+"px "+KRF, gf="700 "+(13*VS).toFixed(1)+"px "+KRF;
+    const maxw=W*.92-26*VS;
+    cx.font=gf;
+    const gl=guide?wrapT(guide,maxw):[];   // 좁은 화면에선 두 줄이 된다
+    const ny=(54+11)*VS+bh, lh=17*VS, gy=(54+30)*VS+bh;
+    /* 판 — 가장 긴 줄에 맞춘다. 이게 없으면 탄막 위에서 글자가 사라진다 */
+    cx.font=nf;let pw=cx.measureText(nm2).width;
+    cx.font=gf;for(const L of gl)pw=Math.max(pw,cx.measureText(L).width);
+    pw+=26*VS;
+    const pt=ny-14*VS, phh=(19+gl.length*17)*VS;
+    cx.fillStyle="rgba(6,9,20,.86)";cx.fillRect(W/2-pw/2,pt,pw,phh);
+    cx.fillStyle=inv?"rgba(255,92,138,.5)":"rgba(255,255,255,.14)";
+    cx.fillRect(W/2-pw/2,pt,pw,1.5*VS);
+    cx.font=nf;cx.fillStyle=inv?"#b9c2e8":bc;
+    cx.shadowColor=inv?"#000":bc;cx.shadowBlur=inv?0:9;
+    cx.fillText(nm2,W/2,ny);
+    cx.shadowBlur=0;
+    cx.font=gf;cx.fillStyle=inv?"#ff9fb8":"rgba(255,255,255,.94)";
+    gl.forEach((L,i)=>cx.fillText(L,W/2,gy+i*lh));
+    G.guideBox={x:W/2-pw/2,y:pt,w:pw,h:phh};   // HUD가 이 사각형을 피해야 한다
     cx.restore();}
 
   // 탄
@@ -3394,6 +3436,7 @@ function hud(){
   const zm=Math.round(zoneMul()*100);
   z.textContent=(SMALL?(p.in?"권내 ":"권외 "):(p.in?"신호권 · 피해 ":"신호권 밖 · 피해 "))+zm+"%";
   z.style.color=p.in?C.gold:"#8a93bb";
+  $("#right").classList.toggle("low",SMALL&&!!G.boss);   // 보스 안내에 자리를 내준다
   /* 문자열이 같으면 DOM을 안 건드린다 — 매 프레임 innerHTML은 비싸다 */
   {const B=buffList();
    const key=B.map(b=>b.t+b.v).join("|");
