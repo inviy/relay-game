@@ -258,6 +258,13 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   font-size:clamp(22px,5vw,38px);font-weight:700;letter-spacing:.16em;color:var(--gold);opacity:0;
   text-shadow:0 0 30px rgba(255,209,102,.8);transition:opacity .3s,transform .3s;transform:scale(.94)}
 #call.on{opacity:1;transform:scale(1)}
+/* 궁극기 발동 배너 — 이름은 크게, 뭘 했는지 한 줄. #call은 상황 알림용이라 따로 둔다 */
+#callbig{position:absolute;left:0;right:0;top:26%;text-align:center;pointer-events:none;opacity:0;
+  transform:scale(.9);transition:opacity .25s,transform .25s}
+#callbig.on{opacity:1;transform:scale(1)}
+#callbig .t{font-family:"Chakra Petch",var(--kr);font-weight:700;font-size:clamp(30px,7vw,52px);letter-spacing:.14em;
+  color:#f0e6ff;text-shadow:0 0 34px var(--violet),0 0 8px rgba(255,255,255,.6)}
+#callbig .s{margin-top:4px;font-size:clamp(13px,2.4vw,16px);font-weight:600;letter-spacing:.06em;color:var(--pale);opacity:.85}
 /* 조작 안내는 메뉴 버튼 아래가 아니라 여기가 자리다. 거기선 버튼을 먼저 눌러서
    안 읽히고, 정작 필요한 순간은 판이 막 시작됐을 때다.
    처음 두 판에만 띄우고 스스로 사라진다. */
@@ -317,6 +324,24 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 #ultbtn.ready .prg{stroke:#d6b4ff;filter:drop-shadow(0 0 6px var(--violet))}
 #ultbtn.locked{opacity:.42}
 #ultbtn:active{transform:scale(.94)}
+/* 공명 게이지 — 텍스트 한 줄로는 초당 수십 번 바뀌는 값을 못 읽는다. 눈금은 2차(30 가속)·3차(40 갈라짐)에서만 */
+#res[hidden]{display:none}
+#res{position:absolute;left:16px;bottom:44px;width:min(200px,42vw);display:flex;align-items:center;gap:8px;
+  font-family:"Chakra Petch",var(--kr);font-size:12px;letter-spacing:.1em;color:var(--ash)}
+#res .lb{font-weight:700;color:var(--pink)}
+#res .bar{flex:1;position:relative;height:8px;background:#0b1024;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+#res .bar i{position:absolute;top:0;bottom:0;width:2px;background:rgba(238,242,255,.35);display:none}
+#res.t2 .t30{display:block;left:50%}   /* 30/60 */
+#res.t3 .t30{left:37.5%}                /* 30/80 */
+#res.t3 .t40{display:block;left:50%}   /* 40/80 */
+#resfill{height:100%;width:0;background:var(--pink);transition:width .08s linear}
+#res.hi .lb{text-shadow:0 0 10px var(--pink)}
+#res.hi #resfill{box-shadow:0 0 14px var(--pink)}
+#res b{min-width:52px;text-align:right;font-weight:600;color:var(--pale)}
+#ultname b{display:block;font-size:14px;color:var(--pale);letter-spacing:.08em}
+#ultname small{display:block;font-size:11px;letter-spacing:.02em;color:var(--ash);margin-top:1px}
+#ult.ready #ultname b{color:#f0e6ff}
+#ultbtn .gl.long{font-size:14px;letter-spacing:.02em}
 
 /* ══════════ 모바일 (620px 미만) ══════════ */
 @media(max-width:619px){
@@ -346,6 +371,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   #hpwrap{left:calc(env(safe-area-inset-left) + 15px);transform:none;
     width:min(210px,46vw);bottom:calc(env(safe-area-inset-bottom) + 44px)}
   #form{left:calc(env(safe-area-inset-left) + 15px);bottom:calc(env(safe-area-inset-bottom) + 22px)}
+  #res{left:calc(env(safe-area-inset-left) + 15px);bottom:calc(env(safe-area-inset-bottom) + 86px);width:min(210px,46vw)}
 
   /* 궁극기: 텍스트 → 엄지 자리의 원형 버튼 */
   #ult{display:none}
@@ -438,9 +464,11 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <div id="hptext"><span id="hpnum">120 / 120</span></div>
   <div id="hpwrap"><div id="hpfill"></div></div>
   <div id="form">오퍼레이터</div>
+  <div id="res" hidden><span class="lb">공명</span><div class="bar"><i class="t30"></i><i class="t40"></i><div id="resfill"></div></div><b id="resnum" class="mono">0 / 40</b></div>
   <div id="ult"><span id="ultname">궁극기 · 8레벨 진화 후</span><div class="bar"><div id="ultfill"></div></div></div>
   <button id="ultbtn" class="locked" aria-label="궁극기"><svg viewBox="0 0 88 88" aria-hidden="true"><circle class="trk" cx="44" cy="44" r="39"/><circle id="ultprg" class="prg" cx="44" cy="44" r="39"/></svg><span class="gl">ULT</span></button>
   <div id="call"></div>
+  <div id="callbig"><div class="t"></div><div class="s"></div></div>
   <div id="tip"></div>
 </div>
 
@@ -506,7 +534,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.1.1";
+const VERSION="3.1.2";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -591,7 +619,7 @@ function saveRun(){
   o.p={hp:p.hp,mhp:p.mhp,spd:p.spd,lv:p.lv,xp:p.xp,need:p.need,mag:p.mag,x:p.x,y:p.y,dx:p.dx,dy:p.dy};
   /* fin과 ang이 빠져 있었다 — 이어하기에서 종단 재머가 일반 재머가 되고, 사도가 재머가 됐다 */
   o.boss=G.boss?{hp:G.boss.hp,mhp:G.boss.mhp,spd:G.boss.spd,r:G.boss.r,dmg:G.boss.dmg,
-                 fire:G.boss.fire,ring:0,summon:5,hit:0,fin:G.boss.fin||0,ang:G.boss.ang||null,
+                 fire:G.boss.fire,ring:0,summon:5,hit:0,fin:G.boss.fin||0,ang:G.boss.ang||null,no:G.boss.no||1,
                  ph:0,spiral:0,conv:0}:null;
   ls.set(RKEY,o);
 }
@@ -881,18 +909,18 @@ const FORMS={
  rover:{n:"기동계",hint:"— 빠르게",c:C.cyan,
    d:"원 밖에서도 강합니다. 어디서든 피해 145%, 이동 속도 +25%, 움직이는 동안 공격을 30% 확률로 피합니다.",
    sub:"<span><b>전용</b> 유도 미사일 · 굴절 빔 / 냉각기 · 관통자 · 치명 회로</span><span><b>궁극기</b> 잔상 질주 — 주변을 터뜨리고(160) 3초 무적·이속 2배, 지나간 자리가 터진다 (20초 간격)</span><span><b>2차 진화 · 유령</b> (16레벨) — 잔상 분신 2체가 따라오며 다트를 같이 쏜다. 관통 +1, 이속 +15%</span><span><b>3차 진화 · 특이점</b> (24레벨) — 분신 4체, 관통 +1, 피해 +20%</span>",
-   ult:"잔상 질주"},
+   ult:"잔상 질주",ud:"주변 폭발 160 · 3초 무적 · 이속 2배"},
  warden:{n:"방어계",hint:"— 단단하게",c:C.gold,
    d:"원 안을 지킵니다. 원 안에서 피해 195%(밖은 85%), 받는 피해 -25%, 7.5초마다 한 대를 막아줍니다.",
    sub:"<span><b>전용</b> 충격 망치 · 중력정 / 확장기 · 반사막 · 과부하</span><span><b>궁극기</b> 역송신 — 신호권을 내 위치로 끌어오고 그 안을 쓸어버린다 (20초 간격)</span><span><b>2차 진화 · 요새</b> (16레벨) — 자동 포탑 2기가 궤도를 돌며 사격. 신호권 +30%, 안의 적 감속</span><span><b>3차 진화 · 관제탑</b> (24레벨) — 포탑 4기, 신호권 +25%, 최대 체력 +80, 피해 +15%</span>",
-   ult:"역송신"},
+   ult:"역송신",ud:"신호권을 내 자리로 · 240 폭발 · 감속"},
  /* 세 번째 갈래. 기동계와 방어계는 둘 다 「어디서 싸우나」에 답한다. 셋째는 다른 질문에
     답해야 겹치지 않는다 — 「얼마나 빨리 잡나」. 연쇄를 유지하면 세지고, 끊기면 약해진다.
     방어계가 지킨다, 기동계가 안 매인다면 공진계는 멈추지 않는다. 셋이 다른 동사다. */
  pulse:{n:"공진계",hint:"— 끊기지 않게",c:C.pink,
    d:"연쇄가 힘입니다. 처치마다 공명이 쌓여(최대 40) 스택당 피해 +1.5%. 2초간 처치가 없으면 빠르게 빠집니다. 신호권 안팎 어디서든 120%.",
    sub:"<span><b>전용</b> 공명침 / 잔열 · 연소 · 박동</span><span><b>궁극기</b> 방출 — 150 + 공명×12 피해로 터뜨린다. 공명은 전부 탄다 (20초 간격)</span><span><b>2차 진화 · 증폭</b> (16레벨) — 상한 60. 공명 30 이상이면 이속 +20%</span><span><b>3차 진화 · 임계</b> (24레벨) — 상한 80. 공명 40 이상이면 투사체가 갈라진다</span>",
-   ult:"방출"},
+   ult:"방출",ud:"150 + 공명×12 폭발 · 공명 소진"},
  none:{n:"진화 거부",c:C.pale,
    d:"진화하지 않습니다. 대신 레벨업 카드가 3장에서 4장으로 늘고, 피해가 15% 오르고, 모든 갈래의 전용 무기·패시브가 뜹니다.",
    sub:"<span><b>궁극기</b> 없음 — 고를 수 있는 폭으로 승부합니다</span>",ult:""},
@@ -952,12 +980,14 @@ function renderChars(){
    「암시장」(상자 3배 / 경험치 없음)은 뺐다 — 계약은 카드가 마른 뒤에만 나오므로
    경험치를 끊어도 잃을 게 없다. 비용인 척하는 비용이다. */
 const CONTRACTS=[
- {id:"oc",   n:"과부하 접속",  c:C.pink,  max:3, get:"모든 피해 +50%",           pay:"적 이동 속도 +30%"},
- {id:"lite", n:"경량 프레임",  c:C.cyan,  max:3, get:"공격 속도 +60%",           pay:"최대 체력 절반"},
- {id:"furn", n:"과열로",      c:C.orange,max:3, get:"궁극기 충전 2배",          pay:"초당 체력 −1.5"},
- {id:"leash",n:"예속된 신호권",c:C.gold,  max:1, get:"신호권이 나를 따라온다",   pay:"신호권 크기 60%"},
- {id:"casc", n:"연쇄 붕괴",    c:C.violet,max:1, get:"적이 죽을 때 터진다",      pay:"그 폭발이 나에게도 닿는다"},
- {id:"inv",  n:"역극성",      c:C.pale,  max:1, get:"신호권 밖에서 피해 200%",  pay:"안에서는 70%"},
+ /* 대가를 절반으로 줄였다 — 「잃는 게 너무 크다」. 얻는 것은 그대로다.
+    선택이 성립하려면 대가가 보여야 하지만, 고르는 사람이 없으면 선택이 아니다 */
+ {id:"oc",   n:"과부하 접속",  c:C.pink,  max:3, get:"모든 피해 +50%",           pay:"적 이동 속도 +15%"},
+ {id:"lite", n:"경량 프레임",  c:C.cyan,  max:3, get:"공격 속도 +60%",           pay:"최대 체력 −25%"},
+ {id:"furn", n:"과열로",      c:C.orange,max:3, get:"궁극기 충전 2배",          pay:"초당 체력 −0.75"},
+ {id:"leash",n:"예속된 신호권",c:C.gold,  max:1, get:"신호권이 나를 따라온다",   pay:"신호권 크기 80%"},
+ {id:"casc", n:"연쇄 붕괴",    c:C.violet,max:1, get:"적이 죽을 때 터진다",      pay:"그 폭발이 나에게도 닿는다 (약하게)"},
+ {id:"inv",  n:"역극성",      c:C.pale,  max:1, get:"신호권 밖에서 피해 200%",  pay:"안에서는 85%"},
 ];
 /* ───── 사도 ─────
    재머 5기가 전부 같은 놈이었다 — 돌진 + 14발 링 + 탱크 소환, 체력 숫자만 1.55배씩.
@@ -1006,10 +1036,10 @@ const ANGELS={
    init(b){b.cyc=9;b.warn=0;b.flip=0;},
    f(dt,b,a){
      b.cyc-=dt;
-     if(b.cyc<=0&&!b.warn){b.warn=3;call("역상 · 극성 전환 예고");SFX.warn();}
+     if(b.cyc<=0&&!b.warn){b.warn=3;call("역상 — 3초 뒤 안팎이 바뀐다");SFX.warn();}
      if(b.warn>0){b.warn-=dt;
        if(b.warn<=0){b.warn=0;b.flip=b.flip?0:1;b.cyc=9;
-         call(b.flip?"극성 반전":"극성 복귀");
+         call(b.flip?"안팎이 바뀌었다 — 이제 밖이 강하다":"안팎이 돌아왔다");
          G.flash={t:.4,c:b.flip?"168,107,255":"255,209,102"};shake=Math.max(shake,.5);}}
      b.fire-=dt;
      if(b.fire<=0){b.fire=1.7;b.ring+=.3;
@@ -1071,13 +1101,18 @@ const ANGELS={
    },
    rw:{id:"twin",n:"분신탄",d:"다트·빔·미사일이 한 발 더 나간다"}},
  shield:{no:3,n:"차폐",c:"#7fe3b0",tier:2,hpM:1.1,spd:88,r:52,dmg:26,
-   d:"신호권 안에선 무적 · 밀어내야 열린다",
-   init(b){b.fire=2;b.open=0;},
+   d:"신호권 안에선 무적 · 9초마다 잠깐 열린다 · 궁극기를 맞아도 열린다",
+   init(b){b.fire=2;b.open=0;b.breath=9;b.forced=0;},
    /* 나를 쫓지 않는다. 신호권 중심으로 가서 들어앉는다. 신호권이 옮겨 가면 따라가느라
       열린다 — 넉백·흡인이 없는 빌드도 32초마다 한 번은 때릴 수 있다 */
    move(dt,b,a){const dx=G.zone.x-b.x,dy=G.zone.y-b.y,d=Math.hypot(dx,dy);
      if(d>26){b.x+=dx/d*b.spd*dt;b.y+=dy/d*b.spd*dt;}return true;},
    f(dt,b,a){
+     /* 망치·중력정이 방어계 전용이 된 뒤 기동계·공진계는 밀어낼 수단이 없어 차폐를 못 잡았다.
+        9초마다 3초씩 스스로 열린다 — 닫힘/열림 리듬이 보이고, 누구나 그 창을 노릴 수 있다.
+        궁극기를 맞으면 4초 열린다(useUlt 쪽). 방어계는 망치로 상시 밀어내니 유리한 게 의도다 */
+     b.forced=Math.max(0,b.forced-dt);
+     b.breath-=dt;if(b.breath<=0){b.breath=9;b.forced=Math.max(b.forced,3);call("차폐 — 장갑이 열렸다");SFX.warn();}
      const sh=this.shielded(b);b.open+=((sh?0:1)-b.open)*Math.min(1,dt*5);
      b.fire-=dt;
      if(b.fire<=0){b.fire=2.2;b.ring+=.4;
@@ -1085,7 +1120,7 @@ const ANGELS={
          G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*170,vy:Math.sin(g)*170,r:9,dmg:16,life:4.5});}}
      b.summon-=dt;if(b.summon<=0){b.summon=9;for(let i=0;i<2;i++)spawnE("wall",false);}
    },
-   shielded(b){return Math.hypot(b.x-G.zone.x,b.y-G.zone.y)<G.zone.r*.92;},
+   shielded(b){return b.forced<=0&&Math.hypot(b.x-G.zone.x,b.y-G.zone.y)<G.zone.r*.92;},
    draw(X,Y,b){
      const r=b.r,col="#7fe3b0",N=7,sp=G.t*.16,open=b.open,slide=open*r*.42;
      const V=(k,rad)=>{const g=sp+k*TAU/N;return[X+Math.cos(g)*rad,Y+Math.sin(g)*rad];};
@@ -1259,7 +1294,7 @@ function newRun(){
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0,eSpd:1,ultG:1,resDmg:.015,resHold:1,resBeat:0},
     ct:{},ctMode:false,
     roster:[],ang:{},lastAng:null,plate:{up:true,cd:0},gazeT:0,shardA:0,
-    res:0,resT:0,resCap:40,
+    res:0,resT:0,resCap:40,resLvl:0,
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0,cd:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
     sev:null,sevT:0,sevN:SEV_FIRST,sevLast:null,
     zone:{x:0,y:0,r:340},next:null,zt:ZONE_T/PACE,
@@ -1273,7 +1308,7 @@ function newRun(){
   const ck=CHARS[PROF.ch]?PROF.ch:"relay", ch=CHARS[ck];
   G.ch=ck;G.w={[ch.w]:1};G.lvls={[ch.w]:1};ch.f(G);
   $("#form").textContent=ch.n;$("#form").style.color="";
-  $("#ultname").textContent="궁극기 · 8레벨 진화 후";
+  ultLabel._=null;ultLabel();
 }
 
 /* ───── 적 ───── */
@@ -1363,7 +1398,8 @@ function startSev(){
   call(e.n+" — "+e.d);SFX.warn();shake=Math.max(shake,.4);
   G.flash={t:.5,c:e.id==="lull"?"142,240,176":"255,209,102"};
 }
-function endSev(){G.sev=null;G.sevT=0;G.sevN=SEV_GAP;call("신호 정상화");SFX.zone();}
+/* 「신호 정상화」는 무슨 상태인지 안 읽혔다 — 위화감만 생긴다는 말이 나왔다. 끝난 이벤트 이름을 부른다 */
+function endSev(){const nm=G.sev?G.sev.n:"";G.sev=null;G.sevT=0;G.sevN=SEV_GAP;call(nm+" 끝");SFX.zone();}
 function spawnE(k,elite){
   const a=rnd(0,TAU), d=Math.max(W,H)*.68;
   G.en.push(makeE(k,G.p.x+Math.cos(a)*d,G.p.y+Math.sin(a)*d,elite));
@@ -1382,16 +1418,35 @@ function spawnBoss(){
   const bhp=Math.round(9000*Math.pow(1.55,G.bosses)*(fin?2.4:(A?A.hpM:1)));
   G.boss={x:G.p.x+Math.cos(a)*520,y:G.p.y+Math.sin(a)*520,hp:bhp,mhp:bhp,
     spd:fin?86:(A?A.spd:70)+G.bosses*6,r:fin?78:(A?A.r:46),dmg:fin?34:(A?A.dmg:24)+G.bosses*4,
-    fire:1.4,ring:0,summon:5,hit:0,fin:fin?1:0,ph:0,spiral:0,conv:0,ang:aid};
+    fire:1.4,ring:0,summon:5,hit:0,fin:fin?1:0,ph:0,spiral:0,conv:0,ang:aid,
+    /* 번호는 등장 순서다 — 1부터 올라가고 종단이 7. 에바식으로 3·4·5·6·7·9·12를
+       띄엄띄엄 붙였더니 「1사도부터 7사도까지 순서대로 나오는 거 맞지?」가 나왔다.
+       정체는 날마다 섞이되 번호는 늘 1→7이어야 진행으로 읽힌다 */
+    no:fin?FINAL_AT+1:Math.min(FINAL_AT,G.bosses+1)};
   if(A&&A.init)A.init(G.boss);
-  /* 강림 — 이름이 뜨고 화면이 잠깐 선다. 「재머 강림」 한 줄로는 어떤 놈인지 몰랐다 */
-  call(fin?"제12사도 「종단」 강림":"제"+A.no+"사도 「"+A.n+"」 강림");
+  /* 등장 — 이름이 뜨고 화면이 잠깐 선다. 「재머 강림」 한 줄로는 어떤 놈인지 몰랐다 */
+  call(fin?"제"+G.boss.no+"사도 종단 등장":"제"+G.boss.no+"사도 "+A.n+" 등장");
   SFX.boss();hitstop=.3;shake=Math.max(shake,1.2);
   G.flash={t:.6,c:fin?"255,209,102":"238,242,255"};
   track("boss",{ang:aid||"final",n:G.bosses},G.t);
 }
 function call(t){const e=$("#call");e.textContent=t;e.classList.add("on");
   clearTimeout(call._);call._=setTimeout(()=>e.classList.remove("on"),1800);}
+function callBig(t,sub){const e=$("#callbig");e.querySelector(".t").textContent=t;e.querySelector(".s").textContent=sub||"";
+  e.classList.add("on");clearTimeout(callBig._);callBig._=setTimeout(()=>e.classList.remove("on"),2200);}
+/* 궁극기 라벨 — 데스크톱은 이름+효과 두 줄, 모바일 버튼은 「ULT」 대신 이름.
+   매 프레임 부르되 문자열이 같으면 DOM을 안 건드린다 */
+function ultLabel(){
+  const f=G&&G.form, F=f&&f!=="none"?FORMS[f]:null, u=G&&G.ult;
+  const rdy=F&&u.c>=u.max&&u.cd<=0;
+  const key=(F?F.ult:"-")+"|"+(rdy?1:0)+"|"+(F&&u.cd>0?Math.ceil(u.cd):0);
+  if(ultLabel._===key)return;ultLabel._=key;
+  const nm=$("#ultname"), gl=$("#ultbtn .gl");
+  if(!F){nm.textContent=f==="none"?"궁극기 없음":"궁극기 · 8레벨 진화 후";gl.textContent="ULT";gl.classList.remove("long");return;}
+  const st=rdy?"준비됨 · SPACE / 탭":u.cd>0?Math.ceil(u.cd)+"s 뒤":"처치로 충전";
+  nm.innerHTML=`<b>${F.ult}</b><small>${F.ud} — ${st}</small>`;
+  gl.textContent=F.ult;gl.classList.toggle("long",F.ult.length>3);
+}
 
 /* ───── 업데이트 ───── */
 function update(dt){
@@ -1404,7 +1459,7 @@ function update(dt){
   if(!G.boss){
     G.zt-=dt;
     if(G.zt<=8&&!G.next){const a=srnd(R.zone,0,TAU),d=srnd(R.zone,560,860);
-      G.next={x:G.zone.x+Math.cos(a)*d,y:G.zone.y+Math.sin(a)*d};call("신호권 이동 준비");}
+      G.next={x:G.zone.x+Math.cos(a)*d,y:G.zone.y+Math.sin(a)*d};call("신호권이 곧 옮겨진다");}
     /* 예속된 신호권 — 원이 나를 따라오므로 이동 예고도 타이머도 의미가 없다.
        「어디서 싸울지」가 사라지는 대신 크기를 60%로 낸다. */
     if(G.ct.leash){G.zone.x=G.p.x;G.zone.y=G.p.y;G.next=null;G.zt=ZONE_T/G.pace;}
@@ -1519,7 +1574,7 @@ function zoneMul(){
   else m=inn?1.7:1;
   /* 역극성 — 갈래가 정한 배수를 통째로 덮는다. 방어계로 쌓아 온 빌드가
      한순간 무의미해지는 유일한 카드다. 그게 이 계약의 값어치다. */
-  if(G.ct.inv)m=inn?.7:2;
+  if(G.ct.inv)m=inn?.85:2;
   if(inn&&G.st.surge)m*=1+G.st.surge;
   if(inn&&G.mod.zmul)m*=G.mod.zmul;
   if(!inn&&G.ang.pole)m*=1.3;   // 권능 · 극성 전환
@@ -1613,9 +1668,11 @@ function weapons(dt){
     for(const e of G.en){if(e.dead)continue;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d>R+e.r)continue;
       let da=Math.atan2(e.y-p.y,e.x-p.x)-a;da=Math.atan2(Math.sin(da),Math.cos(da));
       if(Math.abs(da)<=wide){dmgE(e,dmg,1);const g=Math.atan2(e.y-p.y,e.x-p.x);e.x+=Math.cos(g)*kb;e.y+=Math.sin(g)*kb;}}
-    if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R+G.boss.r){dmgB(dmg);
-      /* 보스도 밀린다 — 차폐(제3사도)를 신호권 밖으로 끌어내는 수단이다. 적보다는 덜 밀린다 */
-      const bg=Math.atan2(G.boss.y-p.y,G.boss.x-p.x);G.boss.x+=Math.cos(bg)*kb*.45;G.boss.y+=Math.sin(bg)*kb*.45;}
+    if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R+G.boss.r){
+      /* 보스도 밀린다 — 차폐를 신호권 밖으로 끌어내는 수단이다. 적보다는 덜 밀린다.
+         각도를 먼저 잡는다: dmgB가 보스를 죽이면 G.boss가 null이라 뒤에서 읽으면 터진다 */
+      const bg=Math.atan2(G.boss.y-p.y,G.boss.x-p.x);dmgB(dmg);
+      if(G.boss){G.boss.x+=Math.cos(bg)*kb*.45;G.boss.y+=Math.sin(bg)*kb*.45;}}
     G.fx.push({arc:1,x:p.x,y:p.y,a,r:R,w:wide,life:.22,max:.22,c:C.gold});
     wshake(evo?.26:.18);   // 지진은 매 스윙이라 .5는 과했다
   }
@@ -1779,23 +1836,23 @@ function dmgB(d){const b=G.boss;if(!b)return;
     G.boss=null;shake=fin?2.2:1.1;hitstop=fin?.3:.14;
     G.bosses++;G.bossT=100/G.pace;
     const p=G.p;p.hp=Math.min(p.mhp,p.hp+p.mhp*.35);   // 격파 보상 — 다음 파도를 버틸 여지
-    if(fin){G.ended=true;G.endNow=true;G.cleared=true;G.eb.length=0;call("전부 끊었다");finish(true);return;}
+    if(fin){G.ended=true;G.endNow=true;G.cleared=true;G.eb.length=0;call("종단 격파 — 중계 완료");finish(true);return;}
     if(A&&A.onDeath)A.onDeath(b);
     G.cleared=true;
-    if(A){G.lastAng=b.ang;showReward(A);}
-    else call("재머 "+G.bosses+"기 격파");}
+    if(A){G.lastAng=b.ang;G.lastNo=b.no;showReward(A);}
+    else call("재머 격파");}
 }
 /* 사도의 힘 — 셋 중 하나. 권능만 주면 매번 같은 선택이 되고,
    셋이면 「지금 뭐가 급한가」가 결정이 된다. */
 function showReward(A){
   G.ctMode=false;mode="level";
-  $("#lvtag").textContent="제"+A.no+"사도 「"+A.n+"」 격파";
+  $("#lvtag").textContent="제"+(G.lastNo||"")+"사도 "+A.n+" 격파";
   $("#v-level h2").textContent="사도의 힘 — 하나를 가져간다";
   $("#lvtools").style.display="none";
   const have=!!G.ang[A.rw.id];
   const opts=[
     have?{t:"잔향",d:"이미 가진 권능 — 대신 최대 체력 +60",c:A.c,k:"권능",f:()=>{G.p.mhp+=60;G.p.hp=Math.min(G.p.mhp,G.p.hp+60);}}
-        :{t:A.rw.n,d:A.rw.d,c:A.c,k:"권능",f:()=>{G.ang[A.rw.id]=1;call("권능 · "+A.rw.n);}},
+        :{t:A.rw.n,d:A.rw.d,c:A.c,k:"권능",f:()=>{G.ang[A.rw.id]=1;call(A.rw.n+" 얻음");}},
     {t:"재정비",d:"체력 전부 회복 · 즉시 1레벨",c:"#7fe3b0",k:"보급",f:()=>{G.p.hp=G.p.mhp;gainXp(G.p.need);}},
     {t:"여유",d:"다시 뽑기 +2",c:C.cyan,k:"보급",f:()=>{G.rerolls+=2;}},
   ];
@@ -1928,7 +1985,7 @@ function boss(dt){const b=G.boss;if(!b)return;const p=G.p;
   const a=Math.atan2(p.y-b.y,p.x-b.x), A=b.ang?ANGELS[b.ang]:null;
   if(!(A&&A.move&&A.move(dt,b,a))){b.x+=Math.cos(a)*b.spd*dt;b.y+=Math.sin(a)*b.spd*dt;}
   if(!(A&&A.ghost)&&Math.hypot(p.x-b.x,p.y-b.y)<p.r+b.r)
-    hitP(b.dmg,b.fin?"종단 재머":A?"제"+A.no+"사도 "+A.n:"재머");
+    hitP(b.dmg,b.fin?"제"+b.no+"사도 종단":A?"제"+b.no+"사도 "+A.n:"재머");
   if(b.fin){finalBoss(dt,b,a);return;}
   if(A){A.f(dt,b,a);return;}
   /* 아래는 사도가 없을 때의 예비 경로다 — 로스터가 비는 일은 없어야 한다 */
@@ -1985,7 +2042,7 @@ function pools(dt){
         if(d>1&&d<z.r*2.4){const k=Math.min(60,d*.45)/d;e.x+=dx*k;e.y+=dy*k;}}
       if(G.boss&&Math.hypot(G.boss.x-z.x,G.boss.y-z.y)<G.boss.r+z.r)dmgB(z.dmg);
       /* 대가 — 내가 낸 폭발이 나에게도 닿는다. 무적 시간(0.6s)이 연타를 막는다 */
-      if(z.hurtP&&Math.hypot(G.p.x-z.x,G.p.y-z.y)<z.r+G.p.r)hitP(22,"연쇄 붕괴");
+      if(z.hurtP&&Math.hypot(G.p.x-z.x,G.p.y-z.y)<z.r+G.p.r)hitP(11,"연쇄 붕괴");
       /* 자주 터지는 것(화염 흔적 초당 11개, 자기 폭풍 0.85초마다 6개)이 매번
          .18씩 갱신하면 흔들림이 감쇠할 틈이 없다. 종류별로 몫을 정해 준다. */
       wshake(z.sh!==undefined?z.sh:.18);}
@@ -2029,7 +2086,7 @@ function gainXp(n){const p=G.p;p.xp+=n;
     if(p.lv>=24&&G.final&&!G.apex)apexForm();
     /* 진화 거부는 3차 대상이 아니라 24레벨 이후가 통째로 무보상이었다 */
     if(p.lv>=24&&G.noEvo&&!G.apex){G.apex=true;G.st.dmg*=1.25;G.p.mhp+=60;G.p.hp=G.p.mhp;G.rerolls+=2;
-      call("정점 · 순수");$("#form").textContent=charOf().n+" · 정점";burst(C.pale,90);SFX.evolve();shake=1.3;}
+      call("24레벨 — 순수 강화");$("#form").textContent=charOf().n+" · 정점";burst(C.pale,90);SFX.evolve();shake=1.3;}
     if(p.lv>=8&&!G.form)formChoice(); else levelUp();}}
 
 /* ───── 오퍼레이터 진화 (2갈래) ───── */
@@ -2058,7 +2115,7 @@ function setForm(k){
   shake=.8;hitstop=.12;
   $("#form").textContent=k==="none"?charOf().n+" · 순수":FORMS[k].n+" · 1차";
   $("#form").style.color=FORMS[k].c;
-  $("#ultname").textContent=k==="none"?"궁극기 없음":FORMS[k].ult+" · SPACE / 탭";
+  ultLabel._=null;ultLabel();
 }
 /* 잔상 분신이 참조할 궤적 인덱스. 3차는 4체 — G.hist 길이가 24라 23이 상한이다. */
 const HIST_IDX=()=>G.stage>=3?[5,11,17,23]:[8,16];
@@ -2097,6 +2154,7 @@ function useUlt(){
   if(!G.form||G.form==="none"||u.c<u.max||u.cd>0||G.over)return;
   u.c=0;u.cd=ULT_CD;G.ultReady=false;SFX.ult();
   u.max=50;
+  const UN=FORMS[G.form].ult; let usub=FORMS[G.form].ud;
   if(G.form==="rover"){
     /* 무적·이속만 있고 피해는 지나간 자리 폭발이 덤이었다. 「모든 궁극기는 피해 공격이
        베이스」 — 발동 순간 주변을 터뜨린다. 무적·이속·잔상 폭발은 그대로 */
@@ -2104,7 +2162,7 @@ function useUlt(){
     for(const e of G.en){if(!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<R+e.r)dmgE(e,dmg,1);}
     if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R+G.boss.r)dmgB(dmg*2);
     G.bolts.push({x:p.x,y:p.y,r:R,life:.4,max:.4,dmg:0,done:1,cyan:1});
-    u.t=3;p.inv=3;p.spd*=2;setTimeout(()=>{p.spd/=2;},3000);call("잔상 질주");}
+    u.t=3;p.inv=3;p.spd*=2;setTimeout(()=>{p.spd/=2;},3000);}
   if(G.form==="pulse"){
     /* 방출 — 쌓아 둔 공명을 전부 태운다. 스택이 곧 위력이라 "언제 쓰나"가 결정이 된다.
        쓰고 나면 0이라 이속·갈라짐도 함께 꺼진다 */
@@ -2113,7 +2171,7 @@ function useUlt(){
     for(const e of G.en){if(!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<R+e.r)dmgE(e,dmg,1);}
     if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R+G.boss.r)dmgB(dmg*1.5);
     G.bolts.push({x:p.x,y:p.y,r:R,life:.45,max:.45,dmg:0,done:1,pink:1});
-    call("방출 · 공명 "+Math.round(G.res));G.res=0;}
+    usub="공명 "+Math.round(G.res)+" → "+Math.round(dmg)+" 피해";G.res=0;}
   if(G.form==="warden"){
     /* 반경이 신호권+160이었다. 관제탑 신호권이 608이라 768 — 화면 전체였다.
        신호권 크기로 줄인다. 피해도 320 → 240.
@@ -2126,7 +2184,14 @@ function useUlt(){
         const a=Math.atan2(e.y-p.y,e.x-p.x);e.x=p.x+Math.cos(a)*Math.max(60,d*.35);e.y=p.y+Math.sin(a)*Math.max(60,d*.35);}}
     if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R)dmgB(480*G.st.dmg);
     G.bolts.push({x:p.x,y:p.y,r:R,life:.5,max:.5,dmg:0,done:1,gold:1});
-    call("역송신");}
+    }
+  /* 세 갈래 궁극기 공통 — 보스를 밀고, 차폐면 4초 연다. 궁극기가 피해 공격이 된 김에
+     「궁극기 = 보스를 흔드는 것」으로 통일한다 */
+  if(G.boss&&G.boss.r>0){const d=Math.hypot(G.boss.x-p.x,G.boss.y-p.y);
+    if(d<G.zone.r+160){const bg=Math.atan2(G.boss.y-p.y,G.boss.x-p.x);
+      G.boss.x+=Math.cos(bg)*300;G.boss.y+=Math.sin(bg)*300;
+      if(G.boss.ang==="shield")G.boss.forced=Math.max(G.boss.forced||0,4);}}
+  callBig(UN,usub);
   shake=1;hitstop=.1;
 }
 
@@ -2266,10 +2331,10 @@ const hasContracts=()=>CONTRACTS.some(c=>(G.ct[c.id]||0)<c.max);
 function takeContract(k){
   const st=G.st,p=G.p,c=CONTRACTS.find(x=>x.id===k);
   G.ct[k]=(G.ct[k]||0)+1;
-  if(k==="oc"){st.dmg*=1.5;st.eSpd*=1.3;}
-  if(k==="lite"){st.rate*=1.6;p.mhp=Math.max(20,Math.round(p.mhp/2));p.hp=Math.min(p.hp,p.mhp);}
-  if(k==="furn"){st.ultG+=1;st.regen-=1.5;}
-  if(k==="leash"){zoneScale(.6);}
+  if(k==="oc"){st.dmg*=1.5;st.eSpd*=1.15;}
+  if(k==="lite"){st.rate*=1.6;p.mhp=Math.max(20,Math.round(p.mhp*.75));p.hp=Math.min(p.hp,p.mhp);}
+  if(k==="furn"){st.ultG+=1;st.regen-=.75;}
+  if(k==="leash"){zoneScale(.8);}
   /* casc·inv은 상태 플래그만 세우고 훅 쪽에서 읽는다 */
   call("계약 · "+c.n);shake=.9;SFX.evolve();burst(c.c,70);
 }
@@ -2573,7 +2638,7 @@ function draw(){
     cx.fillStyle=bc;cx.fillRect(W*.16,54*VS,W*.68*Math.max(0,b.hp/b.mhp),(b.fin?13:9)*VS);
     /* 이름과 성질을 바 아래에 — 어떤 놈이고 뭘 하는지 싸우는 내내 보여야 한다 */
     cx.save();cx.textAlign="center";cx.font="700 "+(12*VS).toFixed(1)+"px "+KRF;cx.fillStyle=bc;
-    cx.fillText(b.fin?"제12사도 「종단」":AN?"제"+AN.no+"사도 「"+AN.n+"」 — "+AN.d:"재머",W/2,(54+(b.fin?13:9)+15)*VS);
+    cx.fillText(b.fin?"제"+b.no+"사도 종단":AN?(SMALL?"제"+b.no+"사도 "+AN.n:"제"+b.no+"사도 "+AN.n+" — "+AN.d):"재머",W/2,(54+(b.fin?13:9)+15)*VS);
     cx.restore();}
 
   // 탄
@@ -2807,8 +2872,19 @@ function hud(){
   if(G.tip!==undefined){const a=G.t<4?Math.min(1,G.t/.4):Math.max(0,1-(G.t-4)/1.5);
     $("#tip").style.opacity=a; if(a<=0)delete G.tip;}
   $("#lvbadge").textContent="LV "+p.lv;
-  if(G.form==="pulse"){const N2={1:"공진계",2:"증폭",3:"임계"}[G.stage]||"공진계";
-    $("#form").textContent=N2+" · "+G.stage+"차 · 공명 "+Math.round(G.res)+"/"+G.resCap;}
+  /* 공명 — 게이지로. 글자 한 줄에 숫자를 넣었더니 「공명이 무슨 스킬인지 모르겠다」가 나왔다.
+     30(가속)·40(갈라짐) 문턱은 눈금으로, 넘는 순간은 한 번 알린다 — 떨어졌다 다시 넘으면 또 */
+  const rs=$("#res");
+  if(G.form==="pulse"){
+    rs.hidden=false;
+    rs.classList.toggle("t2",G.stage===2);rs.classList.toggle("t3",G.stage>=3);
+    $("#resfill").style.width=(100*Math.min(1,G.res/G.resCap)).toFixed(1)+"%";
+    $("#resnum").textContent=Math.round(G.res)+" / "+G.resCap;
+    const lvl=(G.stage>=3&&G.res>=40)?2:(G.stage>=2&&G.res>=30)?1:0;
+    rs.classList.toggle("hi",lvl>0);
+    if(lvl>G.resLvl)call(lvl===2?"공명 40 — 투사체가 갈라진다":"공명 30 — 가속");
+    G.resLvl=lvl;
+  }else rs.hidden=true;
   $("#clock").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
   $("#kills").textContent=G.kills;
   $("#score").textContent=calcScore().toLocaleString();
@@ -2831,7 +2907,8 @@ function hud(){
   $("#ultfill").style.width=(pct*100)+"%";
   $("#ultprg").style.strokeDashoffset=(ULT_C*(1-pct)).toFixed(1);
   const rdy=armed&&u.c>=u.max&&u.cd<=0;
-  if(rdy&&!G.ultReady){G.ultReady=true;SFX.ready();}
+  if(rdy&&!G.ultReady){G.ultReady=true;SFX.ready();call(FORMS[G.form].ult+" 준비");}
+  ultLabel();
   ue.classList.toggle("ready",rdy);
   ub.classList.toggle("ready",rdy);ub.classList.toggle("locked",!armed);
   const zt=$("#zt");
@@ -2842,7 +2919,7 @@ function hud(){
     const zl=G.ct.leash?(SMALL?"예속":"신호권 예속")
       :((G.zt<=8?(SMALL?"이동 ":"신호권 이동 "):(SMALL?"유지 ":"신호권 유지 "))+Math.ceil(G.zt)+"s");
     zt.textContent=(G.sev?G.sev.n+" "+Math.ceil(G.sevT)+"s  ·  ":"")+zl
-      +(G.outT>30?(SMALL?" · 간섭":"  ·  간섭 발생"):"");
+      +(G.outT>30?(SMALL?" · 적 가속":"  ·  밖 30초 · 적 가속"):"");
     zt.classList.toggle("soon",(G.zt<=8&&!G.ct.leash)||!!G.sev);}
 }
 
@@ -2877,7 +2954,7 @@ function relabel(){
     e.textContent=N[st][f]+" · "+st+"차";
     e.style.color=st>=3?(f==="rover"?C.violet:f==="pulse"?C.pink:C.orange):FORMS[f].c;
   }
-  $("#ultname").textContent=!f?"궁극기 · 8레벨 진화 후":f==="none"?"궁극기 없음":FORMS[f].ult+" · SPACE / 탭";
+  ultLabel._=null;ultLabel();
 }
 function contRun(){
   const r=loadRun();if(!r){menu();return;}
@@ -2934,7 +3011,7 @@ $("#b-more").onclick=()=>{
   if(!G||!G.ended)return;
   G.over=false;G.won=false;G.endNow=false;G.bossT=100;
   RID=G.lastRid||uid();runSaveT=0;
-  hideAll();mode="play";last=performance.now();SFX.bgm(true);call("미확인 신호 접근");};
+  hideAll();mode="play";last=performance.now();SFX.bgm(true);call("계속 싸운다 — 더 강한 것이 온다");};
 $("#b-resume").onclick=resume;$("#b-quit").onclick=()=>finish(false);
 $("#b-menu").onclick=()=>{showVeil("#v-menu");mode="menu";};
 $("#pausebtn").onclick=()=>{if(mode==="play")pause();};
