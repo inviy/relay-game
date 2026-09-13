@@ -506,7 +506,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="2.7.0";
+const VERSION="3.0.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -581,7 +581,7 @@ function scoreDelta(){
    되살린 저장은 즉시 지운다. 안 그러면 같은 순간을 반복해 되살릴 수 있다. */
 const RKEY="relay:run", RUNV=1;
 const RUNF=["t","et","eth","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
-  "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","roster","ang","ult","shield",
+  "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","roster","ang","plate","ult","shield",
   "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
 let runSaveT=0;
 function saveRun(){
@@ -1015,6 +1015,130 @@ const ANGELS={
      cx.restore();
    },
    rw:{id:"pole",n:"극성 전환",d:"신호권 밖 피해 +30%"}},
+ split:{no:6,n:"분열",c:C.cyan,tier:1,hpM:1.05,spd:74,r:48,dmg:22,
+   d:"체력 절반에서 둘로 갈라진다",
+   init(b){b.split=0;b.fire=1.4;},
+   f(dt,b,a){
+     b.fire-=dt;
+     if(b.fire<=0){b.fire=1.8;b.ring+=.35;
+       for(let i=0;i<8;i++){const g=b.ring+i*TAU/8;
+         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*210,vy:Math.sin(g)*210,r:8,dmg:14,life:4});}}
+     /* 파편이 살아 있으면 본체가 회복한다. 파편은 신호권 밖으로 달아난다 —
+        권내에서 본체만 때리면 안 죽는다. 나가서 파편을 잡아야 한다 */
+     if(b.split){let alive=false;for(const e of G.en)if(e.heal&&!e.dead){alive=true;break;}
+       if(alive)b.hp=Math.min(b.mhp,b.hp+b.mhp*.006*dt);}
+   },
+   onHit(b){
+     if(!b.split&&b.hp<=b.mhp*.5){b.split=1;b.r*=.78;b.spd*=1.3;
+       const e=makeE("tank",b.x+60,b.y,false);
+       e.hp=e.mhp=Math.round(b.mhp*.35);e.r=22;e.c=C.cyan;e.sh="cell";e.heal=1;e.flee=1;e.dir=1;e.spd=110;e.xp=6;
+       G.en.push(e);
+       call("분열 — 파편이 달아난다");SFX.warn();shake=Math.max(shake,.8);
+       for(let i=0;i<30;i++)G.fx.push({x:b.x,y:b.y,vx:rnd(-300,300),vy:rnd(-300,300),life:.6,max:.6,c:C.cyan});}
+   },
+   draw(X,Y,b){
+     const r=b.r, col=C.cyan, gap=r*(b.split?.32:.13), t=G.t;
+     cx.save();cx.shadowColor=col;cx.shadowBlur=16;
+     [-1,1].forEach(sgn=>{cx.save();cx.translate(X+sgn*gap,Y+(b.split?sgn*Math.sin(t*3)*4:0));
+       cx.fillStyle="#0a2a2c";cx.strokeStyle=col;cx.lineWidth=2.6;cx.lineJoin="miter";
+       cx.beginPath();if(sgn<0)cx.arc(0,0,r,Math.PI/2,Math.PI*1.5);else cx.arc(0,0,r,-Math.PI/2,Math.PI/2);
+       cx.closePath();cx.fill();cx.stroke();
+       cx.fillStyle="#bff8ef";cx.shadowBlur=18;cx.beginPath();cx.arc(sgn*r*.34,0,r*.15,0,TAU);cx.fill();cx.restore();});
+     if(!b.split){cx.strokeStyle="rgba(191,248,239,.9)";cx.lineWidth=2.2;cx.shadowBlur=20;cx.beginPath();
+       for(let q=0;q<=8;q++){const yy=Y-r+q*(2*r/8),xx=X+(q%2?6:-6);q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}cx.stroke();}
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"twin",n:"분신탄",d:"다트·빔·미사일이 한 발 더 나간다"}},
+ shield:{no:3,n:"차폐",c:"#7fe3b0",tier:2,hpM:1.1,spd:88,r:52,dmg:26,
+   d:"신호권 안에선 무적 · 밀어내야 열린다",
+   init(b){b.fire=2;b.open=0;},
+   /* 나를 쫓지 않는다. 신호권 중심으로 가서 들어앉는다. 신호권이 옮겨 가면 따라가느라
+      열린다 — 넉백·흡인이 없는 빌드도 32초마다 한 번은 때릴 수 있다 */
+   move(dt,b,a){const dx=G.zone.x-b.x,dy=G.zone.y-b.y,d=Math.hypot(dx,dy);
+     if(d>26){b.x+=dx/d*b.spd*dt;b.y+=dy/d*b.spd*dt;}return true;},
+   f(dt,b,a){
+     const sh=this.shielded(b);b.open+=((sh?0:1)-b.open)*Math.min(1,dt*5);
+     b.fire-=dt;
+     if(b.fire<=0){b.fire=2.2;b.ring+=.4;
+       for(let i=0;i<6;i++){const g=b.ring+i*TAU/6;
+         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*170,vy:Math.sin(g)*170,r:9,dmg:16,life:4.5});}}
+     b.summon-=dt;if(b.summon<=0){b.summon=9;for(let i=0;i<2;i++)spawnE("wall",false);}
+   },
+   shielded(b){return Math.hypot(b.x-G.zone.x,b.y-G.zone.y)<G.zone.r*.92;},
+   draw(X,Y,b){
+     const r=b.r,col="#7fe3b0",N=7,sp=G.t*.16,open=b.open,slide=open*r*.42;
+     const V=(k,rad)=>{const g=sp+k*TAU/N;return[X+Math.cos(g)*rad,Y+Math.sin(g)*rad];};
+     cx.save();
+     const g=cx.createRadialGradient(X,Y,1,X,Y,r*.52);
+     g.addColorStop(0,`rgba(255,255,255,${(.18+.8*open).toFixed(2)})`);
+     g.addColorStop(.4,`rgba(160,255,205,${(.12+.7*open).toFixed(2)})`);g.addColorStop(1,"rgba(60,200,140,0)");
+     cx.fillStyle=g;cx.beginPath();cx.arc(X,Y,r*.52,0,TAU);cx.fill();
+     if(open>.25){cx.shadowColor="#b6ffd9";cx.shadowBlur=26*open;cx.fillStyle=`rgba(200,255,226,${open.toFixed(2)})`;
+       cx.beginPath();cx.arc(X,Y,r*.2,0,TAU);cx.fill();}
+     cx.shadowColor=col;cx.shadowBlur=13;cx.lineJoin="miter";
+     for(let q=0;q<N;q++){const o=V(q,r),n2=V(q+1,r),i0=V(q,r*.46),i1=V(q+1,r*.46);
+       const mid=sp+(q+.5)*TAU/N,dx=Math.cos(mid)*slide,dy=Math.sin(mid)*slide;
+       cx.fillStyle=open>.5?"#16342a":"#0d2419";cx.strokeStyle=col;cx.lineWidth=2.4;
+       cx.beginPath();cx.moveTo(o[0]+dx,o[1]+dy);cx.lineTo(n2[0]+dx,n2[1]+dy);cx.lineTo(i1[0]+dx,i1[1]+dy);cx.lineTo(i0[0]+dx,i0[1]+dy);
+       cx.closePath();cx.fill();cx.stroke();}
+     if(open<.4){cx.shadowBlur=18;cx.strokeStyle=`rgba(127,227,176,${(.55*(1-open/.4)).toFixed(2)})`;cx.lineWidth=1.8;
+       cx.setLineDash([11,8]);cx.lineDashOffset=-G.t*30;cx.beginPath();cx.arc(X,Y,r*1.3,0,TAU);cx.stroke();cx.setLineDash([]);}
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"plate",n:"장갑판",d:"6초마다 한 대를 막는다"}},
+ creep:{no:4,n:"잠식",c:"#ff8a5c",tier:2,hpM:1,spd:55,r:46,dmg:20,
+   d:"붙을수록 신호권이 줄어든다",
+   init(b){b.zr0=G.zone.r;b.summon=4;},
+   f(dt,b,a){
+     /* 520px 안에서 거리에 비례해 최대 절반까지. 멀면 권외 100%로 싸워야 하고
+        붙으면 권내가 사라진다 — 어느 쪽도 공짜가 아니다 */
+     const d=Math.hypot(b.x-G.p.x,b.y-G.p.y), k=Math.max(0,Math.min(1,1-d/520));
+     G.zone.r=b.zr0*(1-.5*k);
+     b.summon-=dt;if(b.summon<=0){b.summon=6;for(let i=0;i<3;i++)spawnE("splitter",false);}
+   },
+   onDeath(b){G.zone.r=b.zr0;},
+   draw(X,Y,b){
+     const r=b.r,col="#ff8a5c",N=13,t=G.t;
+     cx.save();cx.shadowColor=col;cx.shadowBlur=15;cx.strokeStyle=col;cx.lineCap="round";
+     for(let q=0;q<N;q++){const g=t*.2+q*TAU/N,L=r*(1.08+.34*Math.sin(q*2.3+t*1.3));
+       cx.lineWidth=3.2-1.6*(q%3)/3;cx.beginPath();
+       cx.moveTo(X+Math.cos(g)*r*.42,Y+Math.sin(g)*r*.42);
+       cx.quadraticCurveTo(X+Math.cos(g+.16)*L*.72,Y+Math.sin(g+.16)*L*.72,X+Math.cos(g+.42)*L,Y+Math.sin(g+.42)*L);cx.stroke();
+       cx.beginPath();cx.arc(X+Math.cos(g+.42)*L,Y+Math.sin(g+.42)*L,2.6,0,TAU);cx.fillStyle=col;cx.fill();}
+     cx.fillStyle="#2a1008";cx.strokeStyle=col;cx.lineWidth=2.6;cx.beginPath();cx.arc(X,Y,r*.44,0,TAU);cx.fill();cx.stroke();
+     cx.strokeStyle="rgba(255,138,92,.6)";cx.lineWidth=2;
+     for(let q=0;q<2;q++){const rr=r*(.62+q*.22),g=-t*1.3+q*1.7;cx.beginPath();cx.arc(X,Y,rr,g,g+TAU*.44);cx.stroke();}
+     cx.fillStyle="#ffd7c4";cx.shadowBlur=20;cx.beginPath();cx.arc(X,Y,r*.16,0,TAU);cx.fill();
+     if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
+     cx.restore();
+   },
+   rw:{id:"tendril",n:"촉수",d:"처치할 때 주변으로 번진다"}},
+ swarm:{no:9,n:"군체",c:"#9ad6e0",tier:2,hpM:.9,spd:0,r:40,dmg:0,ghost:1,
+   d:"본체 없음 · 조각 12개가 권 밖으로 흩어진다",
+   /* 실체가 없다. 접촉도 직격도 없고 조준 대상도 아니다(near 제외). r을 음수로 두면
+      "거리 < r + 탄 r" 이 영영 참이 안 되어 어떤 투사체도 안 맞는다 — 9군데를 안 고쳐도 된다 */
+   init(b){b.r=-1e4;b.n=12;b.each=b.mhp/12;
+     for(let i=0;i<12;i++){const g=i/12*TAU,e=makeE("dash",b.x+Math.cos(g)*90,b.y+Math.sin(g)*90,false);
+       e.hp=e.mhp=Math.round(b.each);e.r=15;e.c="#9ad6e0";e.sh=["tri","square","diamond"][i%3];
+       e.swarm=1;e.flee=1;e.dir=i%2?1:-1;e.spd=96;e.xp=4;G.en.push(e);}},
+   move(dt,b,a){let sx=0,sy=0,c=0;for(const e of G.en)if(e.swarm&&!e.dead){sx+=e.x;sy+=e.y;c++;}
+     if(c){b.x=sx/c;b.y=sy/c;}b.alive=c;
+     b.hp=c*b.each;   // 체력바 = 남은 조각
+     if(c===0&&b.hp<=0){b.hp=0;b.r=1;dmgB(1);}   // 마지막 조각이 죽으면 본체도 끝난다
+     return true;},
+   f(dt,b,a){},
+   draw(X,Y,b){
+     const r=40,col="#9ad6e0",t=G.t;
+     cx.save();cx.shadowColor=col;cx.shadowBlur=12;
+     cx.strokeStyle="rgba(154,214,224,.35)";cx.lineWidth=1.5;cx.setLineDash([4,6]);cx.lineDashOffset=-t*20;
+     cx.beginPath();cx.arc(X,Y,r*.5,0,TAU);cx.stroke();cx.setLineDash([]);
+     cx.textAlign="center";cx.font="700 "+(13*VS).toFixed(1)+"px "+KRF;cx.fillStyle=col;
+     cx.fillText((b.alive||0)+" / 12",X,Y+5*VS);
+     cx.restore();
+   },
+   rw:{id:"shard",n:"파편",d:"파편 3개가 주위를 돈다"}},
 };
 /* 오늘의 시드로 사도 순서를 뽑는다. 앞 둘은 tier 1에서. 같은 날은 모두 같은 순서다 —
    스폰 스트림(R.spawn)과 별개 생성기라 사도를 늘려도 적 구성이 안 어긋난다. */
@@ -1083,6 +1207,9 @@ const ZONE_T=32;
    「쿨도 짧다」는 말이 나온 자리다. 처치 조건은 남기되 시간 바닥을 깐다 —
    잘 잡을수록 빨리 차는 성질은 유지하고, 상한만 막는다. */
 const ULT_CD=20;
+/* 잠식(제4사도)은 매 프레임 G.zone.r = 기준값 × 축소율로 덮어쓴다. 그 사이에 진화가
+   zone.r을 키우면 다음 프레임에 지워진다. 그래서 zone.r을 키우는 곳은 전부 이걸 쓴다. */
+function zoneScale(k){G.zone.r*=k;if(G.boss&&G.boss.zr0)G.boss.zr0*=k;}
 /* 모드는 하나다. 4분/5분 제한을 두고 그때 딱 끊었더니 "생소하다"는 실제
    피드백이 왔고, 신규 유저 둘은 애초에 1:26·3:37에 죽어 제한을 보지도 못했다.
    얻는 것 없이 어색함만 주는 장치였다. 시간 제한을 없애고 판이 스스로 끝나게
@@ -1108,7 +1235,7 @@ function newRun(){
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0,eSpd:1,ultG:1},
     ct:{},ctMode:false,
-    roster:[],ang:{},lastAng:null,
+    roster:[],ang:{},lastAng:null,plate:{up:true,cd:0},gazeT:0,shardA:0,
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0,cd:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
     sev:null,sevT:0,sevN:SEV_FIRST,sevLast:null,
     zone:{x:0,y:0,r:340},next:null,zt:ZONE_T/PACE,
@@ -1277,6 +1404,7 @@ function update(dt){
     if(G.st.regen<0&&p.hp<=0)G.lastHit="과열로";}   // 안 그러면 결과 화면 사인이 옛 피격으로 남는다
   p.inv=Math.max(0,p.inv-dt); p.flash=Math.max(0,p.flash-dt); G.ult.t=Math.max(0,G.ult.t-dt);
   G.ult.cd=Math.max(0,G.ult.cd-dt);
+  if(G.ang.plate&&!G.plate.up){G.plate.cd-=dt;if(G.plate.cd<=0)G.plate.up=true;}
 
   // 스폰 (초반은 아주 완만하게)
   G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.eth/34)*(G.mod.spawn||1)*sevMul("spawn");  // 클리어 후에는 상한을 풀어 난이도를 이어간다
@@ -1384,7 +1512,7 @@ function weapons(dt){
         life:1.1,pierce:99,c:C.cyan,beam:1});
       wshake(.35);
     }else{
-      const n=1+(L>=2?1:0)+(L>=4?1:0), tg=near(n);
+      const n=1+(L>=2?1:0)+(L>=4?1:0)+(G.ang.twin?1:0), tg=near(n);
       for(let i=0;i<n;i++){const t=tg[i%Math.max(1,tg.length)];
         const a=t?Math.atan2(t.y-p.y,t.x-p.x):Math.atan2(p.dy,p.dx)+i*.35;
         G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:6*A,
@@ -1442,7 +1570,7 @@ function weapons(dt){
   if(G.w.missile&&G.cd.missile<=0){
     const L=G.w.missile, evo=G.evo.barrage;
     G.cd.missile=evo?1.0:1.35;
-    const n=evo?4:1+(L>=2?1:0)+(L>=4?1:0);
+    const n=(evo?4:1+(L>=2?1:0)+(L>=4?1:0))+(G.ang.twin?1:0);
     for(let i=0;i<n;i++){const a=Math.atan2(p.dy,p.dx)+Math.PI+rnd(-1.2,1.2);
       G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*300,vy:Math.sin(a)*300,r:6,dmg:(30+L*12)*st.dmg*zoneMul(),
         life:3.2,pierce:0,c:C.cyan,home:1,blast:(evo?150:70+(L>=3?25:0))*A});}
@@ -1456,7 +1584,9 @@ function weapons(dt){
     for(const e of G.en){if(e.dead)continue;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d>R+e.r)continue;
       let da=Math.atan2(e.y-p.y,e.x-p.x)-a;da=Math.atan2(Math.sin(da),Math.cos(da));
       if(Math.abs(da)<=wide){dmgE(e,dmg,1);const g=Math.atan2(e.y-p.y,e.x-p.x);e.x+=Math.cos(g)*kb;e.y+=Math.sin(g)*kb;}}
-    if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R+G.boss.r)dmgB(dmg);
+    if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R+G.boss.r){dmgB(dmg);
+      /* 보스도 밀린다 — 차폐(제3사도)를 신호권 밖으로 끌어내는 수단이다. 적보다는 덜 밀린다 */
+      const bg=Math.atan2(G.boss.y-p.y,G.boss.x-p.x);G.boss.x+=Math.cos(bg)*kb*.45;G.boss.y+=Math.sin(bg)*kb*.45;}
     G.fx.push({arc:1,x:p.x,y:p.y,a,r:R,w:wide,life:.22,max:.22,c:C.gold});
     wshake(evo?.26:.18);   // 지진은 매 스윙이라 .5는 과했다
   }
@@ -1499,12 +1629,26 @@ function weapons(dt){
   if(G.w.prism&&G.cd.prism<=0){
     const L=G.w.prism, evo=G.evo.lattice;
     G.cd.prism=evo?1.15:(L>=3?1.35:1.8);
-    const cnt=evo?4:2+(L>=2?1:0), base=Math.atan2(p.dy,p.dx);
+    const cnt=(evo?4:2+(L>=2?1:0))+(G.ang.twin?1:0), base=Math.atan2(p.dy,p.dx);
     for(let i=0;i<cnt;i++){const a=base+i*TAU/cnt;
       G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*740,vy:Math.sin(a)*740,r:(evo?11:7)*A,
         dmg:(evo?76:22+L*10)*st.dmg*zoneMul(),life:1.25,
         pierce:evo?99:st.pierce+2+(L>=4?2:0),c:C.pale,beam:1});}
   }
+  /* 권능 · 응시 — 0.5초마다 가장 먼 적 하나를 직격한다. 가까운 것만 노리는 자동 무기들과
+     반대 방향이라, 빌드가 못 닿는 곳(관측자·배회체)을 메운다 */
+  if(G.ang.gaze){G.gazeT-=dt;
+    if(G.gazeT<=0){G.gazeT=.5;let far=null,fd=0;
+      for(const e of G.en){if(e.dead)continue;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<720&&d>fd){fd=d;far=e;}}
+      if(far){dmgE(far,34*st.dmg*zoneMul(),1);
+        G.fx.push({chain:[{x:p.x,y:p.y},{x:far.x,y:far.y}],life:.18,max:.18,c:C.pale});}}}
+  /* 권능 · 파편 — 회전 검의 작은 판. 검이 없는 빌드에 근접 방어를 준다 */
+  if(G.ang.shard){G.shardA+=dt*2.6;
+    const rad=112*A,dmg=26*st.dmg*zoneMul()*dt;G.shards=[];
+    for(let i=0;i<3;i++){const g=G.shardA+i*TAU/3,o={x:p.x+Math.cos(g)*rad,y:p.y+Math.sin(g)*rad,r:9*A};
+      G.shards.push(o);
+      for(const e of G.en)if(!e.dead&&Math.hypot(e.x-o.x,e.y-o.y)<e.r+o.r)dmgE(e,dmg,0);
+      if(G.boss&&Math.hypot(G.boss.x-o.x,G.boss.y-o.y)<G.boss.r+o.r)dmgB(dmg);}}
 }
 /* 장판은 주기가 공속으로 나뉘는데 지속은 고정이라, 공속이 오르면 무한히 쌓인다.
    실측(공속 7.89): 화염 흔적 70겹, 포식 우물 13겹.
@@ -1522,7 +1666,7 @@ function pushPool(k,cap,o){
 }
 function near(n){const p=G.p,a=[];
   for(const e of G.en)if(!e.dead)a.push([Math.hypot(e.x-p.x,e.y-p.y),e]);
-  if(G.boss)a.push([Math.hypot(G.boss.x-p.x,G.boss.y-p.y),G.boss]);
+  if(G.boss&&!(G.boss.ang&&ANGELS[G.boss.ang].ghost))a.push([Math.hypot(G.boss.x-p.x,G.boss.y-p.y),G.boss]);
   a.sort((x,y)=>x[0]-y[0]);return a.slice(0,n).map(x=>x[1]);}
 
 /* byKill = 처치로 인한 유폭. 공격이 자동이라 플레이어는 자폭체를 제 옆에서 죽이게
@@ -1561,6 +1705,9 @@ function dmgE(e,d,showNum){
        퍼지므로 저절로 멈추고, 처치 수도 두 번 세지 않는다. */
     if(G.ct.casc)G.bolts.push({x:e.x,y:e.y,r:96*G.st.area,life:.3,max:.3,
       dmg:44*G.st.dmg,done:0,red:1,sh:.05,hurtP:1});
+    /* 권능 · 촉수. 계약 연쇄 붕괴와 같은 경로(다음 프레임의 bolts)라 재귀가 없다 */
+    if(G.ang.tendril&&Math.random()<.5)G.bolts.push({x:e.x,y:e.y,r:70*G.st.area,life:.28,max:.28,
+      dmg:28*G.st.dmg,done:0,sh:0});
     if(e.split)for(let i=0;i<3;i++){const a=i/3*TAU;G.en.push(makeE("mote",e.x+Math.cos(a)*18,e.y+Math.sin(a)*18,false));}
     if(e.bomb||e.tr==="volat"){explodeE(Object.assign({},e,{dead:0,dmg:e.bomb?e.dmg:26}),true);}if(G.form&&G.form!=="none")G.ult.c=Math.min(G.ult.max,G.ult.c+G.st.ultG);
     for(let i=0;i<e.xp;i++)G.fx.push({x:e.x+rnd(-10,10),y:e.y+rnd(-10,10),xp:1});
@@ -1616,6 +1763,9 @@ function hitP(d,src){const p=G.p;if(p.inv>0)return;
   if(G.form==="rover"&&G.moving&&Math.random()<.30){p.inv=.25;G.num.push({x:p.x,y:p.y-24,v:"회피",life:.6,c:C.cyan});return;}
   if(G.form==="warden"&&G.shield.up){G.shield.up=false;G.shield.cd=7.5;p.inv=.4;
     G.num.push({x:p.x,y:p.y-24,v:"방패",life:.6,c:C.gold});SFX.block();G.fx.push({x:p.x,y:p.y,vx:0,vy:0,life:.35,max:.35,ring:70});return;}
+  if(G.ang.plate&&G.plate.up){G.plate.up=false;G.plate.cd=6;p.inv=.4;
+    G.num.push({x:p.x,y:p.y-24,v:"장갑",life:.6,c:"#7fe3b0"});SFX.block();
+    G.fx.push({x:p.x,y:p.y,vx:0,vy:0,life:.35,max:.35,ring:70,rc:"#7fe3b0"});return;}
   if(G.form==="warden"&&p.in)d*=.75;   // -35% → -25%. 원 안 배수와 겹쳐 이중으로 강했다
   p.hp-=d;p.inv=.6;p.flash=.25;shake=Math.max(shake,.5);hitstop=.03;SFX.hurt();G.lastHit=src||"접촉";
   /* 반사막 — 맞은 자리에서 터진다. 증폭기는 타되 신호권 배수는 안 탄다.
@@ -1673,6 +1823,13 @@ function enemies(dt){const p=G.p;
           G.eb.push({x:e.x,y:e.y,vx:Math.cos(b)*620,vy:Math.sin(b)*620,r:7,dmg:e.dmg,life:3});
           SFX.block();}
       }else{e.fire-=dt;if(e.fire<=0&&dist<900)e.chg=1.1;}
+    }else if(e.flee){
+      /* 분열의 파편·군체의 조각 — 신호권 중심에서 달아난다. 안이면 밖으로,
+         밖이면 원 가장자리를 따라 돈다. 권내 딜로는 못 잡는다는 게 성질이다. */
+      let zx=G.zone.x-e.x,zy=G.zone.y-e.y,zd=Math.hypot(zx,zy);
+      if(zd<1){zx=Math.cos(e.ph);zy=Math.sin(e.ph);zd=1;}   // 정확히 중심이면 방향이 0이라 얼어붙는다
+      if(zd<G.zone.r*1.25){e.x-=zx/zd*s*dt;e.y-=zy/zd*s*dt;}
+      else{const t=Math.atan2(-zy,-zx)+Math.PI/2*(e.dir||1);e.x+=Math.cos(t)*s*.6*dt;e.y+=Math.sin(t)*s*.6*dt;}
     }else if(e.hunt){
       /* 멀수록 빨라진다. 거리를 벌려도 소용없다는 걸 몸으로 알게 된다. */
       const sp=s*(1+Math.min(1.7,dist/380));
@@ -1764,6 +1921,8 @@ function pools(dt){
     if(q.pull)for(const e of G.en){if(e.dead)continue;
       const dx=q.x-e.x,dy=q.y-e.y,d=Math.hypot(dx,dy);
       if(d>4&&d<q.r*2.2){const k=Math.min(q.pull*dt,d*.9)/d;e.x+=dx*k;e.y+=dy*k;}}
+    if(q.pull&&G.boss){const dx=q.x-G.boss.x,dy=q.y-G.boss.y,d=Math.hypot(dx,dy);
+      if(d>4&&d<q.r*2.2){const k=Math.min(q.pull*.4*dt,d*.9)/d;G.boss.x+=dx*k;G.boss.y+=dy*k;}}
     for(const e of G.en)if(!e.dead&&Math.hypot(e.x-q.x,e.y-q.y)<e.r+q.r)dmgE(e,q.dps*dt,0);
     if(G.boss&&Math.hypot(G.boss.x-q.x,G.boss.y-q.y)<G.boss.r+q.r)dmgB(q.dps*dt);
     if(q.life<=0)G.pool.splice(i,1);}
@@ -1842,7 +2001,7 @@ function setForm(k){
   const p=G.p;G.form=k;G.stage=k==="none"?0:1;
   track("form",{form:k,lv:p.lv},G.t);
   if(k==="rover"){p.spd*=1.25;call("1차 진화 · 기동계");G.flash={t:.7,c:"79,240,216"};}
-  if(k==="warden"){p.mhp+=40;p.hp=Math.min(p.mhp,p.hp+40);G.zone.r*=1.1;call("1차 진화 · 방어계");G.flash={t:.7,c:"255,209,102"};}
+  if(k==="warden"){p.mhp+=40;p.hp=Math.min(p.mhp,p.hp+40);zoneScale(1.1);call("1차 진화 · 방어계");G.flash={t:.7,c:"255,209,102"};}
   if(k==="none"){G.noEvo=true;call("진화 거부 · 카드 4장");}
   burst(k==="warden"?C.gold:C.cyan,40);SFX.evolve();
   shake=.8;hitstop=.12;
@@ -1860,7 +2019,7 @@ function apexForm(){
     G.st.pierce+=1;G.st.dmg*=1.2;p.spd*=1.08;
     call("3차 진화 · 특이점");$("#form").textContent="특이점 · 3차";G.flash={t:1.2,c:"168,107,255"};
   }else{
-    G.zone.r*=1.25;p.mhp+=80;p.hp=p.mhp;G.st.dmg*=1.15;
+    zoneScale(1.25);p.mhp+=80;p.hp=p.mhp;G.st.dmg*=1.15;
     G.turrets=[{a:0},{a:TAU/4},{a:TAU/2},{a:TAU*3/4}];
     call("3차 진화 · 관제탑");$("#form").textContent="관제탑 · 3차";G.flash={t:1.2,c:"255,159,67"};
   }
@@ -1871,7 +2030,7 @@ function apexForm(){
 function finalForm(){
   G.final=true;G.stage=2;const p=G.p;
   if(G.form==="rover"){p.spd*=1.15;G.st.pierce+=1;call("2차 진화 · 유령");$("#form").textContent="유령 · 2차";G.flash={t:1,c:"168,107,255"};}
-  if(G.form==="warden"){G.zone.r*=1.3;p.mhp+=60;p.hp=p.mhp;call("2차 진화 · 요새");$("#form").textContent="요새 · 2차";G.flash={t:1,c:"255,159,67"};
+  if(G.form==="warden"){zoneScale(1.3);p.mhp+=60;p.hp=p.mhp;call("2차 진화 · 요새");$("#form").textContent="요새 · 2차";G.flash={t:1,c:"255,159,67"};
     G.turrets=[{a:0},{a:Math.PI}];}
   burst(G.form==="warden"?C.orange:C.violet,80);SFX.evolve();
   shake=1.2;hitstop=.22;
@@ -2032,7 +2191,7 @@ function takeContract(k){
   if(k==="oc"){st.dmg*=1.5;st.eSpd*=1.3;}
   if(k==="lite"){st.rate*=1.6;p.mhp=Math.max(20,Math.round(p.mhp/2));p.hp=Math.min(p.hp,p.mhp);}
   if(k==="furn"){st.ultG+=1;st.regen-=1.5;}
-  if(k==="leash"){G.zone.r*=.6;}
+  if(k==="leash"){zoneScale(.6);}
   /* casc·inv은 상태 플래그만 세우고 훅 쪽에서 읽는다 */
   call("계약 · "+c.n);shake=.9;SFX.evolve();burst(c.c,70);
 }
@@ -2359,6 +2518,12 @@ function draw(){
     cx.shadowColor="#dfe6ff";cx.shadowBlur=18;cx.fillStyle="#eef2ff";
     cx.fillRect(-2.5,-o.r,5,o.r*2);cx.restore();}
 
+  // 권능 · 파편
+  if(G.ang.shard&&G.shards)for(const o of G.shards){
+    cx.save();cx.translate(o.x+ox,o.y+oy);cx.rotate(G.shardA*1.4);
+    cx.shadowColor="#9ad6e0";cx.shadowBlur=12;cx.fillStyle="#13303a";cx.strokeStyle="#9ad6e0";cx.lineWidth=1.8;
+    cx.beginPath();cx.moveTo(0,-o.r);cx.lineTo(o.r,0);cx.lineTo(0,o.r);cx.lineTo(-o.r,0);cx.closePath();cx.fill();cx.stroke();
+    cx.restore();}
   // 유령 분신
   if(G.stage>=2&&G.form==="rover")for(const ci of HIST_IDX()){const h=G.hist[ci];if(!h)continue;
     cx.save();cx.globalAlpha=.5-ci*.014;drawShip(h.x+ox,h.y+oy,p.dx,p.dy,"rover",G.stage,null);cx.restore();}
