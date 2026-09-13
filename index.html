@@ -506,7 +506,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.1.0";
+const VERSION="3.1.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -880,7 +880,7 @@ const WEAPONS={
 const FORMS={
  rover:{n:"기동계",hint:"— 빠르게",c:C.cyan,
    d:"원 밖에서도 강합니다. 어디서든 피해 145%, 이동 속도 +25%, 움직이는 동안 공격을 30% 확률로 피합니다.",
-   sub:"<span><b>전용</b> 유도 미사일 · 굴절 빔 / 냉각기 · 관통자 · 치명 회로</span><span><b>궁극기</b> 잔상 질주 — 3초 무적, 이속 2배, 지나간 자리가 터진다 (20초 간격)</span><span><b>2차 진화 · 유령</b> (16레벨) — 잔상 분신 2체가 따라오며 다트를 같이 쏜다. 관통 +1, 이속 +15%</span><span><b>3차 진화 · 특이점</b> (24레벨) — 분신 4체, 관통 +1, 피해 +20%</span>",
+   sub:"<span><b>전용</b> 유도 미사일 · 굴절 빔 / 냉각기 · 관통자 · 치명 회로</span><span><b>궁극기</b> 잔상 질주 — 주변을 터뜨리고(160) 3초 무적·이속 2배, 지나간 자리가 터진다 (20초 간격)</span><span><b>2차 진화 · 유령</b> (16레벨) — 잔상 분신 2체가 따라오며 다트를 같이 쏜다. 관통 +1, 이속 +15%</span><span><b>3차 진화 · 특이점</b> (24레벨) — 분신 4체, 관통 +1, 피해 +20%</span>",
    ult:"잔상 질주"},
  warden:{n:"방어계",hint:"— 단단하게",c:C.gold,
    d:"원 안을 지킵니다. 원 안에서 피해 195%(밖은 85%), 받는 피해 -25%, 7.5초마다 한 대를 막아줍니다.",
@@ -891,7 +891,7 @@ const FORMS={
     방어계가 지킨다, 기동계가 안 매인다면 공진계는 멈추지 않는다. 셋이 다른 동사다. */
  pulse:{n:"공진계",hint:"— 끊기지 않게",c:C.pink,
    d:"연쇄가 힘입니다. 처치마다 공명이 쌓여(최대 40) 스택당 피해 +1.5%. 2초간 처치가 없으면 빠르게 빠집니다. 신호권 안팎 어디서든 120%.",
-   sub:"<span><b>전용</b> 공명침 / 잔열 · 연소 · 박동</span><span><b>궁극기</b> 방출 — 공명을 전부 태워 스택×12 피해로 터뜨린다 (20초 간격)</span><span><b>2차 진화 · 증폭</b> (16레벨) — 상한 60. 공명 30 이상이면 이속 +20%</span><span><b>3차 진화 · 임계</b> (24레벨) — 상한 80. 공명 40 이상이면 투사체가 갈라진다</span>",
+   sub:"<span><b>전용</b> 공명침 / 잔열 · 연소 · 박동</span><span><b>궁극기</b> 방출 — 150 + 공명×12 피해로 터뜨린다. 공명은 전부 탄다 (20초 간격)</span><span><b>2차 진화 · 증폭</b> (16레벨) — 상한 60. 공명 30 이상이면 이속 +20%</span><span><b>3차 진화 · 임계</b> (24레벨) — 상한 80. 공명 40 이상이면 투사체가 갈라진다</span>",
    ult:"방출"},
  none:{n:"진화 거부",c:C.pale,
    d:"진화하지 않습니다. 대신 레벨업 카드가 3장에서 4장으로 늘고, 피해가 15% 오르고, 모든 갈래의 전용 무기·패시브가 뜹니다.",
@@ -2097,11 +2097,19 @@ function useUlt(){
   if(!G.form||G.form==="none"||u.c<u.max||u.cd>0||G.over)return;
   u.c=0;u.cd=ULT_CD;G.ultReady=false;SFX.ult();
   u.max=50;
-  if(G.form==="rover"){u.t=3;p.inv=3;p.spd*=2;setTimeout(()=>{p.spd/=2;},3000);call("잔상 질주");}
+  if(G.form==="rover"){
+    /* 무적·이속만 있고 피해는 지나간 자리 폭발이 덤이었다. 「모든 궁극기는 피해 공격이
+       베이스」 — 발동 순간 주변을 터뜨린다. 무적·이속·잔상 폭발은 그대로 */
+    const R=220*G.st.area, dmg=160*G.st.dmg*zoneMul();
+    for(const e of G.en){if(!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<R+e.r)dmgE(e,dmg,1);}
+    if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R+G.boss.r)dmgB(dmg*2);
+    G.bolts.push({x:p.x,y:p.y,r:R,life:.4,max:.4,dmg:0,done:1,cyan:1});
+    u.t=3;p.inv=3;p.spd*=2;setTimeout(()=>{p.spd/=2;},3000);call("잔상 질주");}
   if(G.form==="pulse"){
     /* 방출 — 쌓아 둔 공명을 전부 태운다. 스택이 곧 위력이라 "언제 쓰나"가 결정이 된다.
        쓰고 나면 0이라 이속·갈라짐도 함께 꺼진다 */
-    const R=260*G.st.area, dmg=G.res*12*G.st.dmg;
+    /* 공명 0이면 0이었다. 150을 바닥에 깔아 공명이 없어도 공격이 되게 한다 — 쌓을수록 세지는 건 그대로 */
+    const R=260*G.st.area, dmg=(150+G.res*12)*G.st.dmg;
     for(const e of G.en){if(!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<R+e.r)dmgE(e,dmg,1);}
     if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R+G.boss.r)dmgB(dmg*1.5);
     G.bolts.push({x:p.x,y:p.y,r:R,life:.45,max:.45,dmg:0,done:1,pink:1});
