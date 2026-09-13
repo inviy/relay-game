@@ -220,6 +220,9 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .card.ch.on{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 12px 30px -14px var(--c)}
 .card.evo{border-color:var(--gold);animation:pulseGlow 1.6s ease-in-out infinite}
 .card.ct{border-color:var(--pink)}
+.card.ch .sk{margin-top:7px;padding-top:7px;border-top:1px dashed var(--line);
+  font-size:12.5px;line-height:1.45;color:var(--ash)}
+.card.ch .sk b{color:var(--c);font-weight:700}
 .card.ct .pay{margin-top:7px;padding-top:7px;border-top:1px dashed rgba(255,92,138,.35);
   font-size:13px;color:var(--pink);line-height:1.45}
 @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 1px var(--gold),0 0 30px -6px rgba(255,209,102,.5)}
@@ -331,6 +334,14 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 #ultbtn.locked{opacity:.42}
 #ultbtn:active{transform:scale(.94)}
 /* 공명 게이지 — 텍스트 한 줄로는 초당 수십 번 바뀌는 값을 못 읽는다. 눈금은 2차(30 가속)·3차(40 갈라짐)에서만 */
+/* 받고 있는 것 — 계약·권능·이벤트·사도 효과가 전부 숨은 상태였다.
+   아이콘 대신 짧은 글자칩으로 둔다. 이 게임엔 아이콘 세트가 없고, 글자가 더 정확하다. */
+#buffs{position:absolute;left:16px;top:52px;display:flex;flex-wrap:wrap;gap:4px;
+  max-width:min(300px,52vw);font-family:"Chakra Petch",var(--kr);font-size:11px;font-weight:700;letter-spacing:.04em}
+#buffs .bf{padding:2px 7px;border-radius:2px;border:1px solid currentColor;background:rgba(11,16,36,.72)}
+#buffs .bf.dn{opacity:.9;animation:bfp .9s ease-in-out infinite}
+@keyframes bfp{0%,100%{opacity:.55}50%{opacity:1}}
+#buffs .bf b{font-weight:700;margin-left:3px;opacity:.75}
 #res[hidden]{display:none}
 #res{position:absolute;left:16px;bottom:44px;width:min(200px,42vw);display:flex;align-items:center;gap:8px;
   font-family:"Chakra Petch",var(--kr);font-size:12px;letter-spacing:.1em;color:var(--ash)}
@@ -357,7 +368,8 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   #clock{top:calc(env(safe-area-inset-top) + 14px);font-size:27px}
   #zt{top:calc(env(safe-area-inset-top) + 48px);font-size:12px;letter-spacing:.08em}
   #right{top:calc(env(safe-area-inset-top) + 70px);right:calc(env(safe-area-inset-right) + 14px);font-size:13px}
-  #weapons{top:calc(env(safe-area-inset-top) + 96px);left:calc(env(safe-area-inset-left) + 14px)}
+  #buffs{top:calc(env(safe-area-inset-top) + 52px);left:calc(env(safe-area-inset-left) + 14px);max-width:62vw}
+  #weapons{top:calc(env(safe-area-inset-top) + 150px);left:calc(env(safe-area-inset-left) + 14px)}
   #call{top:38%}
 
   /* 상단 우측 46×46 원형 아이콘 버튼 */
@@ -470,6 +482,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <div id="hptext"><span id="hpnum">120 / 120</span></div>
   <div id="hpwrap"><div id="hpfill"></div></div>
   <div id="form">오퍼레이터</div>
+  <div id="buffs"></div>
   <div id="res" hidden><span class="lb">공명</span><div class="bar"><i class="t30"></i><i class="t40"></i><div id="resfill"></div></div><b id="resnum" class="mono">0 / 40</b></div>
   <div id="ult"><span id="ultname">궁극기 · 8레벨 진화 후</span><div class="bar"><div id="ultfill"></div></div></div>
   <button id="ultbtn" class="locked" aria-label="궁극기"><svg viewBox="0 0 88 88" aria-hidden="true"><circle class="trk" cx="44" cy="44" r="39"/><circle id="ultprg" class="prg" cx="44" cy="44" r="39"/></svg><span class="gl">ULT</span></button>
@@ -540,7 +553,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.3.1";
+const VERSION="3.4.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -615,7 +628,7 @@ function scoreDelta(){
    되살린 저장은 즉시 지운다. 안 그러면 같은 순간을 반복해 되살릴 수 있다. */
 const RKEY="relay:run", RUNV=1;
 const RUNF=["t","et","eth","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
-  "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","roster","endRoster","ang","plate","res","resT","resCap","rank","top1","ult","shield",
+  "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","roster","endRoster","ang","plate","res","resT","resCap","rank","top1","chs","ult","shield",
   "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
 let runSaveT=0;
 function saveRun(){
@@ -960,15 +973,51 @@ const PASSIVES={
    시작 무기 + 장점 하나 + 대가 하나. 새 메커닉 없이 newRun 초기값의 프리셋이다.
    8레벨 진화(기동계/방어계)가 중반 분기를 맡으므로 진화 전용 무기는 시작 무기에서 뺀다. */
 const CHARS={
-  relay :{n:"중계사",c:C.cyan,  w:"dart", d:"펄스 다트 · 다시 뽑기 +1",            f:G=>{G.rerolls+=1;}},
-  runner:{n:"질주자",c:C.orange,w:"flame",d:"화염 흔적 · 이속 +15% · 체력 100", f:G=>{G.p.spd*=1.15;G.p.mhp=G.p.hp=100;}},
-  shield:{n:"방패수",c:C.gold,  w:"blade",d:"회전 검 · 체력 160 · 이속 −8%",    f:G=>{G.p.mhp=G.p.hp=160;G.p.spd*=.92;}},
-  tech  :{n:"기술자",c:C.violet,w:"chain",d:"연쇄 번개 · 공속 +12% · 체력 105", f:G=>{G.st.rate*=1.12;G.p.mhp=G.p.hp=105;}},
+  relay :{n:"중계사",c:C.cyan,  w:"dart", sk:"중계",
+    d:"펄스 다트 · 다시 뽑기 +1",
+    sd:"신호권 안에 있는 동안 3초마다 경험치가 조금씩 들어온다",
+    f:G=>{G.rerolls+=1;}},
+  runner:{n:"질주자",c:C.orange,w:"flame",sk:"가속",
+    d:"화염 흔적 · 이속 +15% · 체력 100",
+    sd:"계속 움직이면 2초마다 피해 +6% (최대 +30%). 멈추면 곧 사라진다",
+    f:G=>{G.p.spd*=1.15;G.p.mhp=G.p.hp=100;}},
+  shield:{n:"방패수",c:C.gold,  w:"blade",sk:"버팀",
+    d:"회전 검 · 체력 160 · 이속 −8%",
+    sd:"체력이 절반 아래면 받는 피해 30% 감소, 초당 회복 +1.5",
+    f:G=>{G.p.mhp=G.p.hp=160;G.p.spd*=.92;}},
+  tech  :{n:"기술자",c:C.violet,w:"chain",sk:"과열",
+    d:"연쇄 번개 · 공속 +12% · 체력 105",
+    sd:"8초마다 3초간 공격 속도가 두 배가 된다",
+    f:G=>{G.st.rate*=1.12;G.p.mhp=G.p.hp=105;}},
 };
+/* 기체 스킬 상태 — 전부 G.chs 하나에 모은다 */
+function charTick(dt){
+  const p=G.p,c=G.ch,S=G.chs;
+  if(c==="relay"){
+    /* 중계 — 신호권을 지키면 경험치가 들어온다. 이 게임의 실력 축에 직접 붙는다 */
+    if(p.in){S.t+=dt;if(S.t>=3){S.t=0;gainXp(p.need*.05);S.on=1;}}
+    else{S.t=0;S.on=0;}
+  }else if(c==="runner"){
+    /* 가속 — 멈추면 풀린다. 「지나간 자리에 불길」과 같은 방향이다 */
+    if(G.moving){S.t+=dt;if(S.t>=2){S.t=0;S.n=Math.min(5,S.n+1);}}
+    else{S.t+=dt*2;if(S.t>=2){S.t=0;S.n=Math.max(0,S.n-1);}}
+    S.on=S.n>0;
+  }else if(c==="shield"){
+    /* 버팀 — 몰릴수록 단단해진다. 체력 160으로 시작하는 기체의 성격 */
+    S.on=p.hp<p.mhp*.5?1:0;
+    if(S.on)p.hp=Math.min(p.mhp,p.hp+1.5*dt);
+  }else if(c==="tech"){
+    /* 과열 — 주기적으로 두 배. 연쇄 번개처럼 몰아치는 리듬 */
+    S.t-=dt;
+    if(S.t<=0){if(S.on){S.on=0;S.t=8;}else{S.on=1;S.t=3;call("과열 — 공속 2배");}}
+  }
+}
+const charDmg=()=>G.ch==="runner"?1+.06*(G.chs.n||0):1;
+const charRate=()=>G.ch==="tech"&&G.chs.on?2:1;
 const charOf=()=>CHARS[PROF.ch]||CHARS.relay;
 function renderChars(){
   $("#chars").innerHTML=Object.entries(CHARS).map(([k,c])=>
-    `<button class="card ch${k===PROF.ch?" on":""}" data-ch="${k}" style="--c:${c.c}"><div class="glyph"><canvas width="76" height="76"></canvas></div><div class="t">${c.n}</div><div class="d">${c.d}</div></button>`).join("");
+    `<button class="card ch${k===PROF.ch?" on":""}" data-ch="${k}" style="--c:${c.c}"><div class="glyph"><canvas width="76" height="76"></canvas></div><div class="t">${c.n}</div><div class="d">${c.d}</div><div class="sk"><b>${c.sk}</b> ${c.sd}</div></button>`).join("");
   $("#chars").querySelectorAll(".card").forEach(b=>{
     const k=b.dataset.ch, g=b.querySelector("canvas").getContext("2d");
     g.translate(38,38);drawChar(g,k,15);   // 게임 화면과 같은 실루엣을 그대로 쓴다
@@ -1546,7 +1595,7 @@ function newRun(){
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0,eSpd:1,ultG:1,resDmg:.015,resHold:1,resBeat:0},
     ct:{},ctMode:false,
     roster:[],endRoster:[],ang:{},lastAng:null,plate:{up:true,cd:0},gazeT:0,shardA:0,
-    res:0,resT:0,resCap:40,resLvl:0,pend:0,bossXp:0,rank:0,top1:0,
+    res:0,resT:0,resCap:40,resLvl:0,pend:0,bossXp:0,rank:0,top1:0,chs:{t:0,n:0,on:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0,cd:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
     sev:null,sevT:0,sevN:SEV_FIRST,sevLast:null,
     zone:{x:0,y:0,r:340},next:null,zt:ZONE_T/PACE,
@@ -1751,6 +1800,7 @@ function update(dt){
      잔열(패시브)이 유지 시간을 늘린다 */
   if(G.form==="pulse"){G.resT+=dt;if(G.resT>2*G.st.resHold&&G.res>0)G.res=Math.max(0,G.res-dt*12);}
   if(G.ang.plate&&!G.plate.up){G.plate.cd-=dt;if(G.plate.cd<=0)G.plate.up=true;}
+  charTick(dt);
 
   // 스폰 (초반은 아주 완만하게)
   G.spawn+=dt*Math.min(G.cleared?11:7.5,0.9+G.eth/34)*(G.mod.spawn||1)*sevMul("spawn");  // 클리어 후에는 상한을 풀어 난이도를 이어간다
@@ -1842,6 +1892,7 @@ function zoneMul(){
   if(inn&&G.mod.zmul)m*=G.mod.zmul;
   if(!inn&&G.ang.pole)m*=1.3;   // 권능 · 극성 전환
   if(G.noEvo)m*=1.15;
+  m*=charDmg();          // 질주자 · 가속
   return m;
 }
 
@@ -1849,7 +1900,7 @@ function weapons(dt){
   const p=G.p,st=G.st,A=st.area;
   /* 태엽(제11사도)이 내 공격만 늦춘다. 적 탄막은 그대로라 「피하는 데 집중」이 답이 된다 */
   const tw=(G.boss&&G.boss.ang==="clockwork"&&G.boss.slow>0)?.45:1;
-  for(const k in G.cd)G.cd[k]-=dt*st.rate*tw;
+  for(const k in G.cd)G.cd[k]-=dt*st.rate*tw*charRate();   // 기술자 · 과열
 
   // 다트 / 레일건
   if(G.w.dart&&G.cd.dart<=0){
@@ -2155,6 +2206,7 @@ function hitP(d,src){const p=G.p;if(p.inv>0)return;
   if(G.ang.plate&&G.plate.up){G.plate.up=false;G.plate.cd=6;p.inv=.4;
     G.num.push({x:p.x,y:p.y-24,v:"장갑",life:.6,c:"#7fe3b0"});SFX.block();
     G.fx.push({x:p.x,y:p.y,vx:0,vy:0,life:.35,max:.35,ring:70,rc:"#7fe3b0"});return;}
+  if(G.ch==="shield"&&p.hp<p.mhp*.5)d*=.7;   // 방패수 · 버팀
   if(G.form==="warden"&&p.in)d*=.75;   // -35% → -25%. 원 안 배수와 겹쳐 이중으로 강했다
   p.hp-=d;p.inv=.6;p.flash=.25;shake=Math.max(shake,.5);hitstop=.03;SFX.hurt();G.lastHit=src||"접촉";
   /* 권능 · 반사판 — 받은 피해의 40%를 주변에. 계약 반사막과 같은 경로라 같이 터진다 */
@@ -2397,6 +2449,35 @@ function topBurst(){
       c:i%3?C.gold:"#ffffff",sp:1});}
   for(let q=0;q<3;q++)G.bolts.push({x:G.p.x,y:G.p.y,r:180+q*150,life:.7,max:.7,dmg:0,done:1,gold:1});
   SFX.evolve();SFX.ready();
+}
+/* 지금 받고 있는 것을 한 줄로 모은다. 좋은 것과 나쁜 것을 색으로 가른다 —
+   초록은 나에게 붙은 것, 분홍은 나를 깎는 것, 금색은 지금만 걸린 것(시간제). */
+function buffList(){
+  const B=[],st=G.st,p=G.p;
+  const add=(t,v,c,dn)=>B.push({t,v,c,dn});
+  /* 시간제 — 지금만 */
+  if(G.sev)add(G.sev.n,Math.ceil(G.sevT)+"s","#ffd166",1);
+  if(G.ult.t>0)add("무적",Math.ceil(G.ult.t)+"s","#4ff0d8",1);
+  if(G.outT>30)add("적 가속","","#ff5c8a",1);
+  if(G.boss&&G.boss.ang==="clockwork"&&G.boss.slow>0)add("공격 둔화",Math.ceil(G.boss.slow)+"s","#ff8a5c",1);
+  if(G.boss&&G.boss.ang==="inverse"&&G.boss.flip)add("안팎 반전","","#a86bff",1);
+  if(G.boss&&G.boss.ang==="famine"&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<380)add("체력 흡수","","#ff5c8a",1);
+  if(G.form==="pulse"&&G.stage>=2&&G.res>=30)add("공명 가속","","#ff5c8a",1);
+  if(G.form==="pulse"&&G.stage>=3&&G.res>=40)add("투사체 분열","","#ff5c8a",1);
+  /* 기체 고유 스킬 — 켜져 있을 때만 */
+  const CH=CHARS[G.ch];
+  if(CH&&G.chs.on){
+    if(G.ch==="runner")add(CH.sk,"+"+(6*G.chs.n)+"%","#ff9f43",1);
+    else if(G.ch==="tech")add(CH.sk,Math.ceil(G.chs.t)+"s","#a86bff",1);
+    else add(CH.sk,"","#4ff0d8",1);
+  }
+  /* 오늘의 규칙 — 판 내내 */
+  if(G.mod&&G.mod.n)add(G.mod.n,"","#ffd166");
+  /* 권능 — 사도에게서 얻은 것 */
+  for(const k in ANGELS){const R=ANGELS[k].rw;if(G.ang[R.id])add(R.n,"","#7fe3b0");}
+  /* 계약 — 대가를 치른 것 */
+  for(const c of CONTRACTS){const lv=G.ct[c.id]||0;if(lv)add(c.n,lv>1?"×"+lv:"","#ff5c8a");}
+  return B;
 }
 function flushLevel(){
   if(mode!=="play"||G.pend<=0||G.over)return;
@@ -3254,6 +3335,12 @@ function hud(){
   const zm=Math.round(zoneMul()*100);
   z.textContent=(SMALL?(p.in?"권내 ":"권외 "):(p.in?"신호권 · 피해 ":"신호권 밖 · 피해 "))+zm+"%";
   z.style.color=p.in?C.gold:"#8a93bb";
+  /* 문자열이 같으면 DOM을 안 건드린다 — 매 프레임 innerHTML은 비싸다 */
+  {const B=buffList();
+   const key=B.map(b=>b.t+b.v).join("|");
+   if(hud._bk!==key){hud._bk=key;
+     $("#buffs").innerHTML=B.map(b=>
+       `<span class="bf${b.dn?" dn":""}" style="color:${b.c}">${b.t}${b.v?`<b>${b.v}</b>`:""}</span>`).join("");}}
   let html="";
   for(const k in G.w){const ev=EVOS.find(e=>e.w===k&&G.evo[e.id]);
     html+=`<div class="wchip" style="--c:${WEAPONS[k].c}"><b>${ev?ev.n:WEAPONS[k].n}</b> ${ev?"MAX":"Lv"+G.lvls[k]}</div>`;}
