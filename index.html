@@ -562,7 +562,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.5.2";
+const VERSION="3.5.3";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -814,6 +814,21 @@ async function fetchLB(view){
   try{const r=await fetch(`${SB_URL}/rest/v1/${view}?select=*`,{headers:SB_H()});
     return r.ok?await r.json():null;}catch(e){return null;}
 }
+/* 같은 이름은 최고 기록 한 줄로 합친다. 서버가 점수 내림차순으로 주므로 먼저 만난 것이 최고다.
+   등수는 다시 매긴다 — 동점은 같은 등수(SQL rank()와 같은 규칙). */
+function dedupeLB(rows){
+  if(!Array.isArray(rows))return [];
+  const seen=new Set(), out=[];
+  for(const r of rows){
+    const k=(r.nick||"").trim();
+    if(k&&seen.has(k))continue;
+    if(k)seen.add(k);
+    out.push(r);
+  }
+  let rank=0, prev=null;
+  out.forEach((r,i)=>{if(prev===null||r.score!==prev){rank=i+1;prev=r.score;}r.rank=rank;});
+  return out;
+}
 async function loadLB(){
   if(!sbReady()){LB=[];paintLB();$("#lblist").innerHTML=`<div class="lbempty">랭킹 서버 키가 아직 설정되지 않았습니다.</div>`;return;}
   /* 표 하나로 둔다. 사람이 둘뿐인데 모드별로 나누면 양쪽 다 비어 보인다.
@@ -821,7 +836,7 @@ async function loadLB(){
      사람이 늘면 그때 나누면 된다. */
   LB=await fetchLB("recent_top");
   if(LB===null)LB=await fetchLB("daily_top");
-  if(LB===null)LB=[];
+  LB=dedupeLB(LB);
   paintLB();
 }
 function paintLB(hl){
