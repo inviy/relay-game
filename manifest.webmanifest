@@ -1,0 +1,16 @@
+{
+  "name": "RELAY — 중계",
+  "short_name": "RELAY",
+  "description": "브라우저에서 바로 돌아가는 뱀서라이크 로그라이크. 오늘의 시드로 모두가 같은 판을 돕니다.",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1024",
+  "theme_color": "#0b1024",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
