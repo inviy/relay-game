@@ -594,7 +594,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.6.1";
+const VERSION="3.6.2";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -2243,7 +2243,12 @@ function dmgE(e,d,showNum){
     const a=rnd(0,TAU);
     for(let i=0;i<2;i++)G.fx.push({x:e.x,y:e.y,vx:Math.cos(a+rnd(-.7,.7))*rnd(70,150),
       vy:Math.sin(a+rnd(-.7,.7))*rnd(70,150),life:.18,max:.18,c:"#ffffff"});}
-  if(showNum&&d>=1)G.num.push({x:e.x,y:e.y-e.r,v:Math.round(d),life:.65,c:crit?C.gold:C.pale});
+  /* 같은 적에게 0.25초 안에 또 들어가면 새 숫자를 띄우지 않고 합친다 — 안 그러면
+     「44 44 67 67」이 줄로 쌓여 숫자가 아니라 노이즈가 된다. 치명은 따로 띄운다 */
+  if(showNum&&d>=1){const o=e.num&&e.num.life>.4?e.num:null;
+    if(o&&!crit){o.v+=Math.round(d);o.life=.65;o.t=0;o.x=e.x;o.y=e.y-e.r;}
+    else{const n={x:e.x+rnd(-6,6),y:e.y-e.r,vx:rnd(-26,26),v:Math.round(d),life:crit?.8:.65,t:0,c:crit?C.gold:C.pale,crit};
+      G.num.push(n);if(!crit)e.num=n;}}
   if(e.hp<=0&&!e.dead){
     e.dead=1;G.kills++;SFX.kill();
     if(G.st.drain)G.p.hp=Math.min(G.p.mhp,G.p.hp+G.st.drain);
@@ -2263,6 +2268,8 @@ function dmgE(e,d,showNum){
     if(e.bomb||e.tr==="volat"){explodeE(Object.assign({},e,{dead:0,dmg:e.bomb?e.dmg:26}),true);}if(G.form&&G.form!=="none")G.ult.c=Math.min(G.ult.max,G.ult.c+G.st.ultG);
     for(let i=0;i<e.xp;i++)G.fx.push({x:e.x+rnd(-10,10),y:e.y+rnd(-10,10),xp:1});
     G.fx.push({x:e.x,y:e.y,vx:0,vy:0,life:.26,max:.26,ring:e.r*1.5,rc:e.c,rw:2});
+    /* 죽는 적이 그 프레임에 그냥 없어졌다. 0.18초 동안 흰 섬광 → 부풀며 사라진다 */
+    G.fx.push({ghost:1,x:e.x,y:e.y,r:e.r,sh:e.sh,ph:e.ph,c:e.c,life:.18,max:.18});
     for(let i=0;i<11;i++){const a=rnd(0,TAU),v=rnd(90,260);
       G.fx.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rnd(.3,.55),max:.55,c:e.c});}
     if(e.elite){hitstop=.06;shake=Math.max(shake,.5);dropItem(e.x,e.y,"chest");}
@@ -2541,7 +2548,7 @@ function fx(dt){const p=G.p;
       continue;}
     f.life-=dt;if(f.vx){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=.94;f.vy*=.94;}
     if(f.life<=0)G.fx.splice(i,1);}
-  for(let i=G.num.length-1;i>=0;i--){const n=G.num[i];n.life-=dt;n.y-=44*dt;
+  for(let i=G.num.length-1;i>=0;i--){const n=G.num[i];n.life-=dt;n.y-=44*dt;n.t=(n.t||0)+dt;if(n.vx)n.x+=n.vx*dt;
     if(n.life<=0)G.num.splice(i,1);}
 }
 function gainXp(n){const p=G.p;p.xp+=n;
@@ -3066,6 +3073,8 @@ function draw(){
   cx.restore();
   for(const f of G.fx){
     if(f.xp)continue;
+    if(f.ghost){const k=1-f.life/f.max;cx.save();cx.globalAlpha=Math.max(0,1-k*1.1);
+      cx.fillStyle=k<.35?"#ffffff":f.c;cx.beginPath();ePath(f,f.x+ox,f.y+oy,f.r*(1+k*.75));cx.fill();cx.restore();continue;}
     if(f.ring){const k=1-f.life/f.max,col=f.rc||C.gold;cx.save();cx.shadowColor=col;cx.shadowBlur=18;
       cx.globalAlpha=Math.max(0,1-k);cx.strokeStyle=col;cx.lineWidth=f.rw||3;
       cx.beginPath();cx.arc(f.x+ox,f.y+oy,f.ring*(.5+k),0,TAU);cx.stroke();cx.restore();continue;}
@@ -3132,22 +3141,8 @@ function draw(){
     const X=e.x+ox,Y=e.y+oy;
     cx.save();cx.shadowColor=e.c;cx.shadowBlur=e.elite?22:8;
     cx.fillStyle=e.c;cx.beginPath();
-    if(e.sh==="tri"){cx.moveTo(X,Y-e.r);cx.lineTo(X+e.r*.9,Y+e.r*.8);cx.lineTo(X-e.r*.9,Y+e.r*.8);cx.closePath();}
-    else if(e.sh==="square"){const w=e.r*1.7;cx.rect(X-w/2,Y-w/2,w,w);}
-    else if(e.sh==="diamond"){cx.moveTo(X,Y-e.r);cx.lineTo(X+e.r,Y);cx.lineTo(X,Y+e.r);cx.lineTo(X-e.r,Y);cx.closePath();}
-    else if(e.sh==="wall"){cx.rect(X-e.r,Y-e.r*.55,e.r*2,e.r*1.1);}
-    else if(e.sh==="bomb"){cx.arc(X,Y,e.r*(1+Math.sin(e.ph*2)*.15),0,TAU);}
-    else if(e.sh==="cell"){cx.arc(X,Y,e.r,0,TAU);cx.moveTo(X+e.r*.35,Y-e.r*.3);cx.arc(X-e.r*.3,Y-e.r*.3,e.r*.35,0,TAU);cx.moveTo(X+e.r*.6,Y+e.r*.3);cx.arc(X+e.r*.25,Y+e.r*.3,e.r*.35,0,TAU);}
-    /* 고리 — 안쪽을 반대로 감아 구멍을 낸다(nonzero). 배회체가 "도는 것"으로 읽힌다 */
-    else if(e.sh==="ring"){cx.arc(X,Y,e.r,0,TAU);cx.arc(X,Y,e.r*.48,0,TAU,true);}
-    /* 렌즈 — 관측자. 가로로 눕힌 눈 모양이라 멀리서도 다른 종과 안 헷갈린다 */
-    else if(e.sh==="eye"){cx.moveTo(X-e.r,Y);cx.quadraticCurveTo(X,Y-e.r*.95,X+e.r,Y);cx.quadraticCurveTo(X,Y+e.r*.95,X-e.r,Y);}
-    /* 육각 — 차폐기. 방어계 실루엣과 같은 계열이라 "막는 놈"으로 읽힌다 */
-    else if(e.sh==="hex"){for(let q=0;q<6;q++){const ang=q/6*TAU-Math.PI/2,xx=X+Math.cos(ang)*e.r,yy=Y+Math.sin(ang)*e.r;q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}cx.closePath();}
-    /* 아가리 — 천천히 도는 톱니. 다른 어떤 적과도 안 닮았다 */
-    else if(e.sh==="maw"){const n=9;for(let q=0;q<n;q++){const ang=q/n*TAU+e.ph*.35,rr=e.r*(q%2?.55:1);
-      const xx=X+Math.cos(ang)*rr,yy=Y+Math.sin(ang)*rr;q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}cx.closePath();}
-    else cx.arc(X,Y,e.r*(1+Math.sin(e.ph)*.05),0,TAU);
+    const hs=1+(e.hit>0?e.hit*1.6:0);     // 맞으면 0.1초 동안 16% 부푼다
+    ePath(e,X,Y,e.r*hs);
     cx.fill();
     /* 피격 섬광 — 예전엔 본체를 통째로 #fff로 갈아치웠다. 탄이 많으면 화면이
        흰 도형으로 가득 차서 "나는 연한 것 / 적은 채도 높은 것" 대비가 난전에서
@@ -3156,7 +3151,7 @@ function draw(){
     if(e.hit>0){cx.globalAlpha=.5;cx.fillStyle="#ffffff";cx.fill();cx.globalAlpha=1;}
     // 밝은 코어 — 단색 덩어리로 보이지 않게 (그림자는 꺼서 비용을 아낀다)
     cx.globalAlpha=e.hit>0?.9:.5;cx.fillStyle="#ffffff";
-    cx.beginPath();cx.arc(X,Y,e.r*.28,0,TAU);cx.fill();
+    cx.beginPath();cx.arc(X,Y,e.r*hs*.28,0,TAU);cx.fill();
     cx.globalAlpha=1;cx.restore();
     /* 차폐기 범위 — 안 보이면 왜 안 죽는지 알 수 없다. 보여야 처리 순서를 배운다. */
     if(e.aura){cx.save();cx.strokeStyle="rgba(154,214,176,.45)";cx.lineWidth=1.5;cx.setLineDash([9,7]);
@@ -3351,9 +3346,17 @@ function draw(){
   if(G.outT>30){const k=Math.min(1,(G.outT-30)/20);cx.fillStyle=`rgba(255,80,120,${.06*k})`;
     for(let i=0;i<14*k;i++)cx.fillRect(rnd(0,W),rnd(0,H),rnd(20,220),rnd(1,3));}
   // 데미지 숫자
-  cx.textAlign="center";cx.font="700 "+(17*VS).toFixed(1)+"px "+KRF;
-  for(const n of G.num){cx.globalAlpha=Math.min(1,n.life*2.2);
-    cx.fillStyle=n.c;cx.fillText(n.v,n.x+ox,n.y+oy);}
+  /* 크기가 피해를 말한다 — 모두 17px였을 때는 44와 400이 같은 무게였다.
+     처음 0.12초는 1.6배에서 가라앉는다(팝). 어두운 테두리로 난전에서도 읽힌다 */
+  cx.textAlign="center";cx.lineJoin="round";
+  for(const n of G.num){
+    const num=typeof n.v==="number", base=num?Math.min(27,13+Math.sqrt(n.v)*.95):15;
+    const pop=n.t!==undefined?1+Math.max(0,.12-n.t)/.12*.6:1;
+    cx.font="800 "+(base*(n.crit?1.35:1)*pop*VS).toFixed(1)+"px "+KRF;
+    const tx=n.crit?n.v+"!":n.v;
+    cx.globalAlpha=Math.min(1,n.life*2.2);
+    cx.lineWidth=3.2*VS;cx.strokeStyle="rgba(5,7,15,.8)";cx.strokeText(tx,n.x+ox,n.y+oy);
+    cx.fillStyle=n.c;cx.fillText(tx,n.x+ox,n.y+oy);}
   cx.globalAlpha=1;
 
   // 비네트
@@ -3368,6 +3371,25 @@ function draw(){
 }
 
 /* 가상 조이스틱 — 손가락이 닿은 자리에 원과 노브 */
+/* 적 도형 — 본체와 사망 잔상이 같은 모양을 쓴다. 경로만 만들고 칠은 부르는 쪽 몫이다 */
+function ePath(e,X,Y,r){
+    if(e.sh==="tri"){cx.moveTo(X,Y-r);cx.lineTo(X+r*.9,Y+r*.8);cx.lineTo(X-r*.9,Y+r*.8);cx.closePath();}
+    else if(e.sh==="square"){const w=r*1.7;cx.rect(X-w/2,Y-w/2,w,w);}
+    else if(e.sh==="diamond"){cx.moveTo(X,Y-r);cx.lineTo(X+r,Y);cx.lineTo(X,Y+r);cx.lineTo(X-r,Y);cx.closePath();}
+    else if(e.sh==="wall"){cx.rect(X-r,Y-r*.55,r*2,r*1.1);}
+    else if(e.sh==="bomb"){cx.arc(X,Y,r*(1+Math.sin(e.ph*2)*.15),0,TAU);}
+    else if(e.sh==="cell"){cx.arc(X,Y,r,0,TAU);cx.moveTo(X+r*.35,Y-r*.3);cx.arc(X-r*.3,Y-r*.3,r*.35,0,TAU);cx.moveTo(X+r*.6,Y+r*.3);cx.arc(X+r*.25,Y+r*.3,r*.35,0,TAU);}
+    /* 고리 — 안쪽을 반대로 감아 구멍을 낸다(nonzero). 배회체가 "도는 것"으로 읽힌다 */
+    else if(e.sh==="ring"){cx.arc(X,Y,r,0,TAU);cx.arc(X,Y,r*.48,0,TAU,true);}
+    /* 렌즈 — 관측자. 가로로 눕힌 눈 모양이라 멀리서도 다른 종과 안 헷갈린다 */
+    else if(e.sh==="eye"){cx.moveTo(X-r,Y);cx.quadraticCurveTo(X,Y-r*.95,X+r,Y);cx.quadraticCurveTo(X,Y+r*.95,X-r,Y);}
+    /* 육각 — 차폐기. 방어계 실루엣과 같은 계열이라 "막는 놈"으로 읽힌다 */
+    else if(e.sh==="hex"){for(let q=0;q<6;q++){const ang=q/6*TAU-Math.PI/2,xx=X+Math.cos(ang)*r,yy=Y+Math.sin(ang)*r;q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}cx.closePath();}
+    /* 아가리 — 천천히 도는 톱니. 다른 어떤 적과도 안 닮았다 */
+    else if(e.sh==="maw"){const n=9;for(let q=0;q<n;q++){const ang=q/n*TAU+e.ph*.35,rr=r*(q%2?.55:1);
+      const xx=X+Math.cos(ang)*rr,yy=Y+Math.sin(ang)*rr;q?cx.lineTo(xx,yy):cx.moveTo(xx,yy);}cx.closePath();}
+    else cx.arc(X,Y,r*(1+Math.sin(e.ph)*.05),0,TAU);
+}
 function drawStick(){
   if(!touch)return;
   const bx=touch.ox*VS, by=touch.oy*VS, r=STICK*VS;
@@ -3664,7 +3686,7 @@ function endTick(dt){
   for(let i=G.fx.length-1;i>=0;i--){const f=G.fx[i];if(f.xp)continue;   // 구슬은 먹지 않는다
     f.life-=dt;if(f.vx){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=.95;f.vy*=.95;}
     if(f.life<=0)G.fx.splice(i,1);}
-  for(let i=G.num.length-1;i>=0;i--){const n=G.num[i];n.life-=dt;n.y-=44*dt;if(n.life<=0)G.num.splice(i,1);}
+  for(let i=G.num.length-1;i>=0;i--){const n=G.num[i];n.life-=dt;n.y-=44*dt;n.t=(n.t||0)+dt;if(n.vx)n.x+=n.vx*dt;if(n.life<=0)G.num.splice(i,1);}
   G.flash.t=Math.max(0,G.flash.t-dt);shake=Math.max(0,shake-dt*1.6);G.p.flash=0;
 }
 function pause(){if(G&&G.dying>0)return;mode="pause";saveRun();showVeil("#v-pause");}
