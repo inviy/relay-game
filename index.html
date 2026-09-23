@@ -609,7 +609,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.6.4";
+const VERSION="3.6.5";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','RelayKR','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -731,11 +731,17 @@ const srnd=(g,a,b)=>a+g()*(b-a), spick=(g,arr)=>arr[Math.floor(g()*arr.length)];
 
 /* ───── 사운드 (Web Audio 합성) ───── */
 const SFX=(()=>{let ac=null,master,muted=false,lastKill=0;
- function ctx(){if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=.32;master.connect(ac.destination);}
+ function ctx(){if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=.32;
+   /* 사각파 · 톱니파를 날것으로 내보내고 있었다 — 고역이 귀를 긁고, 여러 소리가 겹치면
+      뭉개졌다. 7kHz 위를 깎고 압축기로 묶는다. 처치음 수십 개가 겹쳐도 한 덩어리로 들린다 */
+   const lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=7000;lp.Q.value=.5;
+   const cp=ac.createDynamicsCompressor();cp.threshold.value=-18;cp.knee.value=12;cp.ratio.value=4;cp.attack.value=.004;cp.release.value=.18;
+   master.connect(lp);lp.connect(cp);cp.connect(ac.destination);}
    if(ac.state==="suspended")ac.resume();return ac;}
  function tone(f,t,type="sine",v=1,slide=0,delay=0){if(muted)return;try{const a=ctx(),o=a.createOscillator(),g=a.createGain(),t0=a.currentTime+delay;
    o.type=type;o.frequency.setValueAtTime(f,t0);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(20,f+slide),t0+t);
-   g.gain.setValueAtTime(v,t0);g.gain.exponentialRampToValueAtTime(.001,t0+t);o.connect(g);g.connect(master);o.start(t0);o.stop(t0+t);}catch(e){}}
+   g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(v,t0+.004);   // 4ms 어택 — 없으면 음마다 딸깍거린다
+   g.gain.exponentialRampToValueAtTime(.001,t0+t);o.connect(g);g.connect(master);o.start(t0);o.stop(t0+t);}catch(e){}}
  function noise(t,v=.5,fq=1200){if(muted)return;try{const a=ctx(),b=a.createBuffer(1,a.sampleRate*t|0,a.sampleRate),d=b.getChannelData(0);
    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);const src=a.createBufferSource();src.buffer=b;
    const g=a.createGain();g.gain.value=v;const f=a.createBiquadFilter();f.type="lowpass";f.frequency.value=fq;
@@ -793,8 +799,9 @@ const SFX=(()=>{let ac=null,master,muted=false,lastKill=0;
     if(ac.state==="suspended")ac.resume();
     if(bgmIv&&bgmG&&!muted)bgmVol(VOL,.35);   // 밀린 페이드가 있으면 되돌린다
   }catch(e){}},
-  kill(){const n=performance.now();if(n-lastKill<40)return;lastKill=n;tone(rnd(360,520),.07,"square",.14,-220);},
-  hurt(){noise(.16,.5,900);tone(85,.22,"sawtooth",.3,-40);},
+  /* 처치 — 사각파 삑 한 번이었다. 짧은 잡음(터지는 소리) 위에 떨어지는 삼각파(몸통)를 겹친다 */
+  kill(){const n=performance.now();if(n-lastKill<40)return;lastKill=n;noise(.05,.22,2600);tone(rnd(520,700),.09,"triangle",.16,-420);},
+  hurt(){noise(.16,.5,900);tone(85,.22,"sawtooth",.3,-40);tone(220,.12,"triangle",.18,-120);},
   block(){tone(1400,.1,"triangle",.25,-600);},
   pickup(){tone(880,.1,"sine",.22,500);},
   chest(){[660,880,1100,1320].forEach((f,i)=>tone(f,.18,"triangle",.22,0,i*.06));},
@@ -3048,11 +3055,15 @@ function draw(){
       if(s.z<band.lo||s.z>=band.hi)continue;
       const x=((s.x+ox*s.z)%2400+2400)%2400-200, y=((s.y+oy*s.z)%1800+1800)%1800-200;
       if(x>-20&&x<W+20&&y>-20&&y<H+20)cx.fillRect(x,y,s.z*2.2,s.z*2.2);}}
-  // 그리드
-  cx.strokeStyle="rgba(70,90,170,.10)";cx.lineWidth=1;cx.beginPath();
+  /* 격자 — 화면을 가로지르는 선 격자는 「템플릿 게임」의 인상이 가장 강했다.
+     교차점에만 점을 찍는다. 움직임은 그대로 읽히고 선이 주던 모눈종이 느낌은 빠진다.
+     400마다 십자를 한 번 — 속도감이 점만으로는 약하다 */
   const gs=100,x0=((ox%gs)+gs)%gs,y0=((oy%gs)+gs)%gs;
-  for(let x=x0;x<W;x+=gs){cx.moveTo(x,0);cx.lineTo(x,H);}
-  for(let y=y0;y<H;y+=gs){cx.moveTo(0,y);cx.lineTo(W,y);}
+  cx.fillStyle="rgba(120,140,220,.22)";
+  for(let x=x0;x<W;x+=gs)for(let y=y0;y<H;y+=gs)cx.fillRect(x-1,y-1,2,2);
+  const gl=400,X0=((ox%gl)+gl)%gl,Y0=((oy%gl)+gl)%gl;
+  cx.strokeStyle="rgba(120,140,220,.16)";cx.lineWidth=1;cx.beginPath();
+  for(let x=X0;x<W;x+=gl)for(let y=Y0;y<H;y+=gl){cx.moveTo(x-6,y);cx.lineTo(x+6,y);cx.moveTo(x,y-6);cx.lineTo(x,y+6);}
   cx.stroke();
 
   // 신호권
@@ -3162,7 +3173,10 @@ function draw(){
     const X=e.x+ox,Y=e.y+oy;
     cx.save();cx.shadowColor=e.c;cx.shadowBlur=e.elite?22:8;
     cx.fillStyle=e.c;cx.beginPath();
-    const hs=1+(e.hit>0?e.hit*1.6:0);     // 맞으면 0.1초 동안 16% 부푼다
+    /* 숨쉬기 — 제자리에서도 4% 부풀었다 줄어든다. 같은 도형이 수백 개 떠 있어도
+       위상이 달라 「찍어 놓은 도장」으로 안 보인다 */
+    const hs=(1+(e.hit>0?e.hit*1.6:0))*(1+Math.sin(G.t*5+e.ph*3)*.04);   // 맞으면 16% 부푼다
+    e.fa=Math.atan2(p.y-e.y,p.x-e.x);                                    // 나를 본다
     ePath(e,X,Y,e.r*hs);
     cx.fill();
     /* 피격 섬광 — 예전엔 본체를 통째로 #fff로 갈아치웠다. 탄이 많으면 화면이
@@ -3170,9 +3184,20 @@ function draw(){
        무너진다(색 축 분리, v1.7.0). 갈아치우는 대신 섞어서 적 색을 남긴다. */
     cx.shadowBlur=0;
     if(e.hit>0){cx.globalAlpha=.5;cx.fillStyle="#ffffff";cx.fill();cx.globalAlpha=1;}
-    // 밝은 코어 — 단색 덩어리로 보이지 않게 (그림자는 꺼서 비용을 아낀다)
-    cx.globalAlpha=e.hit>0?.9:.5;cx.fillStyle="#ffffff";
-    cx.beginPath();cx.arc(X,Y,e.r*hs*.28,0,TAU);cx.fill();
+    /* 눈 — 가운데 흰 점 하나였던 코어를 두 눈으로 바꾼다. 눈동자가 나를 따라온다.
+       도형이 「생물」로 읽히는 가장 싼 방법이고, 코어가 하던 일(단색 덩어리로 안
+       보이게)도 그대로 한다. 눈 모양 · 고리 · 아가리는 자기 얼굴이 있어서 뺀다 */
+    if(e.sh!=="eye"&&e.sh!=="ring"&&e.sh!=="maw"){
+      const R=e.r*hs, ca=Math.cos(e.fa), sa=Math.sin(e.fa), er=Math.max(1.6,R*.2), sp=R*.34, fw=R*.16;
+      const ex1=X+ca*fw-sa*sp, ey1=Y+sa*fw+ca*sp, ex2=X+ca*fw+sa*sp, ey2=Y+sa*fw-ca*sp;
+      cx.fillStyle="#ffffff";cx.globalAlpha=e.hit>0?1:.92;cx.beginPath();
+      cx.moveTo(ex1+er,ey1);cx.arc(ex1,ey1,er,0,TAU);cx.moveTo(ex2+er,ey2);cx.arc(ex2,ey2,er,0,TAU);cx.fill();
+      const pr=er*.52, po=er*.38;
+      cx.fillStyle="#0b1024";cx.globalAlpha=1;cx.beginPath();
+      cx.moveTo(ex1+ca*po+pr,ey1+sa*po);cx.arc(ex1+ca*po,ey1+sa*po,pr,0,TAU);
+      cx.moveTo(ex2+ca*po+pr,ey2+sa*po);cx.arc(ex2+ca*po,ey2+sa*po,pr,0,TAU);cx.fill();
+    }else{cx.globalAlpha=e.hit>0?.9:.5;cx.fillStyle="#ffffff";
+      cx.beginPath();cx.arc(X,Y,e.r*hs*.28,0,TAU);cx.fill();}
     cx.globalAlpha=1;cx.restore();
     /* 차폐기 범위 — 안 보이면 왜 안 죽는지 알 수 없다. 보여야 처리 순서를 배운다. */
     if(e.aura){cx.save();cx.strokeStyle="rgba(154,214,176,.45)";cx.lineWidth=1.5;cx.setLineDash([9,7]);
@@ -3397,7 +3422,9 @@ function draw(){
 /* 가상 조이스틱 — 손가락이 닿은 자리에 원과 노브 */
 /* 적 도형 — 본체와 사망 잔상이 같은 모양을 쓴다. 경로만 만들고 칠은 부르는 쪽 몫이다 */
 function ePath(e,X,Y,r){
-    if(e.sh==="tri"){cx.moveTo(X,Y-r);cx.lineTo(X+r*.9,Y+r*.8);cx.lineTo(X-r*.9,Y+r*.8);cx.closePath();}
+    if(e.sh==="tri"){const a=e.fa!==undefined?e.fa:-Math.PI/2;   // 머리를 나에게 — 돌진하는 놈이 위만 보고 있었다
+      cx.moveTo(X+Math.cos(a)*r*1.1,Y+Math.sin(a)*r*1.1);
+      cx.lineTo(X+Math.cos(a+2.45)*r,Y+Math.sin(a+2.45)*r);cx.lineTo(X+Math.cos(a-2.45)*r,Y+Math.sin(a-2.45)*r);cx.closePath();}
     else if(e.sh==="square"){const w=r*1.7;cx.rect(X-w/2,Y-w/2,w,w);}
     else if(e.sh==="diamond"){cx.moveTo(X,Y-r);cx.lineTo(X+r,Y);cx.lineTo(X,Y+r);cx.lineTo(X-r,Y);cx.closePath();}
     else if(e.sh==="wall"){cx.rect(X-r,Y-r*.55,r*2,r*1.1);}
