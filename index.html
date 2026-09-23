@@ -260,6 +260,14 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .card.ct{border-color:var(--pink)}
 .card.ch .sk{margin-top:7px;padding-top:7px;border-top:1px dashed var(--line);
   font-size:12.5px;line-height:1.45;color:var(--ash)}
+/* 메뉴를 한 화면에 — 1280×800 노트북(브라우저를 빼면 713px)에서 시작 버튼이 화면
+   밖이었다. 기체 카드마다 세 줄씩 붙던 스킬 설명을 카드 아래 한 줄로 모으고
+   (고른 기체 것만), 통계 세 칸을 한 줄로 합쳤다. 카드 높이가 절반이 된다 */
+.card.ch .sk{display:none}
+#chsk{max-width:640px;margin:0 auto 4px;min-height:1.5em;font-size:13.5px;line-height:1.5;color:var(--ash)}
+#chsk b{color:var(--c);margin-right:6px}
+.mstats{display:flex;justify-content:center;gap:18px;margin:12px 0 0;font-size:12.5px;color:var(--ash)}
+.mstats b{font-family:"Chakra Petch",var(--kr);font-size:15px;color:var(--pale);margin-left:4px}
 .card.ch .sk b{color:var(--c);font-weight:700}
 .card.ct .pay{margin-top:7px;padding-top:7px;border-top:1px dashed rgba(255,92,138,.35);
   font-size:13px;color:var(--pink);line-height:1.45}
@@ -548,17 +556,15 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 </div>
 
 <div class="veil" id="v-menu"><div class="box">
-  <div class="tag">SECTOR 07 · <span id="ver"></span></div>
+  <div class="tag"><span id="seedtag"></span> · <span id="ver"></span></div>
   <h1>RELAY</h1>
   <p id="todaymod" style="margin:12px auto 0;font-size:14.5px;max-width:540px;
      padding:9px 14px;border:1px solid var(--line);border-radius:3px;background:rgba(255,209,102,.05)"></p>
   <p id="lbtop"></p>
-  <div class="stats">
-    <div class="stat"><b id="streak" class="mono">0</b><span>연속</span></div>
-    <div class="stat"><b id="yday" class="mono">—</b><span>어제</span></div>
-    <div class="stat"><b id="runs" class="mono">0</b><span>출격</span></div>
-  </div>
+  <!-- 통계 세 칸이 각각 두 줄(숫자 · 라벨)로 55px를 쓰고 있었다. 한 줄로 -->
+  <p class="mstats"><span>연속 <b id="streak" class="mono">0</b></span><span>어제 <b id="yday" class="mono">—</b></span><span>출격 <b id="runs" class="mono">0</b></span></p>
   <div id="chars" class="chars" aria-label="시작 기체 선택"></div>
+  <p id="chsk"></p>
   <div class="startbox" id="startbox">
     <div class="identlab" id="identlab">순위표에 올릴 이름</div>
     <div class="ident" id="ident">
@@ -609,7 +615,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.6.5";
+const VERSION="3.6.6";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','RelayKR','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -1102,6 +1108,8 @@ function renderChars(){
     g.translate(38,38);drawChar(g,k,15);   // 게임 화면과 같은 실루엣을 그대로 쓴다
     b.onclick=()=>{PROF.ch=k;ls.set(PKEY,PROF);renderChars();};
   });
+  const c=CHARS[PROF.ch]||CHARS.relay, ks=$("#chsk");
+  ks.style.setProperty("--c",c.c);ks.innerHTML=`<b>${c.sk}</b>${c.sd}`;
 }
 /* ───── 위험 계약 ─────
    카드가 마르면 levelUp()이 효과음만 내고 끝났다 — LV97 이후 레벨업 15~20회가
@@ -3839,6 +3847,8 @@ $("#lb-refresh").onclick=loadLB;
 $("#lbtop").onclick=()=>$("#lb").scrollIntoView({behavior:"smooth",block:"start"});
 $("#todaymod").innerHTML=`<b style="color:var(--gold)">오늘의 규칙 · ${MOD.n}</b> — ${MOD.d}`;
 $("#ver").textContent="v"+VERSION;
+/* 「SECTOR 07」은 아무 뜻이 없었다. 그 자리에 오늘 판 번호를 — 공유 문구의 #번호와 같다 */
+$("#seedtag").textContent="DAILY #"+SEED;
 $("#nick").addEventListener("keydown",e=>e.stopPropagation());
 $("#nick").addEventListener("input",askName);
 /* 탭을 닫거나 앱을 전환하면 end가 영영 안 찍힌다. 이 신호가 없으면 이탈 지점이
