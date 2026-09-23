@@ -58,6 +58,17 @@ canvas{display:block;width:100%;height:100%}
   background:radial-gradient(120% 90% at 50% 0%,rgba(30,22,70,.92),rgba(7,10,20,.97));
   backdrop-filter:blur(8px);overflow-y:auto}
 .veil.off{display:none}
+/* 켜질 때만 움직인다. 꺼질 때까지 기다리게 하면 전투로 돌아가는 손이 느려진다 */
+.veil:not(.off){animation:veilIn .26s ease-out}
+.veil:not(.off)>.box{animation:boxIn .38s cubic-bezier(.2,.8,.2,1)}
+#picks .card{animation:cardIn .34s cubic-bezier(.2,.8,.2,1) both}
+#picks .card:nth-child(2){animation-delay:.05s}
+#picks .card:nth-child(3){animation-delay:.1s}
+#picks .card:nth-child(4){animation-delay:.15s}
+@keyframes veilIn{from{opacity:0}}
+@keyframes boxIn{from{opacity:0;transform:translateY(14px) scale(.985)}}
+@keyframes cardIn{from{opacity:0;transform:translateY(18px)}}
+@media (prefers-reduced-motion:reduce){.veil:not(.off),.veil:not(.off)>.box,#picks .card{animation:none}}
 .box{width:100%;max-width:900px;margin:auto;text-align:center}
 h1{font-family:"Chakra Petch",var(--kr);font-size:clamp(48px,11vw,92px);font-weight:700;line-height:.92;
   letter-spacing:.04em;background:linear-gradient(180deg,#fff,#ffd166 60%,#ff9f43);
@@ -583,7 +594,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.6.0";
+const VERSION="3.6.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -780,6 +791,7 @@ const SFX=(()=>{let ac=null,master,muted=false,lastKill=0;
   warn(){[0,.15,.3].forEach(d=>tone(330,.11,"square",.18,0,d));},
   boss(){tone(50,1.3,"sawtooth",.5);noise(1,.45,400);},
   bomb(){noise(.5,.7,700);tone(70,.5,"sawtooth",.4,-40);},
+  die(){noise(.9,.8,500);tone(55,1.2,"sawtooth",.45,-30);tone(660,1.1,"triangle",.22,-560,.05);tone(440,1.3,"sine",.18,-380,.18);},
  };})();
 
 /* ───── 프로필 · 글로벌 랭킹 ───── */
@@ -1982,7 +1994,7 @@ function update(dt){
   }
 
   weapons(dt); enemies(dt); boss(dt); bullets(dt); pools(dt); items(dt); fx(dt);
-  if(p.hp<=0)finish(G.cleared);
+  if(p.hp<=0)startEnd(false);
   shake=Math.max(0,shake-dt*3.2);wshT=Math.max(0,wshT-dt);
   hud();
 }
@@ -2273,7 +2285,7 @@ function dmgB(d){const b=G.boss;if(!b)return;
        보상 카드를 고른 뒤에 주는 이유: 지금 주면 레벨업 화면이 보상 화면을 덮는다. */
     const bxp=p.need*(2.6+G.bosses*.7);
     if(fin){gainXp(bxp);G.pend=0;
-      G.ended=true;G.endNow=true;G.cleared=true;G.eb.length=0;call("종단 격파 — 중계 완료");finish(true);return;}
+      G.ended=true;G.endNow=true;G.cleared=true;G.eb.length=0;call("종단 격파 — 중계 완료");startEnd(true);return;}
     G.bossXp=bxp;
     if(A&&A.onDeath)A.onDeath(b);
     G.cleared=true;
@@ -2663,6 +2675,7 @@ function finalForm(){
 function burst(c,n){for(let i=0;i<n;i++){const a=rnd(0,TAU),v=rnd(120,420);
   G.fx.push({x:G.p.x,y:G.p.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rnd(.5,1),max:1,c});}}
 function useUlt(){
+  if(G.dying>0)return;
   const p=G.p,u=G.ult;
   if(!G.form||G.form==="none"||u.c<u.max||u.cd>0||G.over)return;
   u.c=0;u.cd=ULT_CD;G.ultReady=false;SFX.ult();
@@ -3294,7 +3307,7 @@ function draw(){
     cx.beginPath();cx.moveTo(0,-o.r);cx.lineTo(o.r,0);cx.lineTo(0,o.r);cx.lineTo(-o.r,0);cx.closePath();cx.fill();cx.stroke();
     cx.restore();}
   // 유령 분신
-  if(G.stage>=2&&G.form==="rover")for(const ci of HIST_IDX()){const h=G.hist[ci];if(!h)continue;
+  if(!G.dyHide&&G.stage>=2&&G.form==="rover")for(const ci of HIST_IDX()){const h=G.hist[ci];if(!h)continue;
     cx.save();cx.globalAlpha=.5-ci*.014;drawShip(h.x+ox,h.y+oy,p.dx,p.dy,"rover",G.stage,null);cx.restore();}
   // 요새 포탑
   if(G.stage>=2&&G.form==="warden")for(const t of G.turrets){
@@ -3305,8 +3318,8 @@ function draw(){
   const px=W/2+sx,py=H/2+sy;
   cx.save();cx.shadowColor=G.ult.t>0?C.violet:(p.in?C.gold:C.cyan);cx.shadowBlur=G.ult.t>0?48:26;
   if(p.flash>0){cx.shadowColor=C.pink;}
-  drawShip(px,py,p.dx,p.dy,G.form,G.stage,p.flash>0?C.pink:null);
-  if(G.form==="warden"&&G.shield.up){cx.strokeStyle="rgba(255,209,102,.9)";cx.lineWidth=2.5;cx.setLineDash([14,8]);
+  if(!G.dyHide)drawShip(px,py,p.dx,p.dy,G.form,G.stage,p.flash>0?C.pink:null);
+  if(!G.dyHide&&G.form==="warden"&&G.shield.up){cx.strokeStyle="rgba(255,209,102,.9)";cx.lineWidth=2.5;cx.setLineDash([14,8]);
     cx.lineDashOffset=-G.t*40;cx.beginPath();cx.arc(px,py,p.r+13,0,TAU);cx.stroke();cx.setLineDash([]);}
   cx.restore();
   cx.strokeStyle="rgba(79,240,216,.22)";cx.lineWidth=1;
@@ -3349,6 +3362,8 @@ function draw(){
   cx.fillStyle=v;cx.fillRect(0,0,W,H);
   if(p.flash>0){cx.fillStyle=`rgba(255,60,100,${p.flash*.35})`;cx.fillRect(0,0,W,H);}
   if(G.flash.t>0){cx.fillStyle=`rgba(${G.flash.c},${(G.flash.t*.55).toFixed(2)})`;cx.fillRect(0,0,W,H);}
+  /* 끝나는 순간 — 뒤 절반 동안 어두워져 결과창이 툭 뜨지 않고 그 위로 올라온다 */
+  if(G.dying>0){const k=Math.max(0,1-G.dying/(END_T*.55));cx.fillStyle=`rgba(4,6,14,${(k*.62).toFixed(3)})`;cx.fillRect(0,0,W,H);}
   drawStick();
 }
 
@@ -3583,6 +3598,7 @@ function showVeil(s){["#v-menu","#v-level","#v-pause","#v-over"].forEach(x=>$(x)
 function loop(now){requestAnimationFrame(loop);
   if(mode!=="play"){last=now;return;}
   let dt=Math.min(.05,(now-last)/1000);last=now;
+  if(G.dying>0){endTick(dt);draw();if(G.dying<=0)finish(G.dyWon);return;}
   if(hitstop>0){hitstop-=dt;dt*=.12;}
   update(dt);draw();}
 function start(){clearRun();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
@@ -3618,7 +3634,40 @@ function contRun(){
   RID=r.rid;runSaveT=0;relabel();
   hideAll();mode="play";last=performance.now();call("이어서 시작");
   track("start",{ch:G.ch,seed:SEED,resumed:true},G.t);}
-function pause(){mode="pause";saveRun();showVeil("#v-pause");}
+/* ───── 끝나는 순간 ─────
+   체력이 0이 되는 프레임에 결과창이 떴다. 무엇에 맞았는지 볼 틈도 없이 화면이
+   바뀌니 억울함도 아쉬움도 안 남는다 — 「한 판 더」를 누르게 하는 건 그 감정이다.
+   1.5초를 준다. 기체가 터지고, 세계가 거의 멈춘 채 파편이 흩어지고, 화면이
+   어두워지면서 결과창이 그 위로 올라온다.
+   세계를 느리게 돌리지 않고 멈추는 이유: 느리게라도 돌리면 무기가 계속 쏘고
+   구슬이 계속 빨려 와서, 죽은 뒤에 처치와 레벨업이 쌓인다. 순위표 점수가
+   사후에 오른다. 그래서 파편·숫자·흔들림만 흐르고, 적은 표류만 한다. */
+const END_T=1.5;
+function startEnd(won){
+  if(G.dying>0||G.over)return;
+  const p=G.p;G.dying=END_T;G.dyWon=!!won;G.dyHide=!won;
+  hitstop=0;SFX.bgm(false);
+  if(won){G.flash={t:.9,c:"255,209,102"};shake=Math.max(shake,.8);return;}
+  /* 기체가 터진다 — 기체 색 파편 + 흰 파편, 충격파 두 겹 */
+  const col=(CHARS[G.ch]||CHARS.relay).c;
+  for(let i=0;i<56;i++){const a=rnd(0,TAU),v=rnd(80,520);
+    G.fx.push({x:p.x,y:p.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rnd(.7,1.4),max:1.4,c:i%3?col:"#ffffff"});}
+  G.fx.push({x:p.x,y:p.y,vx:0,vy:0,life:.7,max:.7,ring:150,rc:col,rw:4});
+  G.fx.push({x:p.x,y:p.y,vx:0,vy:0,life:1.1,max:1.1,ring:320,rc:"#ffffff",rw:2});
+  G.flash={t:.7,c:"255,80,110"};shake=Math.max(shake,1.1);SFX.die();
+}
+function endTick(dt){
+  G.dying-=dt;
+  const k=.12;                                   // 적은 거의 멈춘 채 충격파에 밀려난다
+  for(const e of G.en){if(e.dead)continue;const a=Math.atan2(e.y-G.p.y,e.x-G.p.x);
+    e.x+=Math.cos(a)*e.spd*k*dt;e.y+=Math.sin(a)*e.spd*k*dt;e.hit=Math.max(0,e.hit-dt);}
+  for(let i=G.fx.length-1;i>=0;i--){const f=G.fx[i];if(f.xp)continue;   // 구슬은 먹지 않는다
+    f.life-=dt;if(f.vx){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=.95;f.vy*=.95;}
+    if(f.life<=0)G.fx.splice(i,1);}
+  for(let i=G.num.length-1;i>=0;i--){const n=G.num[i];n.life-=dt;n.y-=44*dt;if(n.life<=0)G.num.splice(i,1);}
+  G.flash.t=Math.max(0,G.flash.t-dt);shake=Math.max(0,shake-dt*1.6);G.p.flash=0;
+}
+function pause(){if(G&&G.dying>0)return;mode="pause";saveRun();showVeil("#v-pause");}
 function resume(){mode="play";last=performance.now();hideAll();}
 function finish(won){
   if(G.over)return;G.over=1;G.won=!!won;mode="over";SFX.bgm(false);clearRun();
@@ -3660,7 +3709,7 @@ $("#b-cont").onclick=contRun;
    rid를 되살려 한 판으로 세게 한다 — 안 그러면 분석에서 두 판으로 잡힌다. */
 $("#b-more").onclick=()=>{
   if(!G||!G.ended)return;
-  G.over=false;G.won=false;G.endNow=false;G.bossT=100;
+  G.over=false;G.won=false;G.endNow=false;G.bossT=100;G.dying=0;G.dyHide=false;
   RID=G.lastRid||uid();runSaveT=0;
   hideAll();mode="play";last=performance.now();SFX.bgm(true);call("계속 싸운다 — 더 강한 것이 온다");};
 $("#b-resume").onclick=resume;$("#b-quit").onclick=()=>finish(false);
