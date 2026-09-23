@@ -154,6 +154,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     text-align:left;padding:10px 12px}
   #picks .card>*{grid-column:2;min-width:0}
   #picks .card>.glyph{grid-column:1;grid-row:1/span 3;width:38px;height:38px;margin:0;align-self:center}
+  #picks .card>.glyph svg{width:21px;height:21px}
   #picks .card .kind{font-size:10px;letter-spacing:.14em;margin-bottom:2px}
   #picks .card .t{font-size:16px;margin-bottom:2px}
   #picks .card .d{font-size:12.5px;line-height:1.35}
@@ -221,6 +222,10 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   background:radial-gradient(circle,color-mix(in srgb,var(--c) 30%,transparent),transparent 70%);
   box-shadow:inset 0 0 0 1.5px var(--c)}
 .card .glyph i{display:block;width:20px;height:20px;background:var(--c);border-radius:2px}
+/* 카드 아이콘 — 24칸 격자 위의 선 그림. 색은 카드 색(--c)을 그대로 받는다 */
+.card .glyph svg{width:30px;height:30px;display:block;fill:none;stroke:var(--c);stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.card.evo .glyph svg{filter:drop-shadow(0 0 5px var(--c))}
 .card .kind{font-size:11px;letter-spacing:.24em;color:var(--c);font-weight:700;margin-bottom:7px}
 .card .t{font-family:"Chakra Petch",var(--kr);font-size:21px;font-weight:700;margin-bottom:8px;color:var(--pale)}
 .card .d{color:var(--ash);font-size:15px;line-height:1.5;font-weight:500}
@@ -458,6 +463,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   .card:active{transform:scale(.985)}
   .card .glyph{width:44px;height:44px;margin-bottom:10px}
   .card .glyph i{width:16px;height:16px}
+  .card .glyph svg{width:24px;height:24px}
   .card .t,.card.form .t{font-size:19px;margin-bottom:6px}
   .card .d,.card.form .d{font-size:14px}
   .card .n{font-size:12px}
@@ -577,7 +583,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.5.5";
+const VERSION="3.6.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -1546,6 +1552,74 @@ function makeRoster(){
   let i=0;while(out.length<FINAL_AT&&ids.length)out.push(out[i++%out.length]);   // 사도가 자리보다 적으면 돌려 쓴다
   return out.slice(0,FINAL_AT);
 }
+/* ───── 카드 아이콘 ─────
+   카드 스물다섯 장이 전부 같은 네모에 색만 달랐다. 무기 10종 · 패시브 15종이
+   색 다섯 개를 나눠 쓰니 같은 색 카드가 서너 장씩 겹쳤고, 결국 글자를 읽어야
+   구분이 됐다. 판마다 서른 번 넘게 보는 화면이라 가장 먼저 임시 그림으로 읽힌다.
+   24칸 격자 위의 선 그림이다. 색은 카드가 주므로 여기는 모양만 갖는다.
+   진화는 원래 무기 그림에 별을 얹는다 — 새 그림을 주면 「이게 그 무기의 끝」이 안 읽힌다. */
+const ICON={
+ // 무기
+ dart:'<path d="M5 19L15 9"/><path d="M11 5h8v8"/><path d="M8 20l-4 0 0-4"/>',
+ blade:'<path d="M14.5 3.5H20.5V9.5L9 21 3 15z"/><path d="M6.5 12.5l5 5"/><path d="M3 8.5A9 9 0 0 1 8.5 3" stroke-dasharray="2 2.4"/>',
+ chain:'<path d="M13 2L5 13h6l-1 9 8-12h-6l1-8z"/>',
+ flame:'<path d="M12 22c4 0 7-3 7-7 0-4-3-6-4-10-2 2-3 4-3 6-1-1-2-2-2-4-2 2-4 5-4 8 0 4 3 7 6 7z"/>',
+ bolt:'<path d="M12 2v8"/><path d="M8.5 6.5L12 10l3.5-3.5"/><ellipse cx="12" cy="17" rx="8" ry="3.2"/><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none"/>',
+ missile:'<path d="M14 3.5c3.5 0 6.5 3 6.5 6.5L12 18.5 5.5 12z"/><path d="M8 13.5l-4 1 1.5 3M10.5 16l-1 4 3-1.5"/><circle cx="15" cy="9" r="1.4"/>',
+ hammer:'<path d="M4 20l9.5-9.5"/><path d="M12 3.5l8.5 8.5-3.5 3.5L8.5 7z"/>',
+ well:'<path d="M12 12a1.4 1.4 0 0 1 2.8 0a2.8 2.8 0 0 1-5.6 0a4.2 4.2 0 0 1 8.4 0a5.6 5.6 0 0 1-11.2 0a7 7 0 0 1 14 0" transform="translate(-1.4 0)"/>',
+ prism:'<path d="M12 4l7.5 13h-15z"/><path d="M1.5 9.5l6 3.5M16.5 12.5l6-3M16.5 14.5l6 3"/>',
+ needle:'<path d="M3.5 20.5L13 11"/><path d="M13 11l5.5-5.5"/><circle cx="19.5" cy="4.5" r="1.4"/><path d="M13 11c1.5 4 4.5 5.5 7.5 4.5" stroke-dasharray="1.6 2.2"/><circle cx="20.8" cy="15" r="1.2" fill="currentColor" stroke="none"/>',
+ // 패시브
+ amp:'<path d="M4 20v-5M9 20v-8M14 20v-11M19 20V4"/>',
+ cool:'<path d="M12 2v20M3.3 7l17.4 10M20.7 7L3.3 17"/><path d="M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5"/>',
+ pierce:'<circle cx="12" cy="12" r="5"/><path d="M2 12h20M18 8l4 4-4 4"/>',
+ area:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="3"/>',
+ boots:'<path d="M3 8h9M1.5 12h11M3 16h9"/><path d="M14 5.5l6.5 6.5-6.5 6.5"/>',
+ armor:'<path d="M12 20.5s-8.5-5-8.5-11A4.3 4.3 0 0 1 12 8a4.3 4.3 0 0 1 8.5 1.5c0 6-8.5 11-8.5 11z"/><path d="M12 11v5M9.5 13.5h5"/>',
+ magnet:'<path d="M5 3.5v8.5a7 7 0 0 0 14 0V3.5h-4.5V12a2.5 2.5 0 0 1-5 0V3.5z"/><path d="M5 8h4.5M14.5 8H19"/>',
+ regen:'<path d="M12 2.5c4 5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0c0-3.5 2.5-6.5 6.5-11.5z"/><path d="M12 11v6.5M8.8 14.2h6.4"/>',
+ crit:'<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>',
+ drain:'<path d="M12 21.5a6 6 0 0 1-6-6c0-3 2.5-6 6-11 3.5 5 6 8 6 11a6 6 0 0 1-6 6z"/><path d="M2.5 3l4 4M21.5 3l-4 4"/><path d="M6.5 4v3h-3M17.5 4v3h3"/>',
+ thorn:'<circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/>',
+ surge:'<circle cx="12" cy="12" r="9.5" stroke-dasharray="3 2.4"/><path d="M13.5 5.5L8.5 13h4l-2 5.5 5.5-7.5h-4z"/>',
+ ember:'<path d="M6 2.5h12M6 21.5h12"/><path d="M7 2.5c0 5.5 10 7 10 19M17 2.5c0 5.5-10 7-10 19"/>',
+ burn:'<path d="M10 21.5c3 0 5.5-2 5.5-5 0-3-2-4.5-3-7.5-1.5 1.5-2 3-2 4.5-1-.7-1.5-1.5-1.5-3-2 1.5-4 4-4 6 0 3 2 5 5 5z"/><path d="M19 3v6M16 6h6"/>',
+ beat:'<path d="M2 12h4.5l2-5.5 4 11 2.5-5.5H22"/>',
+ // 계급
+ rover:'<path d="M4 20.5L12 3l8 17.5-8-5z"/>',
+ warden:'<path d="M12 2l8.7 5v10L12 22l-8.7-5V7z"/><circle cx="12" cy="12" r="3.2"/>',
+ pulse:'<circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="10" stroke-dasharray="2.2 3"/>',
+ none:'<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.2"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.2"/>',
+ // 계약
+ oc:'<path d="M9 2v6M15 2v6"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v5"/>',
+ lite:'<path d="M20.5 3.5C11 3.5 5 9.5 5 20"/><path d="M20.5 3.5c0 9.5-6.5 14.5-15.5 15"/><path d="M9 15l5.5-5.5"/>',
+ furn:'<path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4.3 4.3 0 1 1-4 0z"/><path d="M12 9.5v8"/>',
+ leash:'<circle cx="14.5" cy="9.5" r="6.5" stroke-dasharray="3 2.2"/><circle cx="5.5" cy="18.5" r="2.2" fill="currentColor" stroke="none"/><path d="M7.2 16.8l3-3"/>',
+ casc:'<circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M9.2 9.2l5.6 5.6"/><path d="M17 3v3M21 7h-3M7 21v-3M3 17h3"/>',
+ inv:'<path d="M3.5 8h15l-3.5-3.5"/><path d="M20.5 16h-15L9 19.5"/>',
+ // 천적 보상
+ gaze:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+ pole:'<circle cx="12" cy="12" r="9.5"/><path d="M6 12h5M8.5 9.5v5M13.5 12h5"/>',
+ twin:'<path d="M3.5 14.5L13 5M8 20l9.5-9.5"/><path d="M9 4.5h4.5V9M13.5 10H18v4.5"/>',
+ plate:'<path d="M12 2.5l8.5 3v6.5c0 5-3.5 8.5-8.5 9.5-5-1-8.5-4.5-8.5-9.5V5.5z"/>',
+ tendril:'<path d="M12 12c3-2 3-6.5 8-7.5M12 12c-3-2-3-6.5-8-7.5M12 12c.5 4-3 6-2 10M12 12c2.5 3 5.5 4 6.5 9"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
+ shard:'<circle cx="12" cy="12" r="2.2"/><path d="M12 2.5l1.8 3-1.8 3-1.8-3zM20.5 16.5l-.6 3.4-3.4.6.6-3.4zM3.5 16.5l.6 3.4 3.4.6-.6-3.4z"/>',
+ mirror:'<path d="M4 3.5v17"/><path d="M20.5 6.5L9 12l11.5 5.5"/>',
+ leech:'<path d="M12 2.5c4 5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0c0-3.5 2.5-6.5 6.5-11.5z"/><path d="M9 14.5a3 3 0 0 0 3 3"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><path d="M12 1.5v3.5M12 19v3.5M1.5 12H5M19 12h3.5M4.6 4.6L7 7M17 17l2.4 2.4M19.4 4.6L17 7M7 17l-2.4 2.4"/>',
+ lens:'<circle cx="10" cy="10" r="6.5"/><path d="M15 15l6 6"/>',
+ temper:'<path d="M2.5 7h13.5l5.5 3.5H15v3.5h3v5H6v-5h3V10.5H6.5z"/>',
+ crown:'<path d="M3 18.5L4 6.5l5 5.5 3-7.5 3 7.5 5-5.5 1 12z"/><path d="M3 21.5h18"/>',
+ surf:'<path d="M2 14.5c3 0 3-3 6-3s3 3 6 3 3-3 6-3M2 20c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/><path d="M8 7.5l4-4 4 4"/>',
+ refit:'<path d="M20.5 12a8.5 8.5 0 1 1-2.5-6"/><path d="M20.5 3.5v5h-5"/><path d="M12 8.5v7M8.5 12h7"/>',
+ spare:'<rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><circle cx="8.5" cy="8.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.3" fill="currentColor" stroke="none"/>',
+};
+const STAR='<path d="M20 .5l1.1 2.7 2.7 1.1-2.7 1.1L20 8.1l-1.1-2.7-2.7-1.1 2.7-1.1z" fill="currentColor" stroke="none"/>';
+/* 아이콘 없는 키가 들어와도 카드는 떠야 한다 — 예전 네모로 돌아간다 */
+const glyph=(k,evo)=>ICON[k]
+  ?`<div class="glyph" style="color:var(--c)"><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}${evo?STAR:""}</svg></div>`
+  :`<div class="glyph"><i></i></div>`;
 const EVOS=[
  /* 짝은 갈래 안에서 닫혀야 한다. 다트(공용)의 짝이 관통자(기동 전용)면 방어계는 영영 레일건을 못 본다.
     공용 무기 5 ↔ 공용 패시브(자기장·강골·경량화·증폭기·재생기), 전용 무기 ↔ 같은 갈래 전용 패시브. */
@@ -2215,21 +2289,21 @@ function showReward(A){
   $("#lvtools").style.display="none";
   const have=!!G.ang[A.rw.id];
   const opts=[
-    have?{t:"잔향",d:"이미 가진 권능 — 대신 최대 체력 +60",c:A.c,k:"권능",f:()=>{G.p.mhp+=60;G.p.hp=Math.min(G.p.mhp,G.p.hp+60);}}
-        :{t:A.rw.n,d:A.rw.d,c:A.c,k:"권능",f:()=>{G.ang[A.rw.id]=1;
+    have?{i:"armor",t:"잔향",d:"이미 가진 권능 — 대신 최대 체력 +60",c:A.c,k:"권능",f:()=>{G.p.mhp+=60;G.p.hp=Math.min(G.p.mhp,G.p.hp+60);}}
+        :{i:A.rw.id,t:A.rw.n,d:A.rw.d,c:A.c,k:"권능",f:()=>{G.ang[A.rw.id]=1;
             /* 즉시 스탯에 얹히는 권능은 여기서 한 번만 건다 */
             if(A.rw.id==="gear")G.st.rate*=1.2;
             if(A.rw.id==="temper"){G.p.mhp+=120;G.p.hp=Math.min(G.p.mhp,G.p.hp+120);}
             if(A.rw.id==="lens")G.p.mag*=2;
             if(A.rw.id==="surf")G.p.spd*=1.15;
             call(A.rw.n+" 얻음");}},
-    {t:"재정비",d:"체력 전부 회복 · 레벨 +1 더",c:"#7fe3b0",k:"보급",f:()=>{G.p.hp=G.p.mhp;G.bossXp+=G.p.need;}},
-    {t:"여유",d:"다시 뽑기 +2",c:C.cyan,k:"보급",f:()=>{G.rerolls+=2;}},
+    {i:"refit",t:"재정비",d:"체력 전부 회복 · 레벨 +1 더",c:"#7fe3b0",k:"보급",f:()=>{G.p.hp=G.p.mhp;G.bossXp+=G.p.need;}},
+    {i:"spare",t:"여유",d:"다시 뽑기 +2",c:C.cyan,k:"보급",f:()=>{G.rerolls+=2;}},
   ];
   const box=$("#picks");box.innerHTML="";
   opts.forEach((o,i)=>{const b=document.createElement("button");
     b.className="card"+(i===0?" evo":"");b.style.setProperty("--c",o.c);
-    b.innerHTML=`<div class="glyph"><i></i></div><div class="kind">${i+1} · ${o.k}</div><div class="t">${o.t}</div><div class="d">${o.d}</div>`;
+    b.innerHTML=`${glyph(o.i)}<div class="kind">${i+1} · ${o.k}</div><div class="t">${o.t}</div><div class="d">${o.d}</div>`;
     /* 효과는 화면을 닫은 뒤에 건다 — 재정비의 레벨업이 카드 화면을 열어야 하는데
        mode가 level이면 levelUp()이 그냥 돌아온다 */
     b.onclick=()=>{hideAll();mode="play";last=performance.now();o.f();
@@ -2537,7 +2611,7 @@ function formChoice(){
   ["rover","warden","pulse","none"].forEach((k,i)=>{
     const f=FORMS[k],b=document.createElement("button");
     b.className="card form";b.style.setProperty("--c",f.c);
-    b.innerHTML=`<div class="glyph"><i></i></div><div class="kind">${i+1} · ${k==="none"?"선택":"진화 경로"}</div>
+    b.innerHTML=`${glyph(k)}<div class="kind">${i+1} · ${k==="none"?"선택":"진화 경로"}</div>
       <div class="t">${f.n}${f.hint?` <span style="font-size:13px;color:var(--ash)">${f.hint}</span>`:""}</div><div class="d">${f.d}</div><div class="sub">${f.sub}</div>`;
     b.onclick=()=>{setForm(k);hideAll();mode="play";last=performance.now();flushLevel();};
     box.appendChild(b);});
@@ -2711,7 +2785,7 @@ function renderContracts(){
     const lv=G.ct[c.id]||0, b=document.createElement("button");
     b.className="card ct";b.style.setProperty("--c",c.c);
     let pips="";if(c.max>1)for(let j=0;j<c.max;j++)pips+=`<i class="${j<lv?"on":""}"></i>`;
-    b.innerHTML=`<div class="glyph"><i></i></div><div class="kind">${i+1} · 계약${c.max>1?" · 누적":" · 한 번뿐"}</div>
+    b.innerHTML=`${glyph(c.id)}<div class="kind">${i+1} · 계약${c.max>1?" · 누적":" · 한 번뿐"}</div>
       <div class="t">${c.n}${lv?" "+(lv+1):""}</div><div class="d">${c.get}</div>
       <div class="pay">대가 — ${c.pay}</div>
       ${c.max>1?`<div class="lvpips">${pips}</div>`:""}`;
@@ -2748,7 +2822,7 @@ function renderCards(){
     b.className="card"+(o.evo?" evo":"");b.style.setProperty("--c",o.c);
     let pips="";for(let j=0;j<o.max;j++)pips+=`<i class="${j<o.lv?"on":""}"></i>`;
     const hint=evoHint(o);
-    b.innerHTML=`<div class="glyph"><i></i></div><div class="kind">${i+1} · ${o.kind}${o.wk&&o.lv===0?` · 슬롯 ${slots+1}/6`:""}</div>
+    b.innerHTML=`${glyph(o.evo?o.evo.w:(o.wk||o.pk),!!o.evo)}<div class="kind">${i+1} · ${o.kind}${o.wk&&o.lv===0?` · 슬롯 ${slots+1}/6`:""}</div>
       <div class="t">${o.title}${o.lv?" Lv"+(o.lv+1):""}</div><div class="d">${o.desc}</div>
       ${o.evo?"":`<div class="n">${numLine(o)}</div>`}
       ${o.max>1?`<div class="lvpips">${pips}</div>`:""}
