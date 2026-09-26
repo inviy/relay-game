@@ -131,7 +131,21 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .lbrow .chi{width:17px;height:17px;display:inline-block;vertical-align:middle;margin:0 5px 2px 0}
 .lbrow .sc{font-family:"Chakra Petch",var(--kr);text-align:right;color:var(--gold)}
 .lbempty{color:var(--ash);font-size:14px;padding:14px 0}
-#rankline{font-family:"Chakra Petch",var(--kr);font-size:18px;color:var(--gold);margin:-8px 0 20px}
+#rankline{font-family:"Chakra Petch",var(--kr);font-size:16px;color:var(--gold);margin:6px 0 0}
+/* 결과 화면 — 점수·생존·처치·레벨이 같은 크기라 무엇이 순위에 오르는지 안 보였다.
+   순위표에 올라가는 숫자 하나만 키우고 나머지는 보조 줄로 내린다. */
+.ohero{margin:18px 0 0;line-height:1}
+.ohero b{display:block;font-family:"Chakra Petch",var(--kr);font-size:clamp(54px,15vw,84px);font-weight:700;
+  color:var(--gold);letter-spacing:-.01em;filter:drop-shadow(0 0 22px rgba(255,176,56,.3))}
+.ohero span{font-size:11.5px;color:var(--ash)}
+/* 신호권 타임라인 — 한 칸이 30초, 채운 높이가 그 30초 중 원 안에 있던 비율.
+   공유 텍스트의 ▰▱ 막대를 화면에서도 본다. 이 게임의 실력 축이 이것이다. */
+#ozone{max-width:340px;margin:0 auto 18px}
+#ozone .zbar{display:flex;gap:2px;height:26px;align-items:stretch}
+#ozone .zbar i{flex:1;border-radius:1px;
+  background:linear-gradient(to top,var(--gold) calc(var(--f)*100%),#1a2242 0)}
+#ozone span{display:block;margin-top:7px;font-size:13px;color:var(--ash)}
+#ozone span b{color:var(--gold);font-family:"Chakra Petch",var(--kr)}
 /* 통계는 보조 정보다. 예전엔 32px 금색이라 정작 시작 버튼보다 강했다. */
 .stat b{display:block;font-family:"Chakra Petch",var(--kr);font-size:19px;font-weight:700;color:var(--pale)}
 .stat span{font-size:11.5px;letter-spacing:0;color:var(--ash)}
@@ -558,16 +572,17 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <div class="veil off" id="v-over"><div class="box">
   <div class="tag" id="otag">SIGNAL LOST</div>
   <h2 style="margin-top:10px" id="otitle">신호가 끊어졌다</h2>
+  <p id="cause" style="margin:4px 0 0;font-size:15px"></p>
+  <div class="ohero"><b id="o-score" class="mono">0</b><span>점수</span></div>
+  <div id="rankline"></div>
+  <p id="delta" style="margin:2px 0 0;font-size:15px"></p>
   <div class="stats">
-    <div class="stat"><b id="o-score" class="mono">0</b><span>점수</span></div>
     <div class="stat"><b id="o-time" class="mono">0:00</b><span>생존</span></div>
     <div class="stat"><b id="o-kills" class="mono">0</b><span>처치</span></div>
     <div class="stat"><b id="o-lv" class="mono">1</b><span>레벨</span></div>
   </div>
-  <p id="delta" style="margin:-14px 0 2px;font-size:15px"></p>
-  <p id="cause" style="margin:2px 0 6px;font-size:15px"></p>
+  <div id="ozone"></div>
   <div id="build" style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:22px"></div>
-  <div id="rankline"></div>
   <button class="btn" id="b-again">한판 더</button>
   <button class="btn ghost" id="b-more" style="margin-left:10px;display:none">계속 싸우기</button>
   <button class="btn ghost" id="b-share" style="margin-left:10px">결과 복사</button>
@@ -577,7 +592,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.5.5";
+const VERSION="3.5.6";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -3560,11 +3575,15 @@ function finish(won){
   $("#otitle").textContent=trueEnd?"끝까지 지켰다":won?"재머를 끊었다":"신호가 끊어졌다";
   $("#b-more").style.display=trueEnd?"":"none";
   $("#o-time").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
-  $("#o-kills").textContent=G.kills;$("#o-lv").textContent=G.p.lv;
+  $("#o-kills").textContent=G.kills.toLocaleString();$("#o-lv").textContent=G.p.lv;
   /* 지난 나 — 사람이 둘뿐이어도 경쟁 상대가 생긴다. 단 조건이 같아야 한다 */
   const sd=scoreDelta();
   $("#delta").innerHTML=sd?`${sd.lbl} <b style="color:${sd.d>=0?"#8ef0b0":"var(--pink)"}">${sd.d>=0?"+":""}${sd.d.toLocaleString()}</b>`:"";
-  $("#cause").textContent=trueEnd?"종단 재머를 끊고 신호를 넘겼다":won?"":"사인: "+(G.lastHit||"—");
+  /* 일시정지에서 그만두면 맞은 게 없다 — "사인: —"보다 비워 두는 게 낫다 */
+  $("#cause").textContent=trueEnd?"종단 재머를 끊고 신호를 넘겼다":!won&&G.lastHit?"사인: "+G.lastHit:"";
+  const zs=G.seg.filter(x=>x&&x.tot>.5);
+  $("#ozone").innerHTML=zs.length?`<div class="zbar">${zs.map(s=>`<i style="--f:${(s.in/s.tot).toFixed(2)}"></i>`).join("")}</div>`+
+    `<span>신호권 안에서 싸운 시간 <b>${shareBar().zp}%</b> · 한 칸 30초</span>`:"";
   let bh="";for(const k in G.w){const ev=EVOS.find(e=>e.w===k&&G.evo[e.id]);
     bh+=`<span class="wchip" style="--c:${WEAPONS[k].c}"><b>${ev?ev.n:WEAPONS[k].n}</b> ${ev?"MAX":"Lv"+G.lvls[k]}</span>`;}
   for(const k in PASSIVES)if(G.lvls[k])bh+=`<span class="wchip" style="--c:${PASSIVES[k].c}">${PASSIVES[k].n} ${G.lvls[k]}</span>`;
