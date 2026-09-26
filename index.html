@@ -62,9 +62,32 @@ canvas{display:block;width:100%;height:100%}
 /* align-items:center + overflow-y:auto 는 내용이 화면보다 길 때 위쪽을 잘라먹고
    스크롤로도 못 올라간다. 자식에 margin:auto 를 주는 쪽이 맞다. */
 .veil{position:fixed;inset:0;z-index:6;display:flex;align-items:flex-start;justify-content:center;padding:24px;
-  background:radial-gradient(120% 90% at 50% 0%,rgba(30,22,70,.92),rgba(7,10,20,.97));
+  background:radial-gradient(90% 60% at 50% 0%,rgba(79,240,216,.08),transparent 70%),
+    linear-gradient(rgba(6,8,14,.93),rgba(4,5,10,.97));
   backdrop-filter:blur(8px);overflow-y:auto}
 .veil.off{display:none}
+/* 방송 문법 — 메뉴·결과·일시정지는 모니터 한 대로 본다. 모서리 표식은 오버레이에만
+   건다. 게임 중에 두면 HUD 구석과 겹쳐 어수선해진다. 레벨업은 전투의 일부라 뺀다. */
+body:has(.veil:not(.off):not(#v-level))::before{content:"";position:fixed;inset:10px;z-index:7;pointer-events:none;opacity:.3;
+  --k:linear-gradient(var(--pale),var(--pale));
+  background:var(--k) 0 0/18px 2px,var(--k) 0 0/2px 18px,var(--k) 100% 0/18px 2px,var(--k) 100% 0/2px 18px,
+    var(--k) 0 100%/18px 2px,var(--k) 0 100%/2px 18px,var(--k) 100% 100%/18px 2px,var(--k) 100% 100%/2px 18px;
+  background-repeat:no-repeat}
+/* 컬러바 — 신호가 없을 때 방송이 내보내는 화면. 메뉴에선 방송국 표식으로 가늘게,
+   신호가 끊어진 결과 화면에서만 두껍게 */
+.bars{height:6px;max-width:220px;margin:0 auto 14px;
+  background:linear-gradient(90deg,#c0c0c0 0 14.3%,#c0c000 0 28.6%,#00c0c0 0 42.9%,#00c000 0 57.1%,#c000c0 0 71.4%,#c00000 0 85.7%,#0000c0 0)}
+#v-over .bars{display:none}
+#v-over.lost .bars{display:block;height:26px;max-width:340px;margin-bottom:22px}
+/* 인광 모니터 — 신호가 죽는 순간과 멈춘 동안만. 판 중에는 쓰지 않는다: 적·기체·신호권을
+   색으로 가르는데 단색이 되면 그 구분이 전부 뭉개진다. */
+#cv{transition:filter .9s}
+body.phos #cv{filter:grayscale(1) sepia(1) hue-rotate(58deg) saturate(2.3) brightness(1.1) contrast(1.1)}
+body.phos::after{content:"";position:fixed;inset:0;z-index:5;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.24) 0 1px,transparent 1px 3px),
+    radial-gradient(130% 95% at 50% 50%,transparent 55%,rgba(0,0,0,.6))}
+/* 멈춘 화면이 보여야 대기 화면이 된다 — 일시정지만 가림막을 걷는다 */
+#v-pause{background:rgba(3,8,5,.62);backdrop-filter:none}
 /* 켜질 때만 움직인다. 꺼질 때까지 기다리게 하면 전투로 돌아가는 손이 느려진다 */
 .veil:not(.off){animation:veilIn .26s ease-out}
 .veil:not(.off)>.box{animation:boxIn .38s cubic-bezier(.2,.8,.2,1)}
@@ -332,10 +355,17 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 #hptext{position:absolute;left:0;right:0;bottom:38px;text-align:center;font-family:"Chakra Petch",var(--kr);
   font-size:13px;font-weight:600;color:#ff8fa8;letter-spacing:.1em}
 /* 등장 배너가 두 줄(이름+잡는 법)이라 34%에선 그 위에 겹쳐 찍혔다 */
-#call{position:absolute;left:0;right:0;top:42%;text-align:center;font-family:"Chakra Petch",var(--kr);
-  font-size:clamp(22px,5vw,38px);font-weight:700;letter-spacing:.16em;color:var(--gold);opacity:0;
-  text-shadow:0 0 30px rgba(255,209,102,.8);transition:opacity .3s,transform .3s;transform:scale(.94)}
-#call.on{opacity:1;transform:scale(1)}
+/* 방송 자막 바 — 흰 바탕에 빨간 머리. 자리는 원래대로 가운데다: 좌하단은
+   버프·체력바가 차 있어 진짜 하단 자막 자리가 없다. 빈 문자열이면 바를 숨긴다. */
+#call{position:absolute;left:0;right:0;margin:0 auto;width:fit-content;max-width:88vw;top:42%;
+  font-family:"Chakra Petch",var(--kr);font-size:clamp(15px,3.2vw,22px);font-weight:700;letter-spacing:.02em;
+  color:#0a0d1c;background:rgba(238,241,255,.93);border-left:6px solid #ff3b3b;padding:7px 16px 7px 13px;
+  box-shadow:0 8px 30px -6px rgba(0,0,0,.6);opacity:0;transition:opacity .3s,transform .3s;transform:translateX(-10px)}
+#call:empty{display:none}
+#call.on{opacity:1;transform:none}
+/* 송출 중 표시 — 여백을 음수로 맞춰 시계 숫자의 가운데는 그대로 둔다 */
+#clock::before{content:"";display:inline-block;width:.24em;height:.24em;border-radius:50%;margin:0 .3em 0 -.54em;
+  vertical-align:.32em;background:#ff3b3b;box-shadow:0 0 10px #ff3b3b;animation:blink 1.2s steps(2) infinite}
 /* 궁극기 발동 배너 — 이름은 크게, 뭘 했는지 한 줄. #call은 상황 알림용이라 따로 둔다 */
 #callbig{position:absolute;left:0;right:0;top:26%;text-align:center;pointer-events:none;opacity:0;
   transform:scale(.9);transition:opacity .25s,transform .25s}
@@ -570,6 +600,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 </div>
 
 <div class="veil" id="v-menu"><div class="box">
+  <div class="bars"></div>
   <div class="tag"><span id="seedtag"></span> · <span id="ver"></span></div>
   <h1>RELAY</h1>
   <p id="todaymod" style="margin:12px auto 0;font-size:14.5px;max-width:540px;
@@ -608,6 +639,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 </div></div>
 
 <div class="veil off" id="v-over"><div class="box">
+  <div class="bars"></div>
   <div class="tag" id="otag">SIGNAL LOST</div>
   <h2 style="margin-top:10px" id="otitle">신호가 끊어졌다</h2>
   <p id="cause" style="margin:4px 0 0;font-size:15px"></p>
@@ -630,7 +662,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.6.7";
+const VERSION="3.6.8";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','RelayKR','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -3689,9 +3721,12 @@ function hud(){
 
 /* ───── 흐름 ───── */
 function hideAll(){["#v-menu","#v-level","#v-pause","#v-over"].forEach(s=>$(s).classList.add("off"));
+  document.body.classList.remove("phos");
   $("#hud").style.display="block";}
 function showVeil(s){["#v-menu","#v-level","#v-pause","#v-over"].forEach(x=>$(x).classList.add("off"));
   $(s).classList.remove("off");
+  /* 인광 모니터는 멈춘 동안과 신호가 끊긴 뒤에만 */
+  document.body.classList.toggle("phos",s==="#v-pause"||(s==="#v-over"&&$("#v-over").classList.contains("lost")));
   $("#hud").style.display=(s==="#v-level"||s==="#v-pause")?"block":"none";}
 function loop(now){requestAnimationFrame(loop);
   if(mode!=="play"){last=now;return;}
@@ -3745,6 +3780,7 @@ function startEnd(won){
   if(G.dying>0||G.over)return;
   const p=G.p;G.dying=END_T;G.dyWon=!!won;G.dyHide=!won;
   hitstop=0;SFX.bgm(false);
+  document.body.classList.toggle("phos",!won);   // 신호가 식어 인광 모니터로 떨어진다
   if(won){G.flash={t:.9,c:"255,209,102"};shake=Math.max(shake,.8);return;}
   /* 기체가 터진다 — 기체 색 파편 + 흰 파편, 충격파 두 겹 */
   const col=(CHARS[G.ch]||CHARS.relay).c;
@@ -3780,6 +3816,7 @@ function finish(won){
   $("#otag").textContent=trueEnd?"SIGNAL DELIVERED":won?"MISSION COMPLETE":"SIGNAL LOST";
   $("#otitle").textContent=trueEnd?"끝까지 지켰다":won?"재머를 끊었다":"신호가 끊어졌다";
   $("#b-more").style.display=trueEnd?"":"none";
+  $("#v-over").classList.toggle("lost",!won&&!trueEnd);
   $("#o-time").textContent=Math.floor(G.t/60)+":"+String(Math.floor(G.t%60)).padStart(2,"0");
   $("#o-kills").textContent=G.kills.toLocaleString();$("#o-lv").textContent=G.p.lv;
   /* 지난 나 — 사람이 둘뿐이어도 경쟁 상대가 생긴다. 단 조건이 같아야 한다 */
