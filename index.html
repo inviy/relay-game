@@ -194,6 +194,8 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 /* ── 레벨업 카드 ── */
 #picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin:26px 0 8px}
 .card.form{padding-top:34px}.card.form .t{font-size:26px}.card.form .d{font-size:15.5px}
+.card .fit{margin-top:10px;padding:5px 8px;border-radius:6px;background:rgba(255,209,102,.12);color:#ffd166;font-size:13px;font-weight:600}
+.card .fitl{margin-top:8px;font-size:12px;color:var(--ash)}
 .card .sub{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px;color:var(--ash);text-align:left;line-height:1.55}
 .card .sub b{color:var(--c)}
 .card .sub span{display:block}
@@ -662,7 +664,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.6.9";
+const VERSION="3.7.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','RelayKR','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -1136,40 +1138,51 @@ const CHARS={
   relay :{n:"중계사",c:C.cyan,  w:"dart", sk:"중계",
     d:"펄스 다트 · 다시 뽑기 +1",
     sd:"신호권 안에 있는 동안 3초마다 경험치가 조금씩 들어온다",
+    fit:"none",fd:"중계 주기 3초 → 2초",
     f:G=>{G.rerolls+=1;}},
   runner:{n:"질주자",c:C.orange,w:"flame",sk:"가속",
     d:"화염 흔적 · 이속 +15% · 체력 100",
     sd:"계속 움직이면 2초마다 피해 +6% (최대 +30%). 멈추면 곧 사라진다",
+    fit:"rover",fd:"가속 최대 +30% → +42%",
     f:G=>{G.p.spd*=1.15;G.p.mhp=G.p.hp=100;}},
   shield:{n:"방패수",c:C.gold,  w:"blade",sk:"버팀",
     d:"회전 검 · 체력 160 · 이속 −8%",
     sd:"체력이 절반 아래면 받는 피해 30% 감소, 초당 회복 +1.5",
+    fit:"warden",fd:"버팀 발동 체력 50% → 60%",
     f:G=>{G.p.mhp=G.p.hp=160;G.p.spd*=.92;}},
   tech  :{n:"기술자",c:C.violet,w:"chain",sk:"과열",
     d:"연쇄 번개 · 공속 +12% · 체력 105",
     sd:"8초마다 3초간 공격 속도가 두 배가 된다",
+    fit:"pulse",fd:"과열 지속 3초 → 4초",
     f:G=>{G.st.rate*=1.12;G.p.mhp=G.p.hp=105;}},
 };
+/* ───── 궁합 ─────
+   기체와 갈래는 다른 축이라 어떤 기체든 네 갈래를 다 고른다. 그런데 8레벨 화면에
+   기체 얘기가 없어서 「중계사인데 왜 다 고르지?」로 읽혔다. 막지 않고 짝을 보여준다.
+   짝은 기체 스킬의 동사와 갈래의 동사가 같은 쪽이다 — 중계사(다시 뽑기·고르는 폭)↔진화 거부,
+   질주자(멈추지 않는다)↔기동계, 방패수(버틴다)↔방어계, 기술자(몰아친다)↔공진계.
+   보너스는 기체 스킬 한 줄만 조금 늘린다. 갈래 선택을 강요할 만큼 크면 16조합이 4조합이 된다. */
+const fitOn=()=>!!(G&&G.form&&CHARS[G.ch]&&CHARS[G.ch].fit===G.form);
 /* 기체 스킬 상태 — 전부 G.chs 하나에 모은다 */
 function charTick(dt){
   const p=G.p,c=G.ch,S=G.chs;
   if(c==="relay"){
     /* 중계 — 신호권을 지키면 경험치가 들어온다. 이 게임의 실력 축에 직접 붙는다 */
-    if(p.in){S.t+=dt;if(S.t>=3){S.t=0;gainXp(p.need*.05);S.on=1;}}
+    if(p.in){S.t+=dt;if(S.t>=(fitOn()?2:3)){S.t=0;gainXp(p.need*.05);S.on=1;}}
     else{S.t=0;S.on=0;}
   }else if(c==="runner"){
     /* 가속 — 멈추면 풀린다. 「지나간 자리에 불길」과 같은 방향이다 */
-    if(G.moving){S.t+=dt;if(S.t>=2){S.t=0;S.n=Math.min(5,S.n+1);}}
+    if(G.moving){S.t+=dt;if(S.t>=2){S.t=0;S.n=Math.min(fitOn()?7:5,S.n+1);}}
     else{S.t+=dt*2;if(S.t>=2){S.t=0;S.n=Math.max(0,S.n-1);}}
     S.on=S.n>0;
   }else if(c==="shield"){
     /* 버팀 — 몰릴수록 단단해진다. 체력 160으로 시작하는 기체의 성격 */
-    S.on=p.hp<p.mhp*.5?1:0;
+    S.on=p.hp<p.mhp*(fitOn()?.6:.5)?1:0;
     if(S.on)p.hp=Math.min(p.mhp,p.hp+1.5*dt);
   }else if(c==="tech"){
     /* 과열 — 주기적으로 두 배. 연쇄 번개처럼 몰아치는 리듬 */
     S.t-=dt;
-    if(S.t<=0){if(S.on){S.on=0;S.t=8;}else{S.on=1;S.t=3;call("과열 — 공속 2배");}}
+    if(S.t<=0){if(S.on){S.on=0;S.t=8;}else{S.on=1;S.t=fitOn()?4:3;call("과열 — 공속 2배");}}
   }
 }
 const charDmg=()=>G.ch==="runner"?1+.06*(G.chs.n||0):1;
@@ -1177,7 +1190,7 @@ const charRate=()=>G.ch==="tech"&&G.chs.on?2:1;
 const charOf=()=>CHARS[PROF.ch]||CHARS.relay;
 function renderChars(){
   $("#chars").innerHTML=Object.entries(CHARS).map(([k,c])=>
-    `<button class="card ch${k===PROF.ch?" on":""}" data-ch="${k}" style="--c:${c.c}"><div class="glyph"><canvas width="76" height="76"></canvas></div><div class="t">${c.n}</div><div class="d">${c.d}</div><div class="sk"><b>${c.sk}</b> ${c.sd}</div></button>`).join("");
+    `<button class="card ch${k===PROF.ch?" on":""}" data-ch="${k}" style="--c:${c.c}"><div class="glyph"><canvas width="76" height="76"></canvas></div><div class="t">${c.n}</div><div class="d">${c.d}</div><div class="sk"><b>${c.sk}</b> ${c.sd}</div><div class="fitl">궁합 갈래 · ${FORMS[c.fit].n}</div></button>`).join("");
   $("#chars").querySelectorAll(".card").forEach(b=>{
     const k=b.dataset.ch, g=b.querySelector("canvas").getContext("2d");
     g.translate(38,38);drawChar(g,k,15);   // 게임 화면과 같은 실루엣을 그대로 쓴다
@@ -2757,11 +2770,12 @@ function formChoice(){
   mode="level";$("#lvtag").textContent="EVOLUTION · LEVEL "+G.p.lv;
   $("#v-level h2").textContent="어느 쪽으로 갈까";$("#lvtools").style.display="none";
   const box=$("#picks");box.innerHTML="";
+  const CHf=CHARS[G.ch]||{};
   ["rover","warden","pulse","none"].forEach((k,i)=>{
-    const f=FORMS[k],b=document.createElement("button");
+    const f=FORMS[k],b=document.createElement("button"),fit=CHf.fit===k;
     b.className="card form";b.style.setProperty("--c",f.c);
     b.innerHTML=`${glyph(k)}<div class="kind">${i+1} · ${k==="none"?"선택":"진화 경로"}</div>
-      <div class="t">${f.n}${f.hint?` <span style="font-size:13px;color:var(--ash)">${f.hint}</span>`:""}</div><div class="d">${f.d}</div><div class="sub">${f.sub}</div>`;
+      <div class="t">${f.n}${f.hint?` <span style="font-size:13px;color:var(--ash)">${f.hint}</span>`:""}</div><div class="d">${f.d}</div>${fit?`<div class="fit">★ ${CHf.n} 궁합 · ${CHf.fd}</div>`:""}<div class="sub">${f.sub}</div>`;
     b.onclick=()=>{setForm(k);hideAll();mode="play";last=performance.now();flushLevel();};
     box.appendChild(b);});
   showVeil("#v-level");
@@ -2773,6 +2787,7 @@ function setForm(k){
   if(k==="warden"){p.mhp+=40;p.hp=Math.min(p.mhp,p.hp+40);zoneScale(1.1);call("1차 진화 · 방어계");G.flash={t:.7,c:"255,209,102"};}
   if(k==="pulse"){G.res=0;G.resT=0;G.resCap=40;call("1차 진화 · 공진계");G.flash={t:.7,c:"255,92,138"};}
   if(k==="none"){G.noEvo=true;call("진화 거부 · 카드 4장");}
+  if(fitOn())setTimeout(()=>{if(G&&!G.over)call("궁합 · "+CHARS[G.ch].sk+" 강화");},1400);
   burst(k==="warden"?C.gold:k==="pulse"?C.pink:C.cyan,40);SFX.evolve();
   shake=.8;hitstop=.12;
   $("#form").textContent=k==="none"?charOf().n+" · 순수":FORMS[k].n+" · 1차";
