@@ -4,7 +4,7 @@
 
 **플레이:** https://relay-signal.vercel.app
 
-현재 v3.6.8 — 사도 14기(일반 7 · 무한 7), 시작 기체 4종 고유 스킬, 3갈래 진화, 위험 계약, 상태 이벤트.
+현재 v3.6.9 — 사도 14기(일반 7 · 무한 7), 시작 기체 4종 고유 스킬, 3갈래 진화, 위험 계약, 상태 이벤트.
 
 ---
 
@@ -401,3 +401,13 @@ python3 -m http.server 8000   # 또는 그냥 index.html을 브라우저로 열�
 ## 라이선스
 
 MIT
+
+### 서드파티 에셋
+
+이펙트 텍스처 5장과 효과음 3개는 Kenney(kenney.nl)의 CC0 에셋을 축소·변환해 `index.html` 안에 base64로 넣었습니다. 파일을 따로 받지 않으므로 "외부 요청 0"은 그대로입니다.
+
+| 용도 | 원본 | 라이선스 |
+|---|---|---|
+| 섬광 · 충격파 · 연기 · 파열 · 별 텍스처 | Particle Pack 1.1 (`circle_05`, `circle_03`, `smoke_04`, `scorch_02`, `star_04`) | CC0 |
+| 폭발 · 대폭발 · 피격 효과음 | Sci-fi Sounds (`explosionCrunch_000`, `lowFrequency_explosion_000`, `impactMetal_002`) | CC0 |
+
