@@ -80,6 +80,10 @@ canvas{display:block;width:100%;height:100%}
 #rv-tier{font-size:15px;letter-spacing:.2em}
 #rv-new{display:none;color:var(--gold);font-weight:700;letter-spacing:.12em;margin-top:6px}
 #v-reveal.new #rv-new{display:block}
+#dexgrid{display:grid;grid-template-columns:auto repeat(4,1fr);gap:6px;margin-top:16px;align-items:center;font-size:13px}
+#dexgrid .wn{text-align:left;color:var(--pale);padding-right:8px}
+#dexgrid .dc{height:30px;border:1px solid var(--line);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--ash)}
+#dexgrid .dc.got{border-color:var(--c);color:var(--c);box-shadow:inset 0 0 12px -4px var(--c)}
 .rv-skip{position:absolute;bottom:4px;left:0;right:0;font-size:13px;opacity:.55}
 /* 방송 문법 — 메뉴·결과·일시정지는 모니터 한 대로 본다. 모서리 표식은 오버레이에만
    건다. 게임 중에 두면 HUD 구석과 겹쳐 어수선해진다. 레벨업은 전투의 일부라 뺀다. */
@@ -623,6 +627,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <p id="lbtop"></p>
   <!-- 통계 세 칸이 각각 두 줄(숫자 · 라벨)로 55px를 쓰고 있었다. 한 줄로 -->
   <p class="mstats"><span>연속 <b id="streak" class="mono">0</b></span><span>어제 <b id="yday" class="mono">—</b></span><span>출격 <b id="runs" class="mono">0</b></span></p>
+  <p id="dexlink" style="margin:6px 0 0;font-size:13.5px;color:var(--ash);cursor:pointer">도감 <b id="dexn" class="mono">0</b>/40</p>
   <div id="chars" class="chars" aria-label="시작 기체 선택"></div>
   <p id="chsk"></p>
   <div class="startbox" id="startbox">
@@ -666,6 +671,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     <div class="stat"><b id="o-kills" class="mono">0</b><span>처치</span></div>
     <div class="stat"><b id="o-lv" class="mono">1</b><span>레벨</span></div>
   </div>
+  <p id="dexline" style="margin:2px 0 0;font-size:14px;color:var(--ash)"></p>
   <div id="ozone"></div>
   <div id="build" style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:22px"></div>
   <button class="btn" id="b-again">한판 더</button>
@@ -677,6 +683,12 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <div id="rv-beam"></div>
   <div id="rv-card"><div class="tag" id="rv-tier"></div><h2 id="rv-name"></h2><p id="rv-sub"></p><p id="rv-new">NEW · 도감 등록</p></div>
   <p class="rv-skip">탭하거나 아무 키나 누르면 넘깁니다</p>
+</div></div>
+<div class="veil off" id="v-dex"><div class="box">
+  <div class="tag">도감</div>
+  <h2 style="margin-top:10px">뽑아 본 무기 <span id="dexn2" class="mono"></span>/40</h2>
+  <div id="dexgrid"></div>
+  <button class="btn ghost" id="b-dexclose" style="margin-top:18px">닫기</button>
 </div></div>
 
 <script>
@@ -723,6 +735,14 @@ const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const KEY="relay:v2"; let SAVE={best:0,bestk:0,runs:0,streak:0,lastSeed:0,hist:{}};
 const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},
           set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+/* 도감 — 뽑아 본 「무기 × 등급」을 남긴다. 힘은 주지 않는다(순위표가 오염된다).
+   기기 안에만 쌓인다. 폰과 PC가 따로인 건 알고 간다 — 아쉬워하는 사람이 생기면 서버로 */
+const DKEY="relay:dex";
+function dexAdd(k,t){const d=ls.get(DKEY,{}),id=k+":"+t;
+  if(d[id])return false;
+  d[id]={d:new Date(Date.now()+9*3600e3).toISOString().slice(0,10),ch:G.ch};ls.set(DKEY,d);
+  G.dexNew=(G.dexNew||0)+1;return true;}
+const dexCount=()=>Object.keys(ls.get(DKEY,{})).length;
 function load(){SAVE=Object.assign({best:0,bestk:0,runs:0,streak:0,lastSeed:0,hist:{}},ls.get(KEY,{}));
   if(!SAVE.hist||typeof SAVE.hist!=="object")SAVE.hist={};
   /* 어제도 오늘도 아니면 연속이 끊긴 것이다. 메뉴를 열자마자 0으로 보여야
@@ -774,7 +794,7 @@ function scoreDelta(){
 const RKEY="relay:run", RUNV=1;
 const RUNF=["t","et","eth","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
   "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","roster","endRoster","ang","plate","res","resT","resCap","rank","top1","chs","ult","shield",
-  "turrets","zone","next","zt","trail","histT","tcd","ultReady","tier","tierN","chestN","tierBest","dmgBy"];
+  "turrets","zone","next","zt","trail","histT","tcd","ultReady","tier","tierN","chestN","tierBest","dmgBy","dexNew"];
 let runSaveT=0;
 function saveRun(){
   if(!G||G.over||!RID||G.t<20)return;      // 20초 미만은 되살릴 가치가 없다
@@ -1814,6 +1834,8 @@ function wshake(v){if(wshT>0)return;wshT=.22;shake=Math.max(shake,v*.55);}
 const keys={};
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=1;
   if(mode==="reveal"){if(!e.repeat&&performance.now()-G.revOpen>400)closeReveal();e.preventDefault();return;}
+  if(mode==="menu"&&e.key.toLowerCase()==="d"&&!/INPUT|SELECT|TEXTAREA/.test((e.target&&e.target.tagName)||"")){
+    $("#v-dex").classList.contains("off")?openDex():showVeil("#v-menu");return;}
   if(e.key===" "&&mode==="play")useUlt();
   if(mode==="level"&&e.key.toLowerCase()==="r")reroll();
   if(mode==="level"&&e.key.toLowerCase()==="s"&&!$("#v-level").classList.contains("off")&&$("#lvtools").offsetParent)skipCard();
@@ -1867,7 +1889,7 @@ function newRun(){
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0,eSpd:1,ultG:1,resDmg:.015,resHold:1,resBeat:0},
     ct:{},ctMode:false,
-    tier:{},tierN:0,chestN:0,tierBest:0,dmgBy:{},
+    tier:{},tierN:0,chestN:0,tierBest:0,dmgBy:{},dexNew:0,
     roster:[],endRoster:[],ang:{},lastAng:null,plate:{up:true,cd:0},gazeT:0,shardA:0,
     res:0,resT:0,resCap:40,resLvl:0,pend:0,bossXp:0,rank:0,top1:0,chs:{t:0,n:0,on:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0,cd:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
@@ -3852,10 +3874,10 @@ function hud(){
 }
 
 /* ───── 흐름 ───── */
-function hideAll(){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal"].forEach(s=>$(s).classList.add("off"));
+function hideAll(){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-dex"].forEach(s=>$(s).classList.add("off"));
   document.body.classList.remove("phos");
   $("#hud").style.display="block";}
-function showVeil(s){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal"].forEach(x=>$(x).classList.add("off"));
+function showVeil(s){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-dex"].forEach(x=>$(x).classList.add("off"));
   $(s).classList.remove("off");
   /* 인광 모니터는 멈춘 동안과 신호가 끊긴 뒤에만 */
   document.body.classList.toggle("phos",s==="#v-pause"||(s==="#v-over"&&$("#v-over").classList.contains("lost")));
@@ -3940,7 +3962,7 @@ function finish(won){
   if(G.over)return;G.over=1;G.won=!!won;mode="over";SFX.bgm(false);clearRun();
   $("#o-score").textContent=calcScore().toLocaleString();$("#rankline").textContent="순위 집계 중…";submitScore();
   track("end",{kills:G.kills,lv:G.p.lv,ch:G.ch,form:G.form,won:!!won,cause:won?"":(G.lastHit||""),
-    ended:!!G.endNow,score:calcScore()},G.t);
+    ended:!!G.endNow,score:calcScore(),tier:G.tierBest,chests:G.chestN},G.t);
   G.lastRid=RID;RID=null;
   SAVE.runs++;if(G.t>SAVE.best)SAVE.best=G.t;if(G.kills>SAVE.bestk)SAVE.bestk=G.kills;
   markDaily(calcScore());
@@ -3961,15 +3983,25 @@ function finish(won){
   $("#ozone").innerHTML=zs.length?`<div class="zbar">${zs.map(s=>`<i style="--f:${(s.in/s.tot).toFixed(2)}"></i>`).join("")}</div>`+
     `<span>신호권 안에서 싸운 시간 <b>${shareBar().zp}%</b> · 한 칸 30초</span>`:"";
   let bh="";for(const k in G.w){const ev=EVOS.find(e=>e.w===k&&G.evo[e.id]);
-    bh+=`<span class="wchip" style="--c:${WEAPONS[k].c}"><b>${ev?ev.n:WEAPONS[k].n}</b> ${ev?"MAX":"Lv"+G.lvls[k]}</span>`;}
+    const tt=G.tier[k];
+    bh+=`<span class="wchip" style="--c:${tt?TIERS[tt-1].c:WEAPONS[k].c}"><b>${tt?TIERS[tt-1].n+" ":""}${ev?ev.n:WEAPONS[k].n}</b> ${ev?"MAX":"Lv"+G.lvls[k]}</span>`;}
   for(const k in PASSIVES)if(G.lvls[k])bh+=`<span class="wchip" style="--c:${PASSIVES[k].c}">${PASSIVES[k].n} ${G.lvls[k]}</span>`;
+  $("#dexline").textContent=G.dexNew?`이번 판 도감 +${G.dexNew} · ${dexCount()}/40`:"";
   $("#build").innerHTML=bh;
   showVeil("#v-over");}
+function openDex(){const d=ls.get(DKEY,{});let h="";
+  for(const k in WEAPONS){h+=`<span class="wn">${WEAPONS[k].n}</span>`;
+    TIERS.forEach((T,i)=>{const g=d[k+":"+(i+1)];
+      h+=`<span class="dc${g?" got":""}" style="--c:${T.c}" title="${g?g.d:""}">${g?T.n:"?"}</span>`;});}
+  $("#dexgrid").innerHTML=h;$("#dexn2").textContent=dexCount();showVeil("#v-dex");}
+$("#dexlink").onclick=openDex;
+$("#b-dexclose").onclick=()=>showVeil("#v-menu");
 function menu(){
   const y=ydayScore();
   $("#streak").textContent=SAVE.streak||0;
   $("#yday").textContent=y?y.toLocaleString():"—";
   $("#runs").textContent=SAVE.runs;
+  $("#dexn").textContent=dexCount();
   const r=loadRun(),b=$("#b-cont");
   if(r){b.style.display="";b.textContent="이어하기 · "+Math.floor(r.t/60)+":"+String(Math.floor(r.t%60)).padStart(2,"0")+" · LV"+r.p.lv;}
   else b.style.display="none";}
@@ -4019,6 +4051,8 @@ function shareText(){
   L.push((PROF.nick||"오퍼레이터")+" · "+charOf().n+(G.form?" / "+(FN[G.form]||""):"")+" · LV"+G.p.lv);
   L.push(sc.toLocaleString()+"점"+(G.rank?" · 오늘 "+G.rank+"위":"")+" · "+G.kills.toLocaleString()+"처치");
   if(sd)L.push(sd.lbl+" "+(sd.d>=0?"+":"")+sd.d.toLocaleString());
+  const my=Object.keys(G.tier).filter(k=>G.tier[k]===4).map(k=>WEAPONS[k].n);
+  if(my.length)L.push("신화 · "+my.join(" · "));
   L.push(location.origin+location.pathname);
   return L.join(String.fromCharCode(10));
 }
