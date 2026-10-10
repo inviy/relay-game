@@ -84,6 +84,17 @@ canvas{display:block;width:100%;height:100%}
 #dexgrid .wn{text-align:left;color:var(--pale);padding-right:8px}
 #dexgrid .dc{height:30px;border:1px solid var(--line);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--ash)}
 #dexgrid .dc.got{border-color:var(--c);color:var(--c);box-shadow:inset 0 0 12px -4px var(--c)}
+#wpanel{display:none;position:absolute;left:16px;top:50%;transform:translateY(-50%);width:200px;pointer-events:none}
+body.bigpc #wpanel{display:block}
+#wpanel .wp{border-left:3px solid var(--c);padding:5px 8px;margin:6px 0;background:rgba(13,18,36,.55);font-size:12.5px;color:var(--pale)}
+#wpanel .wp i{display:block;height:3px;margin-top:4px;background:var(--c);width:calc(var(--f)*100%);font-style:normal}
+#wpanel .wp em{font-style:normal;color:var(--c);margin-right:4px}
+#dmgbars{max-width:420px;margin:0 auto 14px;text-align:left}
+#dmgbars div{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--pale);margin:4px 0}
+#dmgbars span{width:120px;flex:none}
+#dmgbars i{height:8px;background:var(--c);width:calc(var(--f)*100%);display:block}
+#dmgbars b{margin-left:auto;font-weight:600;color:var(--ash)}
+body.bigpc #v-reveal .box{transform:scale(1.35)}
 .rv-skip{position:absolute;bottom:4px;left:0;right:0;font-size:13px;opacity:.55}
 /* 방송 문법 — 메뉴·결과·일시정지는 모니터 한 대로 본다. 모서리 표식은 오버레이에만
    건다. 게임 중에 두면 HUD 구석과 겹쳐 어수선해진다. 레벨업은 전투의 일부라 뺀다. */
@@ -615,6 +626,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <button id="ultbtn" class="locked" aria-label="궁극기"><svg viewBox="0 0 88 88" aria-hidden="true"><circle class="trk" cx="44" cy="44" r="39"/><circle id="ultprg" class="prg" cx="44" cy="44" r="39"/></svg><span class="gl">ULT</span></button>
   <div id="call"></div>
   <div id="callbig"><div class="t"></div><div class="s"></div></div>
+  <div id="wpanel"></div>
   <div id="tip"></div>
 </div>
 
@@ -673,6 +685,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   </div>
   <p id="dexline" style="margin:2px 0 0;font-size:14px;color:var(--ash)"></p>
   <div id="ozone"></div>
+  <div id="dmgbars"></div>
   <div id="build" style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:22px"></div>
   <button class="btn" id="b-again">한판 더</button>
   <button class="btn ghost" id="b-more" style="margin-left:10px;display:none">계속 싸우기</button>
@@ -701,12 +714,15 @@ const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.len
 const cv=$("#cv"), cx=cv.getContext("2d");
 let W,H,DPR,VS=1,SMALL=false;
 const NARROW=620;                      // 이 폭 미만은 모바일 레이아웃
+/* PC 큰 화면 — 연출과 정보만 더 준다. 시야는 이미 폰보다 1.7배 넓으니 더 벌리지 않는다 */
+const bigPC=()=>innerWidth>=1200&&matchMedia("(pointer: fine)").matches;
 function resize(){DPR=Math.min(devicePixelRatio||1,2);
   SMALL=innerWidth<NARROW;
   VS=SMALL?1.9:1;                      // 세로 화면에서 1.9배 넓게 본다
   W=innerWidth*VS;H=innerHeight*VS;    // W·H는 "월드 단위" 화면 크기
   cv.width=innerWidth*DPR;cv.height=innerHeight*DPR;
-  const k=DPR/VS;cx.setTransform(k,0,0,k,0,0);}
+  const k=DPR/VS;cx.setTransform(k,0,0,k,0,0);
+  document.body.classList.toggle("bigpc",bigPC());}
 addEventListener("resize",resize);resize();
 const C={gold:"#ffd166",cyan:"#4ff0d8",pink:"#ff5c8a",violet:"#a86bff",orange:"#ff9f43",pale:"#eef2ff"};
 /* ───── 이펙트 텍스처 (Kenney Particle Pack · CC0) ─────
@@ -2061,6 +2077,7 @@ function ultLabel(){
 function update(dt){
   const p=G.p; G.t+=dt; G.et=G.t*G.pace; G.eth=G.t*tpaceAt(G.t);
   if(G.revT>0)G.revT-=dt;
+  if(document.body.classList.contains("bigpc")){G.panT=(G.panT||0)-dt;if(G.panT<=0){G.panT=.25;drawPanel();}}
 
   runSaveT+=dt;if(runSaveT>=10){runSaveT=0;saveRun();}
   p.in=Math.hypot(p.x-G.zone.x,p.y-G.zone.y)<G.zone.r;
@@ -3988,7 +4005,18 @@ function finish(won){
   for(const k in PASSIVES)if(G.lvls[k])bh+=`<span class="wchip" style="--c:${PASSIVES[k].c}">${PASSIVES[k].n} ${G.lvls[k]}</span>`;
   $("#dexline").textContent=G.dexNew?`이번 판 도감 +${G.dexNew} · ${dexCount()}/40`:"";
   $("#build").innerHTML=bh;
+  /* PC에서만 — 다음 판에 무엇을 키울지 고민하게 만드는 표 */
+  let dh="";if(bigPC()){let tot=0;for(const k in G.dmgBy)tot+=G.dmgBy[k];
+    Object.keys(G.dmgBy).sort((a,b)=>G.dmgBy[b]-G.dmgBy[a]).forEach(k=>{const t=G.tier[k],f=tot?G.dmgBy[k]/tot:0;
+      dh+=`<div style="--c:${t?TIERS[t-1].c:WEAPONS[k].c};--f:${f.toFixed(3)}"><span>${t?TIERS[t-1].n+" ":""}${WEAPONS[k].n}</span>`+
+          `<i></i><b>${Math.round(f*100)}%</b></div>`;});}
+  $("#dmgbars").innerHTML=dh;
   showVeil("#v-over");}
+function drawPanel(){let tot=0;for(const k in G.w)tot+=G.dmgBy[k]||0;let h="";
+  for(const k in G.w){const t=G.tier[k],T=t?TIERS[t-1]:null,ev=EVOS.find(e=>e.w===k&&G.evo[e.id]);
+    h+=`<div class="wp" style="--c:${T?T.c:WEAPONS[k].c};--f:${tot?((G.dmgBy[k]||0)/tot).toFixed(3):0}">`+
+       `${T?`<em>${T.n}</em>`:""}${ev?ev.n:WEAPONS[k].n} · ${ev?"MAX":"Lv"+G.lvls[k]}<i></i></div>`;}
+  $("#wpanel").innerHTML=h;}
 function openDex(){const d=ls.get(DKEY,{});let h="";
   for(const k in WEAPONS){h+=`<span class="wn">${WEAPONS[k].n}</span>`;
     TIERS.forEach((T,i)=>{const g=d[k+":"+(i+1)];
