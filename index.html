@@ -754,7 +754,7 @@ function scoreDelta(){
 const RKEY="relay:run", RUNV=1;
 const RUNF=["t","et","eth","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
   "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","roster","endRoster","ang","plate","res","resT","resCap","rank","top1","chs","ult","shield",
-  "turrets","zone","next","zt","trail","histT","tcd","ultReady"];
+  "turrets","zone","next","zt","trail","histT","tcd","ultReady","tier","tierN","chestN","tierBest"];
 let runSaveT=0;
 function saveRun(){
   if(!G||G.over||!RID||G.t<20)return;      // 20초 미만은 되살릴 가치가 없다
@@ -795,7 +795,24 @@ const modFor=s=>MODS[Math.floor(mulberry32(s*7+11)()*MODS.length)];
 const MOD=modFor(SEED);
 let R={};
 function resetSeed(){R={zone:mulberry32(SEED*3+1),spawn:mulberry32(SEED*3+2),card:mulberry32(SEED*3+3),
-  ev:mulberry32(SEED*3+4)};}
+  ev:mulberry32(SEED*3+4),tier:mulberry32(SEED*13+5)};}
+/* ───── 등급 ─────
+   상자를 열면 가진 무기 하나에 등급이 붙는다. 판이 끝나면 사라진다 — 순위표는 같은 날
+   같은 조건이어야 하니까. 등급은 배율만 올린다. 탄·장판 개수를 늘리면 공속과 곱해져
+   화면이 덮이고 피해가 제곱으로 뛴다(2026-09-13). 추첨은 R.tier만 쓴다 — 카드 순서가 그대로다. */
+const TIERS=[
+ {id:"epic",  n:"에픽",p:.60,m:1.15,c:"#b57bff"},
+ {id:"hero",  n:"영웅",p:.28,m:1.30,c:"#ff9f43"},
+ {id:"legend",n:"전설",p:.10,m:1.50,c:"#ffd166"},
+ {id:"myth",  n:"신화",p:.02,m:1.80,c:"#e8f4ff"}];
+const tierMul=k=>{const t=G.tier[k];return t?TIERS[t-1].m:1;};
+function rollTier(){
+  const ks=Object.keys(G.w);if(!ks.length)return null;
+  const k=ks[Math.floor(R.tier()*ks.length)],u=R.tier();G.tierN+=2;
+  let t=TIERS.length,acc=0;
+  for(let i=0;i<TIERS.length;i++){acc+=TIERS[i].p;if(u<acc){t=i+1;break;}}
+  const up=t>(G.tier[k]||0);if(up)G.tier[k]=t;
+  return {k,t,up};}
 const srnd=(g,a,b)=>a+g()*(b-a), spick=(g,arr)=>arr[Math.floor(g()*arr.length)];
 
 /* ───── 사운드 (Web Audio 합성) ───── */
@@ -1824,6 +1841,7 @@ function newRun(){
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0,eSpd:1,ultG:1,resDmg:.015,resHold:1,resBeat:0},
     ct:{},ctMode:false,
+    tier:{},tierN:0,chestN:0,tierBest:0,
     roster:[],endRoster:[],ang:{},lastAng:null,plate:{up:true,cd:0},gazeT:0,shardA:0,
     res:0,resT:0,resCap:40,resLvl:0,pend:0,bossXp:0,rank:0,top1:0,chs:{t:0,n:0,on:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0,cd:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
@@ -2139,7 +2157,7 @@ function weapons(dt){
     G.cd.dart=evo?.9:(L>=3?.46:.6);
     if(evo){
       const t=near(1)[0], a=t?Math.atan2(t.y-p.y,t.x-p.x):Math.atan2(p.dy,p.dx);
-      G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*1000,vy:Math.sin(a)*1000,r:13*A,dmg:78*st.dmg*zoneMul(),
+      G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*1000,vy:Math.sin(a)*1000,r:13*A,dmg:78*st.dmg*tierMul("dart")*zoneMul(),
         life:1.1,pierce:99,c:C.cyan,beam:1});
       wshake(.35);
     }else{
@@ -2147,10 +2165,10 @@ function weapons(dt){
       for(let i=0;i<n;i++){const t=tg[i%Math.max(1,tg.length)];
         const a=t?Math.atan2(t.y-p.y,t.x-p.x):Math.atan2(p.dy,p.dx)+i*.35;
         G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:6*A,
-          dmg:(11+L*5)*st.dmg*zoneMul(),life:1.5,pierce:st.pierce+(L>=5?1:0),c:C.cyan});
+          dmg:(11+L*5)*st.dmg*tierMul("dart")*zoneMul(),life:1.5,pierce:st.pierce+(L>=5?1:0),c:C.cyan});
         if(G.stage>=2&&G.form==="rover")for(const ci of HIST_IDX()){const h=G.hist[ci];if(!h)continue;
           G.bul.push({x:h.x,y:h.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:5*A,
-            dmg:(11+L*5)*st.dmg*zoneMul()*.45,life:1.3,pierce:st.pierce,c:C.violet});}}
+            dmg:(11+L*5)*st.dmg*tierMul("dart")*zoneMul()*.45,life:1.3,pierce:st.pierce,c:C.violet});}}
     }
   }
   // 회전 검
@@ -2159,7 +2177,7 @@ function weapons(dt){
     const n=evo?6:1+(L>=2?1:0)+(L>=4?1:0);
     const rad=(evo?175:100+L*14)*A, spin=evo?3.4:2.1;
     p.tr+=dt*spin;
-    const dmg=(evo?150:44+L*16)*st.dmg*zoneMul()*dt;
+    const dmg=(evo?150:44+L*16)*st.dmg*tierMul("blade")*zoneMul()*dt;
     G.blades=[];
     for(let i=0;i<n;i++){
       const a=p.tr+i*TAU/n, o={x:p.x+Math.cos(a)*rad,y:p.y+Math.sin(a)*rad,r:(evo?26:15)*A,a};
@@ -2173,7 +2191,7 @@ function weapons(dt){
     const L=G.w.chain, evo=G.evo.storm;
     G.cd.chain=evo?1.1:(L>=3?1.5:2.1);
     const jumps=evo?12:2+(L>=2?1:0)+(L>=4?2:0);
-    const dmg=(evo?95:26+L*13)*st.dmg*zoneMul();
+    const dmg=(evo?95:26+L*13)*st.dmg*tierMul("chain")*zoneMul();
     let from=p, hitset=new Set(), pts=[{x:p.x,y:p.y}];
     for(let j=0;j<jumps;j++){
       let bestD=1e9,best=null;
@@ -2195,7 +2213,7 @@ function weapons(dt){
        지옥불이 기본 공속에서 4 ÷ .45 = 8.9겹이므로 9로 둔다. 8이면 기본 플레이가
        10% 깎여서, 안 건드려도 되는 것을 건드리는 셈이 된다. */
     pushPool("flame",9,{x:p.x,y:p.y,r:(evo?110:44+L*12)*A,life:(evo?4:2+L*.5),
-      dps:(evo?70:16+L*7)*st.dmg*zoneMul()});
+      dps:(evo?70:16+L*7)*st.dmg*tierMul("flame")*zoneMul()});
   }
   // 유도 미사일 (기동계)
   if(G.w.missile&&G.cd.missile<=0){
@@ -2203,7 +2221,7 @@ function weapons(dt){
     G.cd.missile=evo?1.0:1.35;
     const n=(evo?4:1+(L>=2?1:0)+(L>=4?1:0))+extraShot();
     for(let i=0;i<n;i++){const a=Math.atan2(p.dy,p.dx)+Math.PI+rnd(-1.2,1.2);
-      G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*300,vy:Math.sin(a)*300,r:6,dmg:(30+L*12)*st.dmg*zoneMul(),
+      G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*300,vy:Math.sin(a)*300,r:6,dmg:(30+L*12)*st.dmg*tierMul("missile")*zoneMul(),
         life:3.2,pierce:0,c:C.cyan,home:1,blast:(evo?150:70+(L>=3?25:0))*A});}
   }
   // 충격 망치 (방어계)
@@ -2211,7 +2229,7 @@ function weapons(dt){
     const L=G.w.hammer, evo=G.evo.quake;
     G.cd.hammer=(L>=3?1.1:1.5);
     const R=(evo?230:130+(L>=2?40:0))*A, a=Math.atan2(p.dy,p.dx), wide=evo?Math.PI:1.05;
-    const dmg=(evo?140:36+L*14)*st.dmg*zoneMul(), kb=evo?160:70+(L>=4?70:0);
+    const dmg=(evo?140:36+L*14)*st.dmg*tierMul("hammer")*zoneMul(), kb=evo?160:70+(L>=4?70:0);
     for(const e of G.en){if(e.dead)continue;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d>R+e.r)continue;
       let da=Math.atan2(e.y-p.y,e.x-p.x)-a;da=Math.atan2(Math.sin(da),Math.cos(da));
       if(Math.abs(da)<=wide){dmgE(e,dmg,1);const g=Math.atan2(e.y-p.y,e.x-p.x);e.x+=Math.cos(g)*kb;e.y+=Math.sin(g)*kb;}}
@@ -2241,7 +2259,7 @@ function weapons(dt){
     for(let i=0;i<n;i++){
       let t=G.en.length?pick(G.en):null;
       const x=t?t.x:p.x+rnd(-300,300), y=t?t.y:p.y+rnd(-300,300);
-      G.bolts.push({x,y,r:rad,life:.42,max:.42,dmg:(evo?120:34+L*17)*st.dmg*zoneMul(),done:0,pull:evo?1:0,lit:1,sh:.06});
+      G.bolts.push({x,y,r:rad,life:.42,max:.42,dmg:(evo?120:34+L*17)*st.dmg*tierMul("bolt")*zoneMul(),done:0,pull:evo?1:0,lit:1,sh:.06});
     }
   }
   // 중력정 / 포식 우물
@@ -2255,7 +2273,7 @@ function weapons(dt){
     const x=t?t.x:p.x+p.dx*140, y=t?t.y:p.y+p.dy*140;
     /* 기본 공속에서 1.4~1.7겹. 3이면 "우물 하나"라는 성격을 지키면서 여유가 있다 */
     pushPool("well",3,{x,y,r:(evo?215:110+L*16)*A,life:evo?3.8:2.8+L*.25,
-      dps:(evo?105:24+L*10)*st.dmg*zoneMul(),
+      dps:(evo?105:24+L*10)*st.dmg*tierMul("well")*zoneMul(),
       pull:evo?300:110+(L>=4?90:0),vio:1});
   }
   // 굴절 빔 / 프리즘 격자
@@ -2265,14 +2283,14 @@ function weapons(dt){
     const cnt=(evo?4:2+(L>=2?1:0))+extraShot(), base=Math.atan2(p.dy,p.dx);
     for(let i=0;i<cnt;i++){const a=base+i*TAU/cnt;
       G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*740,vy:Math.sin(a)*740,r:(evo?11:7)*A,
-        dmg:(evo?76:22+L*10)*st.dmg*zoneMul(),life:1.25,
+        dmg:(evo?76:22+L*10)*st.dmg*tierMul("prism")*zoneMul(),life:1.25,
         pierce:evo?99:st.pierce+2+(L>=4?2:0),c:C.pale,beam:1});}
   }
   // 공명침 / 공명 폭주
   if(G.w.needle&&G.cd.needle<=0){
     const L=G.w.needle, evo=G.evo.overdrive;
     G.cd.needle=evo?.55:(L>=3?.7:.95);
-    const hops=evo?99:2+(L>=2?1:0)+(L>=4?2:0), dmg=(evo?60:18+L*7)*st.dmg*zoneMul();
+    const hops=evo?99:2+(L>=2?1:0)+(L>=4?2:0), dmg=(evo?60:18+L*7)*st.dmg*tierMul("needle")*zoneMul();
     let from=near(1)[0], pts=[{x:p.x,y:p.y}], hit=new Set();
     for(let h=0;h<hops&&from;h++){
       if(from===G.boss){dmgB(dmg);pts.push({x:from.x,y:from.y});break;}
@@ -2652,6 +2670,14 @@ function pools(dt){
       if(G.bolts[i].done&&!G.bolts[i].gold)G.bolts.splice(i,1);else i++;}
 }
 function dropItem(x,y,type){G.items.push({x,y,type,ph:rnd(0,TAU)});}
+/* 경험치는 예전 그대로 주고 등급을 한 번 더 굴린다. 중복이면 회복 —
+   경험치로 주면 서버 레벨 상한(t/18)에 정상 기록이 걸린다. */
+function openChest(it){const p=G.p;G.chestN++;
+  const r=rollTier();
+  if(r&&r.up)G.tierBest=Math.max(G.tierBest,r.t);
+  if(r&&!r.up){p.hp=Math.min(p.mhp,p.hp+38);}
+  call(r?(r.up?TIERS[r.t-1].n+" · "+WEAPONS[r.k].n:"중복 · 회복"):"보물 상자");SFX.chest();
+  gainXp(p.need*1.1);}
 function items(dt){const p=G.p;
   for(let i=G.items.length-1;i>=0;i--){const it=G.items[i];it.ph+=dt*3;
     if(Math.hypot(p.x-it.x,p.y-it.y)<p.r+22){
@@ -2663,7 +2689,7 @@ function items(dt){const p=G.p;
         sprFx("shock",p.x,p.y,1400,C.orange,.6,{a:.7,g0:.05,must:1});
         sprFx("burst",p.x,p.y,260,C.gold,.35,{a:.9,g0:.4,must:1});
         for(const e of G.en)if(Math.hypot(e.x-p.x,e.y-p.y)<700)dmgE(e,400*G.st.dmg,1);}
-      if(it.type==="chest"){call("보물 상자");SFX.chest();gainXp(p.need*1.1);}
+      if(it.type==="chest")openChest(it);
     }}
 }
 function fx(dt){const p=G.p;
@@ -2887,7 +2913,7 @@ function levelUp(){
   mode="level";$("#lvtag").textContent="LEVEL "+G.p.lv;SFX.level();
   renderCards();showVeil("#v-level");
 }
-function wstat(k,L){const st=G.st,A=st.area,R=st.rate,D=st.dmg;const r1=v=>Math.round(v*10)/10;
+function wstat(k,L){const st=G.st,A=st.area,R=st.rate,D=st.dmg*tierMul(k);const r1=v=>Math.round(v*10)/10;
   switch(k){
    case "dart":return {피해:Math.round((11+L*5)*D),탄:1+(L>=2)+(L>=4),재장전:r1((L>=3?.46:.6)/R)+"s",관통:st.pierce+(L>=5?1:0)};
    case "blade":return {"초당 피해":Math.round((44+L*16)*D),검:1+(L>=2)+(L>=4),반경:Math.round((100+L*14)*A)};
@@ -3818,6 +3844,7 @@ function contRun(){
   clearRun();
   SFX.init();SFX.bgm(true);saveProfile();resetSeed();newRun();
   RUNF.forEach(k=>{if(r[k]!==undefined)G[k]=r[k];});
+  for(let i=0;i<(G.tierN||0);i++)R.tier();   // 같은 상자를 이어하기로 다시 굴리지 못하게
   Object.assign(G.p,r.p);
   if(r.boss){G.boss=Object.assign({x:G.p.x+520,y:G.p.y},r.boss);
     const A=G.boss.ang?ANGELS[G.boss.ang]:null;if(A&&A.init)A.init(G.boss);}
