@@ -13,15 +13,23 @@ try{
   force(3);G.w={dart:1};G.tier={};const t0=G.t;D.openChest({x:G.p.x,y:G.p.y,type:"chest"});
   ok("전설은 reveal",D.mode==="reveal",D.mode);
   ok("전설 veil 뜸",!V.classList.contains("off"));
-  ok("시계 정지",G.t===t0);
+  for(let i=0;i<4;i++)D.loop(performance.now()+1000*(i+1));
+  ok("시계 정지",G.t===t0,{t0,t:G.t});
 
-  // 열린 직후 반복 keydown은 무시된다
+  // 열린 직후 반복 keydown은 무시된다 (400ms 지난 뒤에도 repeat이면 무시)
+  D.G.revOpen=performance.now()-1000;
   dispatchEvent(new KeyboardEvent("keydown",{key:"w",repeat:true}));
   ok("반복 키 무시",D.mode==="reveal");
-  D.G.revOpen=performance.now()-1000;                            // 0.4초가 지났다고 친다
   dispatchEvent(new KeyboardEvent("keydown",{key:"x"}));
   ok("키로 닫힘",D.mode!=="reveal"&&V.classList.contains("off"),D.mode);   // 닫히면 대기 중 레벨업이 뜰 수 있다
   D.mode="play";
+  { const g=G.t;D.loop(performance.now()+100);ok("닫힌 뒤 시계 감",G.t>g,{g,t:G.t}); }
+
+  // 레벨업이 떠 있으면 전설 상자가 덮어쓰지 않는다
+  force(3);G.w={dart:1};G.tier={};D.showVeil("#v-level");D.mode="level";
+  D.openChest({x:G.p.x,y:G.p.y,type:"chest"});
+  ok("레벨업 중엔 reveal 안 뜸",D.mode==="level"&&!document.getElementById("v-level").classList.contains("off")&&V.classList.contains("off"),D.mode);
+  D.mode="play";D.showVeil("#v-menu");
 
   // 연출 중 레벨업은 닫힌 뒤에 뜬다
   force(4);G.w={dart:1};G.tier={};G.p.xp=G.p.need-0.01;

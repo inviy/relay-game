@@ -2712,7 +2712,7 @@ function openChest(it){const p=G.p;G.chestN++;
   SFX.tier(r.t);
   const big=document.body.classList.contains("bigpc")?1.6:1;
   sprFx("burst",it.x,it.y,(r.t>=3?320:220)*big,T.c,.6,{a:.9,g0:.3,must:1});
-  if(r.t>=3)showReveal(r,isNew);
+  if(r.t>=3&&mode==="play")showReveal(r,isNew);   // 레벨업·보스 보상이 떠 있으면 덮어쓰지 않는다
   else if(G.revT>0&&r.t<=G.revTier)call(T.n+" · "+WEAPONS[r.k].n);  // 0.5초 안에 더 낮은 게 오면 작은 줄로
   else{G.revT=.5;G.revTier=r.t;callBig(T.n+" · "+WEAPONS[r.k].n,"피해 ×"+T.m+(isNew?" · NEW 도감 등록":""));}
   gainXp(p.need*1.1);}
@@ -2720,7 +2720,7 @@ function showReveal(r,isNew){const T=TIERS[r.t-1],V=$("#v-reveal");
   V.classList.toggle("myth",r.t>=4);V.classList.toggle("new",!!isNew);
   $("#rv-tier").textContent=T.n.split("").join(" ");$("#rv-tier").style.color=T.c;
   $("#rv-name").textContent=WEAPONS[r.k].n;$("#rv-sub").textContent="피해 ×"+T.m;
-  mode="reveal";G.revOpen=performance.now();showVeil("#v-reveal");
+  G.revT=.5;G.revTier=r.t;mode="reveal";G.revOpen=performance.now();showVeil("#v-reveal");
   clearTimeout(G.revTO);G.revTO=setTimeout(closeReveal,r.t>=4?2600:2200);}
 function closeReveal(){if(mode!=="reveal")return;clearTimeout(G.revTO);
   hideAll();mode="play";last=performance.now();
@@ -3515,7 +3515,7 @@ function draw(){
       cx.strokeStyle=b.c;cx.lineWidth=b.r*1.6;cx.globalAlpha=.5;
       cx.beginPath();cx.moveTo(b.x+ox,b.y+oy);
       cx.lineTo(b.x+ox-b.vx/sp*t,b.y+oy-b.vy/sp*t);cx.stroke();
-      cx.globalAlpha=1;cx.shadowBlur=16;}
+      cx.globalAlpha=1;cx.shadowBlur=tt>=4?26:16;}
     if(b.beam){cx.globalAlpha=.9;cx.beginPath();cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);cx.fill();cx.globalAlpha=1;}
     else{cx.beginPath();cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);cx.fill();}}
   cx.shadowColor=C.pink;cx.fillStyle=C.pink;
@@ -3935,7 +3935,7 @@ function endTick(dt){
   G.flash.t=Math.max(0,G.flash.t-dt);shake=Math.max(0,shake-dt*1.6);G.p.flash=0;
 }
 function pause(){if(G&&G.dying>0)return;mode="pause";saveRun();showVeil("#v-pause");}
-function resume(){mode="play";last=performance.now();hideAll();}
+function resume(){mode="play";last=performance.now();hideAll();flushLevel();}
 function finish(won){
   if(G.over)return;G.over=1;G.won=!!won;mode="over";SFX.bgm(false);clearRun();
   $("#o-score").textContent=calcScore().toLocaleString();$("#rankline").textContent="순위 집계 중…";submitScore();
