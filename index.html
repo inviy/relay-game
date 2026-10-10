@@ -754,7 +754,7 @@ function scoreDelta(){
 const RKEY="relay:run", RUNV=1;
 const RUNF=["t","et","eth","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
   "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","roster","endRoster","ang","plate","res","resT","resCap","rank","top1","chs","ult","shield",
-  "turrets","zone","next","zt","trail","histT","tcd","ultReady","tier","tierN","chestN","tierBest"];
+  "turrets","zone","next","zt","trail","histT","tcd","ultReady","tier","tierN","chestN","tierBest","dmgBy"];
 let runSaveT=0;
 function saveRun(){
   if(!G||G.over||!RID||G.t<20)return;      // 20초 미만은 되살릴 가치가 없다
@@ -1841,7 +1841,7 @@ function newRun(){
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0,eSpd:1,ultG:1,resDmg:.015,resHold:1,resBeat:0},
     ct:{},ctMode:false,
-    tier:{},tierN:0,chestN:0,tierBest:0,
+    tier:{},tierN:0,chestN:0,tierBest:0,dmgBy:{},
     roster:[],endRoster:[],ang:{},lastAng:null,plate:{up:true,cd:0},gazeT:0,shardA:0,
     res:0,resT:0,resCap:40,resLvl:0,pend:0,bossXp:0,rank:0,top1:0,chs:{t:0,n:0,on:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0,cd:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
@@ -2158,17 +2158,17 @@ function weapons(dt){
     if(evo){
       const t=near(1)[0], a=t?Math.atan2(t.y-p.y,t.x-p.x):Math.atan2(p.dy,p.dx);
       G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*1000,vy:Math.sin(a)*1000,r:13*A,dmg:78*st.dmg*tierMul("dart")*zoneMul(),
-        life:1.1,pierce:99,c:C.cyan,beam:1});
+        life:1.1,pierce:99,c:C.cyan,beam:1,wk:"dart"});
       wshake(.35);
     }else{
       const n=1+(L>=2?1:0)+(L>=4?1:0)+extraShot(), tg=near(n);
       for(let i=0;i<n;i++){const t=tg[i%Math.max(1,tg.length)];
         const a=t?Math.atan2(t.y-p.y,t.x-p.x):Math.atan2(p.dy,p.dx)+i*.35;
         G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:6*A,
-          dmg:(11+L*5)*st.dmg*tierMul("dart")*zoneMul(),life:1.5,pierce:st.pierce+(L>=5?1:0),c:C.cyan});
+          dmg:(11+L*5)*st.dmg*tierMul("dart")*zoneMul(),life:1.5,pierce:st.pierce+(L>=5?1:0),c:C.cyan,wk:"dart"});
         if(G.stage>=2&&G.form==="rover")for(const ci of HIST_IDX()){const h=G.hist[ci];if(!h)continue;
           G.bul.push({x:h.x,y:h.y,vx:Math.cos(a)*520,vy:Math.sin(a)*520,r:5*A,
-            dmg:(11+L*5)*st.dmg*tierMul("dart")*zoneMul()*.45,life:1.3,pierce:st.pierce,c:C.violet});}}
+            dmg:(11+L*5)*st.dmg*tierMul("dart")*zoneMul()*.45,life:1.3,pierce:st.pierce,c:C.violet,wk:"dart"});}}
     }
   }
   // 회전 검
@@ -2182,8 +2182,8 @@ function weapons(dt){
     for(let i=0;i<n;i++){
       const a=p.tr+i*TAU/n, o={x:p.x+Math.cos(a)*rad,y:p.y+Math.sin(a)*rad,r:(evo?26:15)*A,a};
       G.blades.push(o);
-      for(const e of G.en)if(!e.dead&&Math.hypot(e.x-o.x,e.y-o.y)<e.r+o.r)dmgE(e,dmg,0);
-      if(G.boss&&Math.hypot(G.boss.x-o.x,G.boss.y-o.y)<G.boss.r+o.r)dmgB(dmg);
+      for(const e of G.en)if(!e.dead&&Math.hypot(e.x-o.x,e.y-o.y)<e.r+o.r)dmgE(e,dmg,0,"blade");
+      if(G.boss&&Math.hypot(G.boss.x-o.x,G.boss.y-o.y)<G.boss.r+o.r)dmgB(dmg,"blade");
     }
   }
   // 연쇄 번개
@@ -2200,7 +2200,7 @@ function weapons(dt){
         if(d<(evo?900:460)*A&&d<bestD){bestD=d;best=e;}}
       if(!best)break;
       hitset.add(best); pts.push({x:best.x,y:best.y});
-      dmgE(best,dmg,1); if(evo)best.slow=1.6;
+      dmgE(best,dmg,1,"chain"); if(evo)best.slow=1.6;
       from=best;
     }
     if(pts.length>1)G.fx.push({chain:pts,life:.22,max:.22,c:C.violet});
@@ -2222,7 +2222,7 @@ function weapons(dt){
     const n=(evo?4:1+(L>=2?1:0)+(L>=4?1:0))+extraShot();
     for(let i=0;i<n;i++){const a=Math.atan2(p.dy,p.dx)+Math.PI+rnd(-1.2,1.2);
       G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*300,vy:Math.sin(a)*300,r:6,dmg:(30+L*12)*st.dmg*tierMul("missile")*zoneMul(),
-        life:3.2,pierce:0,c:C.cyan,home:1,blast:(evo?150:70+(L>=3?25:0))*A});}
+        life:3.2,pierce:0,c:C.cyan,home:1,wk:"missile",blast:(evo?150:70+(L>=3?25:0))*A});}
   }
   // 충격 망치 (방어계)
   if(G.w.hammer&&G.cd.hammer<=0){
@@ -2232,11 +2232,11 @@ function weapons(dt){
     const dmg=(evo?140:36+L*14)*st.dmg*tierMul("hammer")*zoneMul(), kb=evo?160:70+(L>=4?70:0);
     for(const e of G.en){if(e.dead)continue;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d>R+e.r)continue;
       let da=Math.atan2(e.y-p.y,e.x-p.x)-a;da=Math.atan2(Math.sin(da),Math.cos(da));
-      if(Math.abs(da)<=wide){dmgE(e,dmg,1);const g=Math.atan2(e.y-p.y,e.x-p.x);e.x+=Math.cos(g)*kb;e.y+=Math.sin(g)*kb;}}
+      if(Math.abs(da)<=wide){dmgE(e,dmg,1,"hammer");const g=Math.atan2(e.y-p.y,e.x-p.x);e.x+=Math.cos(g)*kb;e.y+=Math.sin(g)*kb;}}
     if(G.boss&&Math.hypot(G.boss.x-p.x,G.boss.y-p.y)<R+G.boss.r){
       /* 보스도 밀린다 — 차폐를 신호권 밖으로 끌어내는 수단이다. 적보다는 덜 밀린다.
          각도를 먼저 잡는다: dmgB가 보스를 죽이면 G.boss가 null이라 뒤에서 읽으면 터진다 */
-      const bg=Math.atan2(G.boss.y-p.y,G.boss.x-p.x);dmgB(dmg);
+      const bg=Math.atan2(G.boss.y-p.y,G.boss.x-p.x);dmgB(dmg,"hammer");
       if(G.boss){G.boss.x+=Math.cos(bg)*kb*.45;G.boss.y+=Math.sin(bg)*kb*.45;}}
     G.fx.push({arc:1,x:p.x,y:p.y,a,r:R,w:wide,life:.22,max:.22,c:C.gold});
     wshake(evo?.26:.18);   // 지진은 매 스윙이라 .5는 과했다
@@ -2259,7 +2259,7 @@ function weapons(dt){
     for(let i=0;i<n;i++){
       let t=G.en.length?pick(G.en):null;
       const x=t?t.x:p.x+rnd(-300,300), y=t?t.y:p.y+rnd(-300,300);
-      G.bolts.push({x,y,r:rad,life:.42,max:.42,dmg:(evo?120:34+L*17)*st.dmg*tierMul("bolt")*zoneMul(),done:0,pull:evo?1:0,lit:1,sh:.06});
+      G.bolts.push({x,y,r:rad,life:.42,max:.42,dmg:(evo?120:34+L*17)*st.dmg*tierMul("bolt")*zoneMul(),wk:"bolt",done:0,pull:evo?1:0,lit:1,sh:.06});
     }
   }
   // 중력정 / 포식 우물
@@ -2284,7 +2284,7 @@ function weapons(dt){
     for(let i=0;i<cnt;i++){const a=base+i*TAU/cnt;
       G.bul.push({x:p.x,y:p.y,vx:Math.cos(a)*740,vy:Math.sin(a)*740,r:(evo?11:7)*A,
         dmg:(evo?76:22+L*10)*st.dmg*tierMul("prism")*zoneMul(),life:1.25,
-        pierce:evo?99:st.pierce+2+(L>=4?2:0),c:C.pale,beam:1});}
+        pierce:evo?99:st.pierce+2+(L>=4?2:0),c:C.pale,beam:1,wk:"prism"});}
   }
   // 공명침 / 공명 폭주
   if(G.w.needle&&G.cd.needle<=0){
@@ -2293,8 +2293,8 @@ function weapons(dt){
     const hops=evo?99:2+(L>=2?1:0)+(L>=4?2:0), dmg=(evo?60:18+L*7)*st.dmg*tierMul("needle")*zoneMul();
     let from=near(1)[0], pts=[{x:p.x,y:p.y}], hit=new Set();
     for(let h=0;h<hops&&from;h++){
-      if(from===G.boss){dmgB(dmg);pts.push({x:from.x,y:from.y});break;}
-      hit.add(from);pts.push({x:from.x,y:from.y});dmgE(from,dmg,1);
+      if(from===G.boss){dmgB(dmg,"needle");pts.push({x:from.x,y:from.y});break;}
+      hit.add(from);pts.push({x:from.x,y:from.y});dmgE(from,dmg,1,"needle");
       if(!from.dead)break;                                   // 못 죽였으면 여기서 끊긴다
       let best=null,bd=1e9;
       for(const e of G.en){if(e.dead||hit.has(e))continue;const d=Math.hypot(e.x-from.x,e.y-from.y);
@@ -2362,7 +2362,7 @@ function explodeE(e,byKill){
 }
 /* 차폐기 아우라 — 자기 자신은 못 지킨다. 그래야 "저것부터 죽여라"가 읽힌다.
    이 게임 최초의 처리 순서 결정이다. */
-function dmgE(e,d,showNum){
+function dmgE(e,d,showNum,wk){
   if(G.shl.length&&!e.aura)for(const sh of G.shl)
     if(Math.hypot(e.x-sh.x,e.y-sh.y)<sh.aura){d*=.55;break;}
   if(e.tr==="armor")d*=TRAITS.armor.d;
@@ -2370,6 +2370,7 @@ function dmgE(e,d,showNum){
      "가끔 크게"가 아니라 그냥 평균 피해 상승이 되고, 숫자도 못 읽는다. */
   let crit=0;
   if(showNum&&G.st.crit&&Math.random()<G.st.crit){d*=2.2;crit=1;}
+  if(wk)G.dmgBy[wk]=(G.dmgBy[wk]||0)+d;
   e.hp-=d; e.hit=.1;
   if(showNum&&e.hp>0&&Math.random()<.55){    // 직접 타격에만 스파크가 튄다
     const a=rnd(0,TAU);
@@ -2410,7 +2411,8 @@ function dmgE(e,d,showNum){
       sprFx("star",e.x,e.y,e.r*7,C.pale,.35,{a:.9,g0:.6,spin:1.2,must:1});}
   }
 }
-function dmgB(d){const b=G.boss;if(!b)return;
+function dmgB(d,wk){const b=G.boss;if(!b)return;
+  if(wk)G.dmgBy[wk]=(G.dmgBy[wk]||0)+d;
   const A=b.ang?ANGELS[b.ang]:null;
   /* 무적 — 추적자는 신호권 안에서, 차폐는 닫혀 있을 때. 「무효」가 떠야 버그로 안 읽힌다 */
   if(A&&A.shielded&&A.shielded(b)){b.hit=.05;b.at=1;
@@ -2623,12 +2625,12 @@ function bullets(dt){
     if(!gone)for(const e of G.en){
       if(e.dead||(b.hs&&b.hs.has(e)))continue;
       if(Math.hypot(e.x-b.x,e.y-b.y)<e.r+b.r){
-        if(e.absorb&&!b.beam){dmgE(e,b.dmg,1);gone=1;break;}
-        if(b.blast){G.bolts.push({x:b.x,y:b.y,r:b.blast,life:.3,max:.3,dmg:b.dmg,done:0,cyan:1,sh:.1});gone=1;break;}
-        dmgE(e,b.dmg,1);
+        if(e.absorb&&!b.beam){dmgE(e,b.dmg,1,b.wk);gone=1;break;}
+        if(b.blast){G.bolts.push({x:b.x,y:b.y,r:b.blast,life:.3,max:.3,dmg:b.dmg,wk:b.wk,done:0,cyan:1,sh:.1});gone=1;break;}
+        dmgE(e,b.dmg,1,b.wk);
         if(b.pierce>0){b.pierce--;(b.hs||(b.hs=new Set())).add(e);}else{gone=1;break;}}}
     if(!gone&&G.boss&&!b.bh&&Math.hypot(G.boss.x-b.x,G.boss.y-b.y)<G.boss.r+b.r){
-      dmgB(b.dmg);if(b.pierce>0){b.pierce--;b.bh=1;}else gone=1;}
+      dmgB(b.dmg,b.wk);if(b.pierce>0){b.pierce--;b.bh=1;}else gone=1;}
     if(gone)G.bul.splice(i,1);}
   const p=G.p;
   for(let i=G.eb.length-1;i>=0;i--){const b=G.eb[i];
@@ -2645,17 +2647,17 @@ function pools(dt){
       if(d>4&&d<q.r*2.2){const k=Math.min(q.pull*dt,d*.9)/d;e.x+=dx*k;e.y+=dy*k;}}
     if(q.pull&&G.boss){const dx=q.x-G.boss.x,dy=q.y-G.boss.y,d=Math.hypot(dx,dy);
       if(d>4&&d<q.r*2.2){const k=Math.min(q.pull*.4*dt,d*.9)/d;G.boss.x+=dx*k;G.boss.y+=dy*k;}}
-    for(const e of G.en)if(!e.dead&&Math.hypot(e.x-q.x,e.y-q.y)<e.r+q.r)dmgE(e,q.dps*dt,0);
-    if(G.boss&&Math.hypot(G.boss.x-q.x,G.boss.y-q.y)<G.boss.r+q.r)dmgB(q.dps*dt);
+    for(const e of G.en)if(!e.dead&&Math.hypot(e.x-q.x,e.y-q.y)<e.r+q.r)dmgE(e,q.dps*dt,0,q.k);
+    if(G.boss&&Math.hypot(G.boss.x-q.x,G.boss.y-q.y)<G.boss.r+q.r)dmgB(q.dps*dt,q.k);
     if(q.life<=0)G.pool.splice(i,1);}
   for(let i=G.bolts.length-1;i>=0;i--){const z=G.bolts[i];z.life-=dt;
     if(!z.done&&z.life<z.max*.66){z.done=1;
-      for(const e of G.en)if(!e.dead&&Math.hypot(e.x-z.x,e.y-z.y)<e.r+z.r)dmgE(e,z.dmg,1);
+      for(const e of G.en)if(!e.dead&&Math.hypot(e.x-z.x,e.y-z.y)<e.r+z.r)dmgE(e,z.dmg,1,z.wk);
       /* 자기 폭풍 — 떨어진 자리로 끌어당긴다. 뭉쳐 놔야 다음 벼락이 여럿을 문다. */
       if(z.pull)for(const e of G.en){if(e.dead)continue;
         const dx=z.x-e.x,dy=z.y-e.y,d=Math.hypot(dx,dy);
         if(d>1&&d<z.r*2.4){const k=Math.min(60,d*.45)/d;e.x+=dx*k;e.y+=dy*k;}}
-      if(G.boss&&Math.hypot(G.boss.x-z.x,G.boss.y-z.y)<G.boss.r+z.r)dmgB(z.dmg);
+      if(G.boss&&Math.hypot(G.boss.x-z.x,G.boss.y-z.y)<G.boss.r+z.r)dmgB(z.dmg,z.wk);
       /* 대가 — 내가 낸 폭발이 나에게도 닿는다. 무적 시간(0.6s)이 연타를 막는다 */
       if(z.hurtP&&Math.hypot(G.p.x-z.x,G.p.y-z.y)<z.r+G.p.r)hitP(11,"연쇄 붕괴");
       /* 자주 터지는 것(화염 흔적 초당 11개, 자기 폭풍 0.85초마다 6개)이 매번
