@@ -18,6 +18,8 @@ try{
   nick.dispatchEvent(new KeyboardEvent("keydown",{key:"d",bubbles:true}));
   ok("이름 입력 중 D는 무시",document.getElementById("v-dex").classList.contains("off"));
   nick.blur();
+  D.showVeil("#v-menu");dispatchEvent(new KeyboardEvent("keydown",{key:"d",ctrlKey:true}));
+  ok("Ctrl+D는 도감을 열지 않음",document.getElementById("v-dex").classList.contains("off"));
 
   // 격자 40칸
   D.openDex();ok("격자 40칸",document.querySelectorAll("#dexgrid .dc").length===40);

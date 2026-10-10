@@ -757,6 +757,7 @@ const DKEY="relay:dex";
 function dexAdd(k,t){const d=ls.get(DKEY,{}),id=k+":"+t;
   if(d[id])return false;
   d[id]={d:new Date(Date.now()+9*3600e3).toISOString().slice(0,10),ch:G.ch};ls.set(DKEY,d);
+  if(!ls.get(DKEY,{})[id])return false; /* 저장 실패(사파리 사생활 모드 등)면 NEW로 세지 않는다 */
   G.dexNew=(G.dexNew||0)+1;return true;}
 const dexCount=()=>Object.keys(ls.get(DKEY,{})).length;
 function load(){SAVE=Object.assign({best:0,bestk:0,runs:0,streak:0,lastSeed:0,hist:{}},ls.get(KEY,{}));
@@ -1850,7 +1851,7 @@ function wshake(v){if(wshT>0)return;wshT=.22;shake=Math.max(shake,v*.55);}
 const keys={};
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=1;
   if(mode==="reveal"){if(!e.repeat&&performance.now()-G.revOpen>400)closeReveal();e.preventDefault();return;}
-  if(mode==="menu"&&e.key.toLowerCase()==="d"&&!/INPUT|SELECT|TEXTAREA/.test((e.target&&e.target.tagName)||"")){
+  if(mode==="menu"&&e.key.toLowerCase()==="d"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/INPUT|SELECT|TEXTAREA/.test((e.target&&e.target.tagName)||"")){
     $("#v-dex").classList.contains("off")?openDex():showVeil("#v-menu");return;}
   if(e.key===" "&&mode==="play")useUlt();
   if(mode==="level"&&e.key.toLowerCase()==="r")reroll();
