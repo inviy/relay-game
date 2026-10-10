@@ -2412,12 +2412,12 @@ function dmgE(e,d,showNum,wk){
   }
 }
 function dmgB(d,wk){const b=G.boss;if(!b)return;
-  if(wk)G.dmgBy[wk]=(G.dmgBy[wk]||0)+d;
   const A=b.ang?ANGELS[b.ang]:null;
   /* 무적 — 추적자는 신호권 안에서, 차폐는 닫혀 있을 때. 「무효」가 떠야 버그로 안 읽힌다 */
   if(A&&A.shielded&&A.shielded(b)){b.hit=.05;b.at=1;
     if(Math.random()<.12)G.num.push({x:b.x,y:b.y-b.r,v:"무효",life:.5,c:C.pale});return;}
   if(A&&A.capHit)d=A.capHit(b,d);   // 모루 — 한 방 큰 공격에 상한
+  if(wk)G.dmgBy[wk]=(G.dmgBy[wk]||0)+d;
   b.hp-=d;b.hit=.09;
   if(A&&A.onHit)A.onHit(b);
   if(b.hp<=0){const fin=b.fin;
