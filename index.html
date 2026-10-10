@@ -801,10 +801,10 @@ function resetSeed(){R={zone:mulberry32(SEED*3+1),spawn:mulberry32(SEED*3+2),car
    같은 조건이어야 하니까. 등급은 배율만 올린다. 탄·장판 개수를 늘리면 공속과 곱해져
    화면이 덮이고 피해가 제곱으로 뛴다(2026-09-13). 추첨은 R.tier만 쓴다 — 카드 순서가 그대로다. */
 const TIERS=[
- {id:"epic",  n:"에픽",p:.60,m:1.15,c:"#b57bff"},
+ {id:"epic",  n:"에픽",p:.589,m:1.15,c:"#b57bff"},
  {id:"hero",  n:"영웅",p:.28,m:1.30,c:"#ff9f43"},
  {id:"legend",n:"전설",p:.10,m:1.50,c:"#ffd166"},
- {id:"myth",  n:"신화",p:.02,m:1.80,c:"#e8f4ff"}];
+ {id:"myth",  n:"신화",p:.031,m:1.80,c:"#e8f4ff"}];
 const tierMul=k=>{const t=G.tier[k];return t?TIERS[t-1].m:1;};
 function rollTier(){
   const ks=Object.keys(G.w);if(!ks.length)return null;
