@@ -746,7 +746,7 @@ body.master #paidbar{display:flex}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.12.0";
+const VERSION="3.12.1";
 /* 배속 — 1.5배는 「빨라졌나?」 싶은 애매한 폭이었다(2026-10-11 피드백) */
 const FAST=2;
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
@@ -2115,7 +2115,10 @@ function spawnBoss(){
      본편 로스터를 [0]으로 떨어뜨려 첫 사도만 반복하던 것도 여기서 없어진다. */
   const R2=G.ended?(G.endRoster.length?G.endRoster:G.roster):G.roster;
   const aid=fin?null:(R2.length?R2[G.bosses%R2.length]:null), A=aid?ANGELS[aid]:null;
-  const bhp=Math.round(9000*Math.pow(1.55,G.bosses)*(fin?2.4:(A?A.hpM:1)));
+  /* 무한모드는 한 기에 1.2배. 1.55배를 그대로 이으니 제14사도가 350만이 되어
+     한 기에 15~20분이 걸렸다. 본편(종단까지)과 무한 첫 사도는 그대로다 */
+  const ex=Math.max(0,G.bosses-FINAL_AT-1);
+  const bhp=Math.round(9000*Math.pow(1.55,G.bosses-ex)*Math.pow(1.2,ex)*(fin?2.4:(A?A.hpM:1)));
   G.boss={x:G.p.x+Math.cos(a)*520,y:G.p.y+Math.sin(a)*520,hp:bhp,mhp:bhp,
     spd:fin?86:(A?A.spd:70)+G.bosses*6,r:fin?78:(A?A.r:46),dmg:fin?34:(A?A.dmg:24)+G.bosses*4,
     fire:1.4,ring:0,summon:5,hit:0,fin:fin?1:0,ph:0,spiral:0,conv:0,ang:aid,
