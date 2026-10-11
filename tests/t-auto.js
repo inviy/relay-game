@@ -11,6 +11,7 @@ try{
 
 
   // 사람 입력 우선
+  G.items.length=0;G.zone.x=G.p.x+250;G.zone.y=G.p.y;   // 상자는 반대쪽일 수 있다 · 1초 만에 원 안에 들어가 멈춘다 — 다시 밖으로 밀어 방향을 만든다
   const s=D.autoSteer();D.keys.a=1;const px=G.p.x;D.update(1/60);D.keys.a=0;   // 봇은 +x, 사람은 -x
   ok("봇 방향이 +x (반대 확인)",s[0]>0,s);
   ok("사람 입력 우선",G.p.x<px,[px,G.p.x,s]);
