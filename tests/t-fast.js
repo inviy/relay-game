@@ -4,10 +4,15 @@ try{
   D.PAID.fast=0;D.start();const G=D.G;
   let t=performance.now();D.loop(t);const g0=G.t;D.loop(t+40);const a=G.t-g0;
   D.PAID.fast=1;const g1=G.t;D.loop(t+80);const b=G.t-g1;
-  ok("1.5배로 흐른다",Math.abs(b/a-1.5)<1e-6,[a,b]);
+  ok("2배로 흐른다",Math.abs(b/a-2)<1e-6,[a,b]);
   ok("fastUsed 기록",G.fastUsed===true);
   D.PAID.fast=1;const g2=G.t;D.loop(t+80+500);const c=G.t-g2;
-  ok("상한 뒤에 곱함 (.05×1.5)",Math.abs(c-.075)<1e-6,c);
+  ok("상한 뒤에 곱함 (.05×2)",Math.abs(c-.1)<1e-6,c);
+  /* 느린 프레임(.1초) — 초속 300 탄이 한 번에 30px를 건너 기체를 뚫으면 안 된다 */
+  {const p=G.p;G.en.length=0;G.eb.length=0;p.inv=0;p.hp=p.mhp;D.PAID.auto=0;
+    G.eb.push({x:p.x+15,y:p.y,vx:-300,vy:0,r:6,dmg:10,life:9});const t2=t+2000;D.loop(t2-10);G.eb.length=0;p.hp=p.mhp;p.inv=0;
+    G.eb.push({x:p.x+15,y:p.y,vx:-300,vy:0,r:6,dmg:10,life:9});D.loop(t2+500);
+    ok("느린 프레임에서도 탄이 안 뚫는다",p.hp<p.mhp,{hp:p.hp,dt:.1});}
 
   D.mode="menu";D.showVeil("#v-menu");D.PAID.fast=0;
   const nick=document.getElementById("nick");nick.focus();
