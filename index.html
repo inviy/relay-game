@@ -435,6 +435,10 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 #pausebtn{position:absolute;top:106px;right:16px;pointer-events:auto;background:none;border:none;
   color:var(--ash);font:inherit;font-size:13px;font-weight:600;letter-spacing:.14em;cursor:pointer}
 #pausebtn:hover{color:var(--gold)}
+#paidbar{display:none;position:absolute;top:136px;right:16px;gap:10px;pointer-events:auto}
+body.master #paidbar{display:flex}
+#paidbar button{background:none;border:1px solid var(--line);border-radius:3px;color:var(--ash);font:inherit;font-size:12px;font-weight:600;letter-spacing:.12em;padding:4px 8px;cursor:pointer}
+#paidbar button.on{color:var(--gold);border-color:var(--gold)}
 #ult{position:absolute;right:16px;bottom:22px;width:min(190px,36vw);pointer-events:auto;cursor:pointer;
   font-family:"Chakra Petch",var(--kr);font-size:12px;letter-spacing:.14em;color:var(--ash);text-align:right}
 #ult .bar{height:9px;background:#0b1024;border:1px solid var(--line);border-radius:2px;overflow:hidden;margin-top:5px}
@@ -520,6 +524,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
     background:rgba(13,18,36,.72);box-shadow:inset 0 0 0 1px var(--line);
     -webkit-tap-highlight-color:transparent}
   #pausebtn{right:calc(env(safe-area-inset-right) + 14px)}
+  #paidbar{top:calc(env(safe-area-inset-top) + 66px);right:calc(env(safe-area-inset-right) + 14px)}
   #mute{right:calc(env(safe-area-inset-right) + 68px)}
   #mute .ico,#pausebtn .ico{display:block;width:22px;height:22px}
   #mute .lbl,#pausebtn .lbl{display:none}
@@ -621,6 +626,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <button id="mute" aria-label="소리 끄기"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7"/><path class="wave" d="M19 6a8.5 8.5 0 0 1 0 12"/><path class="slash" d="M17 8.5l5 7M22 8.5l-5 7"/></svg><span class="lbl">소리 켬</span></button>
   <div id="right"><div><b id="score" class="mono">0</b> 점</div><div><b id="kills">0</b> 처치</div><div id="zonestate">신호권 안</div><div id="rank" hidden></div></div>
   <button id="pausebtn" aria-label="일시정지"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.6" height="14" rx="1"/><rect x="13.4" y="5" width="3.6" height="14" rx="1"/></svg><span class="lbl">일시정지</span></button>
+  <div id="paidbar"><button id="b-auto">AUTO</button><button id="b-fast">1.5×</button></div>
   <div id="weapons"></div>
   <div id="hptext"><span id="hpnum">120 / 120</span></div>
   <div id="hpwrap"><div id="hpfill"></div></div>
@@ -838,7 +844,7 @@ function scoreDelta(){
 const RKEY="relay:run", RUNV=1;
 const RUNF=["t","et","eth","seg","kills","spawn","elite","chest","bosses","bossT","cleared","ended","evi","evWarn","outT",
   "form","noEvo","final","apex","stage","rerolls","ch","w","lvls","evo","st","ct","roster","endRoster","ang","plate","res","resT","resCap","rank","top1","chs","ult","shield",
-  "turrets","zone","next","zt","trail","histT","tcd","ultReady","tier","tierN","chestN","tierBest","dmgBy","dexNew"];
+  "turrets","zone","next","zt","trail","histT","tcd","ultReady","tier","tierN","chestN","tierBest","dmgBy","dexNew","autoUsed","fastUsed"];
 let runSaveT=0;
 function saveRun(){
   if(!G||G.over||!RID||G.t<20)return;      // 20초 미만은 되살릴 가치가 없다
@@ -1878,6 +1884,8 @@ function wshake(v){if(wshT>0)return;wshT=.22;shake=Math.max(shake,v*.55);}
 const keys={};
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=1;
   if(mode==="reveal"){if(!e.repeat&&performance.now()-G.revOpen>400)closeReveal();e.preventDefault();return;}
+  if(!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/INPUT|SELECT|TEXTAREA/.test((e.target&&e.target.tagName)||"")){
+    const k=e.key.toLowerCase();if(k==="u"||k==="f"){togglePaid(k==="u"?"auto":"fast");return;}}
   if(mode==="menu"&&e.key.toLowerCase()==="d"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/INPUT|SELECT|TEXTAREA/.test((e.target&&e.target.tagName)||"")){
     $("#v-dex").classList.contains("off")?openDex():showVeil("#v-menu");return;}
   if(e.key===" "&&mode==="play")useUlt();
@@ -1933,7 +1941,7 @@ function newRun(){
     p:{x:0,y:0,r:13,hp:120,mhp:120,spd:215,lv:1,xp:0,need:5,dx:0,dy:-1,mag:120,inv:0,flash:0,in:true,tr:0},
     st:{dmg:1,rate:1,area:1,pierce:0,regen:0,crit:0,drain:0,thorn:0,surge:0,eSpd:1,ultG:1,resDmg:.015,resHold:1,resBeat:0},
     ct:{},ctMode:false,
-    tier:{},tierN:0,chestN:0,tierBest:0,dmgBy:{},dexNew:0,
+    tier:{},tierN:0,chestN:0,tierBest:0,dmgBy:{},dexNew:0,autoUsed:false,fastUsed:false,
     roster:[],endRoster:[],ang:{},lastAng:null,plate:{up:true,cd:0},gazeT:0,shardA:0,
     res:0,resT:0,resCap:40,resLvl:0,pend:0,bossXp:0,rank:0,top1:0,chs:{t:0,n:0,on:0},
     w:{dart:1},evo:{},lvls:{dart:1},cd:{},form:null,noEvo:false,final:false,apex:false,stage:0,rerolls:2,outT:0,evi:0,evWarn:false,ultReady:false,ult:{c:0,max:20,t:0,cd:0},trail:0,shield:{up:true,cd:0},hist:[],histT:0,turrets:[],tcd:0,flash:{t:0,c:"#fff"},moving:false,
@@ -3930,6 +3938,7 @@ function showVeil(s){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-
 function loop(now){requestAnimationFrame(loop);
   if(mode!=="play"){last=now;return;}
   let dt=Math.min(.05,(now-last)/1000);last=now;
+  if(paidOn("fast")){dt*=1.5;G.fastUsed=true;}   // 상한 뒤에 곱한다 — 순위 유지, 서버는 게임 시간만 본다
   if(G.dying>0){endTick(dt);draw();if(G.dying<=0)finish(G.dyWon);return;}
   if(hitstop>0){hitstop-=dt;dt*=.12;}
   update(dt);draw();}
@@ -4007,7 +4016,7 @@ function finish(won){
   if(G.over)return;G.over=1;G.won=!!won;mode="over";SFX.bgm(false);clearRun();
   $("#o-score").textContent=calcScore().toLocaleString();$("#rankline").textContent="순위 집계 중…";submitScore();
   track("end",{kills:G.kills,lv:G.p.lv,ch:G.ch,form:G.form,won:!!won,cause:won?"":(G.lastHit||""),
-    ended:!!G.endNow,score:calcScore(),tier:G.tierBest,chests:G.chestN},G.t);
+    ended:!!G.endNow,score:calcScore(),tier:G.tierBest,chests:G.chestN,auto:!!G.autoUsed,fast:!!G.fastUsed},G.t);
   G.lastRid=RID;RID=null;
   SAVE.runs++;if(G.t>SAVE.best)SAVE.best=G.t;if(G.kills>SAVE.bestk)SAVE.bestk=G.kills;
   markDaily(calcScore());
@@ -4053,10 +4062,15 @@ function openPaid(){const m=isMaster(),SK={base:"기본",neon:"네온",plat:"백
     row("skin","연출 스킨 — "+SK[PAID.skin],PAID.skin!=="base","누르면 바뀜")+
     row("stats","기록 보기",0,"최근 30판");
   $("#paidlist").querySelectorAll(".pr").forEach(el=>el.onclick=()=>{if(!isMaster())return;const k=el.dataset.k;
-    if(k==="auto"||k==="fast"){PAID[k]=PAID[k]?0:1;savePaid();openPaid();}
+    if(k==="auto"||k==="fast"){togglePaid(k);openPaid();}
     else if(k==="skin"){const o=["base","neon","plat"];PAID.skin=o[(o.indexOf(PAID.skin)+1)%3];savePaid();openPaid();}
     else if(k==="stats"&&typeof openStats==="function")openStats();});
   showVeil("#v-paid");}
+function paidBar(){document.body.classList.toggle("master",isMaster());
+  $("#b-auto").classList.toggle("on",!!PAID.auto);$("#b-fast").classList.toggle("on",!!PAID.fast);}
+function togglePaid(k){if(!isMaster())return;PAID[k]=PAID[k]?0:1;savePaid();paidBar();
+  call(k==="auto"?(PAID.auto?"AUTO 켜짐 — 이 판은 순위 제외":"AUTO 꺼짐"):(PAID.fast?"1.5배속":"보통 속도"));}
+$("#b-auto").onclick=()=>togglePaid("auto");$("#b-fast").onclick=()=>togglePaid("fast");
 $("#paidlink").onclick=openPaid;
 $("#b-paidclose").onclick=()=>showVeil("#v-menu");
 function openDex(){const d=ls.get(DKEY,{});let h="";
@@ -4141,7 +4155,7 @@ $("#lb-refresh").onclick=loadLB;
 $("#lbtop").onclick=()=>$("#lb").scrollIntoView({behavior:"smooth",block:"start"});
 $("#todaymod").innerHTML=`<b style="color:var(--gold)">오늘의 규칙 · ${MOD.n}</b> — ${MOD.d}`;
 $("#ver").textContent="v"+VERSION;
-checkMaster().then(()=>{try{menu();}catch(e){}});
+checkMaster().then(()=>{try{paidBar();menu();}catch(e){}});
 /* 「SECTOR 07」은 아무 뜻이 없었다. 그 자리에 오늘 판 번호를 — 공유 문구의 #번호와 같다 */
 $("#seedtag").textContent="DAILY #"+SEED;
 $("#nick").addEventListener("keydown",e=>e.stopPropagation());
