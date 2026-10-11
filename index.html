@@ -746,7 +746,7 @@ body.master #paidbar{display:flex}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.10.1";
+const VERSION="3.10.2";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','RelayKR','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -796,7 +796,7 @@ const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;
    결제는 아직 없다. 마스터(본인)만 무료로 켠다. 소스에는 코드의 해시만 둔다 —
    단일 파일이라 localStorage를 고치면 누구나 켤 수 있다는 건 알고 간다. AUTO 판은
    순위에 오르지 않으니 뚫려도 순위는 안전하다. 결제를 붙일 때 서버 검증으로 바꾼다 */
-const MASTER_H="f7bd7c632bf94f3bb0fae013a39cf098ec7499aadc49086f5e7ddbfa0653238d";
+const MASTER_H="5ec283edd20a41a916f2798cf35639dd1cb03e671c915544148d94947a717d22";
 const isMaster=()=>ls.get("relay:master","")===MASTER_H;
 const PAID=Object.assign({auto:0,fast:0,skin:"base"},ls.get("relay:paid",{}));
 const savePaid=()=>ls.set("relay:paid",PAID);
