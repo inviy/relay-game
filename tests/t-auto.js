@@ -9,6 +9,7 @@ try{
   ok("AUTO가 움직인다",Math.hypot(G.p.x-x0,G.p.y-y0)>5,[G.p.x-x0,G.p.y-y0]);
   ok("autoUsed",G.autoUsed===true);
 
+
   // 사람 입력 우선
   const s=D.autoSteer();D.keys.a=1;const px=G.p.x;D.update(1/60);D.keys.a=0;   // 봇은 +x, 사람은 -x
   ok("봇 방향이 +x (반대 확인)",s[0]>0,s);
@@ -37,6 +38,14 @@ try{
   D.submitBeacon();D.finish(false);
   ok("AUTO 판 제출 0건",sub===0,sub);
   ok("결과에 순위 제외 표시",/AUTO · 순위 제외/.test(document.getElementById("rankline").textContent));
+  // 즉시 저장: 첫 AUTO 프레임에서 바로 localStorage에 autoUsed가 들어간다 (20초 미만은 저장 안 함)
+  localStorage.removeItem("relay:run");D.PAID.auto=0;D.start();D.G.t=30;D.PAID.auto=1;D.update(1/60);
+  ok("AUTO 첫 프레임 즉시 저장",JSON.parse(localStorage.getItem("relay:run")||"{}").autoUsed===true);
+  // autoPick 단독 경로: 플레이 프레임 없이도 표식
+  localStorage.removeItem("relay:run");D.PAID.auto=0;D.start();D.G.t=30;D.PAID.auto=1;D.G.p.xp=D.G.p.need;D.gainXp(0.01);
+  ok("(픽 전) autoUsed 아님",D.G.autoUsed===false);D.autoPick();
+  ok("autoPick이 autoUsed 표식+저장",D.G.autoUsed===true&&JSON.parse(localStorage.getItem("relay:run")||"{}").autoUsed===true);
+  D.PAID.auto=1;D.start();
 }catch(e){ok("예외 없음",false,String(e.stack||e));}
 // 상자 연출: AUTO면 0.6초 뒤 스스로 닫힌다 (가상 시간)
 try{const D=window.__dbg;D.PAID.auto=1;D.start();D.showReveal({t:4,k:Object.keys(D.G.w)[0]},false);

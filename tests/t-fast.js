@@ -19,6 +19,8 @@ try{
   ok("F 토글",D.PAID.fast===1);
   dispatchEvent(new KeyboardEvent("keydown",{key:"u"}));
   ok("U 토글",D.PAID.auto===1);D.PAID.auto=0;
+  dispatchEvent(new KeyboardEvent("keydown",{key:"u",repeat:true}));
+  ok("키 반복은 토글 안 함",D.PAID.auto===0);
 
   localStorage.removeItem("relay:master");D.PAID.fast=0;
   dispatchEvent(new KeyboardEvent("keydown",{key:"f"}));

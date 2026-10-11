@@ -794,7 +794,7 @@ const paidOn=k=>isMaster()&&!!PAID[k];
 const SKINS={base:{},
   neon:{"#4ff0d8":"#39ff88","#a86bff":"#ff3df2","#eef2ff":"#c8ff00","#ff5c8a":"#ff2a6d"},
   plat:{"#4ff0d8":"#dfe8f5","#a86bff":"#b9c4d6","#eef2ff":"#ffffff","#ff5c8a":"#e7c4cf"}};
-const skinC=c=>(isMaster()&&SKINS[PAID.skin]&&SKINS[PAID.skin][c])||c;
+const skinC=c=>(PAID.skin!=="base"&&isMaster()&&SKINS[PAID.skin]&&SKINS[PAID.skin][c])||c;
 async function checkMaster(){const q=new URLSearchParams(location.search),c=q.get("master");
   if(c===null)return;
   try{const h=[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(c)))]
@@ -1902,7 +1902,7 @@ const keys={};
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=1;
   if(mode==="reveal"){if(!e.repeat&&performance.now()-G.revOpen>400)closeReveal();e.preventDefault();return;}
   if(!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/INPUT|SELECT|TEXTAREA/.test((e.target&&e.target.tagName)||"")){
-    const k=e.key.toLowerCase();if(k==="u"||k==="f"){togglePaid(k==="u"?"auto":"fast");return;}}
+    const k=e.key.toLowerCase();if(!e.repeat&&(k==="u"||k==="f")){togglePaid(k==="u"?"auto":"fast");return;}}
   if(mode==="menu"&&e.key.toLowerCase()==="d"&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/INPUT|SELECT|TEXTAREA/.test((e.target&&e.target.tagName)||"")){
     $("#v-dex").classList.contains("off")?openDex():showVeil("#v-menu");return;}
   if(e.key===" "&&mode==="play")useUlt();
@@ -2153,7 +2153,8 @@ function update(dt){
   if(keys.a||keys.arrowleft)ix--; if(keys.d||keys.arrowright)ix++;
   if(keys.w||keys.arrowup)iy--; if(keys.s||keys.arrowdown)iy++;
   if(touch){ix+=touch.x;iy+=touch.y;}
-  if(paidOn("auto")){G.autoUsed=true;if(!ix&&!iy){const a=autoSteer();ix=a[0];iy=a[1];}}   // 사람 입력이 이긴다
+  if(paidOn("auto")){if(!G.autoUsed){G.autoUsed=true;saveRun();}   // 한 프레임이라도 돌았으면 즉시 저장 — 10초 주기를 기다리면 이어하기로 샐 수 있다
+    if(!ix&&!iy){const a=autoSteer();ix=a[0];iy=a[1];}}   // 사람 입력이 이긴다
   const l=Math.hypot(ix,iy);
   G.moving=l>0;
   const sm=(G.form==="pulse"&&G.stage>=2&&G.res>=30)?1.2:1;   // 증폭 — 공명 30 이상이면 빨라진다
@@ -2466,7 +2467,8 @@ function autoSteer(){const p=G.p;let x=0,y=0;
   if(best){const dx=best.x-p.x,dy=best.y-p.y,d=bd||1;x+=dx/d*.9;y+=dy/d*.9;}
   return [x,y];}
 /* AUTO 선택 — 진화 > 진화 조건 > 새 무기 > 강화 > 첫 장. 갈래·계약·보상은 첫 장 */
-function autoPick(){if(mode!=="level"||!paidOn("auto")&&!G.autoUsed)return;
+function autoPick(){if(mode!=="level"||!paidOn("auto")&&!G.autoUsed||document.hidden)return;
+  if(!G.autoUsed){G.autoUsed=true;saveRun();}
   const cs=[...document.querySelectorAll("#picks .card")];if(!cs.length)return;
   const pick=cs.find(c=>c.classList.contains("evo"))||cs.find(c=>c.querySelector(".ev.ok"))
     ||cs.find(c=>/새 무기|전용 무기/.test(c.querySelector(".kind")?.textContent||""))
