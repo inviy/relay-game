@@ -2817,7 +2817,7 @@ function showReveal(r,isNew){const T=TIERS[r.t-1],V=$("#v-reveal");
   $("#rv-tier").textContent=T.n.split("").join(" ");$("#rv-tier").style.color=T.c;
   $("#rv-name").textContent=WEAPONS[r.k].n;$("#rv-sub").textContent="피해 ×"+T.m;
   G.revT=.5;G.revTier=r.t;mode="reveal";G.revOpen=performance.now();showVeil("#v-reveal");
-  clearTimeout(G.revTO);G.revTO=setTimeout(closeReveal,r.t>=4?2600:2200);}
+  clearTimeout(G.revTO);G.revTO=setTimeout(closeReveal,paidOn("auto")?600:r.t>=4?2600:2200);}   // AUTO는 연출을 기다리지 않는다
 function closeReveal(){if(mode!=="reveal")return;clearTimeout(G.revTO);
   hideAll();mode="play";last=performance.now();
   if(document.hidden){pause();return;}   // 숨은 탭에서 타이머가 판을 재개하면 안 된다

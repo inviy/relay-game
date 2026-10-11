@@ -10,8 +10,9 @@ try{
   ok("autoUsed",G.autoUsed===true);
 
   // 사람 입력 우선
-  const s=D.autoSteer();D.keys.d=1;const px=G.p.x;D.update(1/60);D.keys.d=0;
-  ok("사람 입력 우선",G.p.x>px,[px,G.p.x,s]);
+  const s=D.autoSteer();D.keys.a=1;const px=G.p.x;D.update(1/60);D.keys.a=0;   // 봇은 +x, 사람은 -x
+  ok("봇 방향이 +x (반대 확인)",s[0]>0,s);
+  ok("사람 입력 우선",G.p.x<px,[px,G.p.x,s]);
 
   // 자동 선택: 레벨업 화면을 0.6초 뒤 스스로 닫는다
   if(D.mode!=="level"){G.p.xp=G.p.need;D.gainXp(0.01);}
@@ -24,7 +25,7 @@ try{
 
   // 3분 생존(정보)
   let died=false;for(let i=0;i<180*30;i++){D.update(1/30);
-    if(D.mode==="level"||D.mode==="reveal")D.autoPick(),D.mode==="reveal"&&D.closeReveal();
+    if(D.mode==="level")D.autoPick();
     if(G.dying>0||G.over){died=true;break;}}
   ok("3분 생존 (정보)",true,{t:Math.round(G.t),lv:G.p.lv,died,weapons:Object.keys(G.w).length});
 
@@ -37,5 +38,9 @@ try{
   ok("AUTO 판 제출 0건",sub===0,sub);
   ok("결과에 순위 제외 표시",/AUTO · 순위 제외/.test(document.getElementById("rankline").textContent));
 }catch(e){ok("예외 없음",false,String(e.stack||e));}
-window.__dbg.mode="menu";
-document.getElementById("out").textContent=JSON.stringify(out);})();
+// 상자 연출: AUTO면 0.6초 뒤 스스로 닫힌다 (가상 시간)
+try{const D=window.__dbg;D.PAID.auto=1;D.start();D.showReveal({t:4,k:Object.keys(D.G.w)[0]},false);
+  ok("연출 뜸",D.mode==="reveal");
+  setTimeout(()=>{ok("AUTO 연출이 스스로 닫힘",D.mode!=="reveal",D.mode);D.mode="menu";
+    document.getElementById("out").textContent=JSON.stringify(out);},900);
+}catch(e){ok("예외 없음(reveal)",false,String(e.stack||e));window.__dbg.mode="menu";document.getElementById("out").textContent=JSON.stringify(out);}})();
