@@ -1,2 +1,2 @@
-window.__dbg={get G(){return G;},get R(){return R;},get mode(){return mode;},set mode(v){mode=v;},
+window.__dbg={get G(){return G;},get PROF(){return PROF;},get R(){return R;},get mode(){return mode;},set mode(v){mode=v;},
   start,newRun,resetSeed,update,draw,items,weapons,wstat,gainXp,saveRun,loadRun,contRun,finish,shareText,showVeil,WEAPONS,TIERS,tierMul,rollTier,openChest,showReveal,closeReveal,loop,dexAdd,dexCount,openDex,bigPC,menu,MASTER_H,isMaster,PAID,savePaid,paidOn,checkMaster,openPaid,paidBar,keys,autoSteer,autoPick,submitBeacon,submitScore,skinC,SKINS,openStats,danmaku,dkAt,enemies,spawnE,makeE,EB_CAP};

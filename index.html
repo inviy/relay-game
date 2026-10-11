@@ -687,7 +687,7 @@ body.master #paidbar{display:flex}
   <h2 style="margin-top:10px">하나 고르세요</h2>
   <div id="picks"></div>
   <div id="lvtools"><button id="b-reroll">다시 뽑기</button><button id="b-skip">건너뛰기 · 경험치로</button></div>
-  <p style="font-size:14px;margin-top:10px">숫자 키로 선택 · R 다시 뽑기 · S 건너뛰기</p>
+  <p style="font-size:14px;margin-top:10px">숫자 키로 선택 · R 다시 뽑기</p>
 </div></div>
 
 <div class="veil off" id="v-pause"><div class="box">
@@ -746,7 +746,7 @@ body.master #paidbar{display:flex}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.10.2";
+const VERSION="3.11.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','RelayKR','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -1929,7 +1929,7 @@ addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=1;
     $("#v-dex").classList.contains("off")?openDex():showVeil("#v-menu");return;}
   if(e.key===" "&&mode==="play")useUlt();
   if(mode==="level"&&e.key.toLowerCase()==="r")reroll();
-  if(mode==="level"&&e.key.toLowerCase()==="s"&&!$("#v-level").classList.contains("off")&&$("#lvtools").offsetParent)skipCard();
+  /* 건너뛰기는 버튼으로만 — S는 WASD의 아래라, 움직이다 레벨업 화면이 뜨면 고르기도 전에 건너뛰었다 */
   if(e.key.toLowerCase()==="m")setMute(SFX.toggle());
   if(mode==="level"&&"1234".includes(e.key)){const b=document.querySelectorAll("#picks .card")[+e.key-1];b&&b.click();}
   if(e.key==="Escape"){mode==="play"?pause():mode==="pause"&&resume();}
@@ -2477,17 +2477,40 @@ function pushPool(k,cap,o){
 /* 투사체 +1 — 권능 분신탄, 임계(공진 3차 · 공명 40 이상) */
 const extraShot=()=>(G.ang.twin ?1:0)+((G.form==="pulse"&&G.stage>=3&&G.res>=40)?1:0);
 function addRes(){G.res=Math.min(G.resCap,G.res+1+(Math.random()<G.st.resBeat?1:0));G.resT=0;}
-/* AUTO 이동 — 피하기 · 신호권 · 상자 세 힘의 합. 영리할 필요는 없다, 순위에 안 오른다 */
-function autoSteer(){const p=G.p;let x=0,y=0;
+/* AUTO 이동 — 두 층이다. 「어디로 갈지」는 끌림의 합(적·탄에서 밀려나고 신호권·상자로 끌린다)이 정한다.
+   점수가 이걸로 잘 나왔다. 「무엇을 피할지」는 17방향(정지 포함)으로 0.6초 앞을 굴려 본다 —
+   끌림의 합은 날아오는 탄의 앞길을 못 봐서, 옆으로 비키면 될 탄을 뒤로 물러나며 따라 맞았다.
+   선호를 거리 비용으로 섞었더니 반대 끌림끼리 비겨 제자리에 섰다(레벨 반토막) — 그래서 선호는 방향 하나다 */
+const AUTO_T=[.08,.16,.28,.42,.6];
+function autoPull(){const p=G.p;let x=0,y=0;
   for(const e of G.en){if(e.dead)continue;const dx=p.x-e.x,dy=p.y-e.y,d2=dx*dx+dy*dy;
     if(d2<220*220&&d2>1){const k=9000/d2;x+=dx*k/Math.sqrt(d2);y+=dy*k/Math.sqrt(d2);}}
-  for(const b of G.eb){const dx=p.x-b.x,dy=p.y-b.y,d2=dx*dx+dy*dy;
-    if(d2<160*160&&d2>1){const k=14000/d2;x+=dx*k/Math.sqrt(d2);y+=dy*k/Math.sqrt(d2);}}
-  if(G.boss){const dx=p.x-G.boss.x,dy=p.y-G.boss.y,d=Math.hypot(dx,dy)||1;if(d<G.boss.r+260){x+=dx/d*1.5;y+=dy/d*1.5;}}
-  const z=G.zone;if(z){const dx=z.x-p.x,dy=z.y-p.y,d=Math.hypot(dx,dy)||1,w=d>z.r*.7?1.2:.25;x+=dx/d*w;y+=dy/d*w;}
+  const B=G.boss,z=G.zone,A=B&&B.ang&&ANGELS[B.ang];
+  if(B){const dx=p.x-B.x,dy=p.y-B.y,d=Math.hypot(dx,dy)||1;if(d<B.r+260){x+=dx/d*1.5;y+=dy/d*1.5;}}
+  /* 신호권 안에서 무적인 사도 — 원으로 끌리면 사도가 따라 들어와 영영 안 죽는다. 그땐 원 밖으로 */
+  const lure=!!(A&&A.shielded&&A.shielded(B));
+  if(z){const dx=z.x-p.x,dy=z.y-p.y,d=Math.hypot(dx,dy)||1;
+    if(lure){if(d<z.r+180){x-=dx/d*1.6;y-=dy/d*1.6;}}else{const w=d>z.r*.7?1.2:.25;x+=dx/d*w;y+=dy/d*w;}}
   let best=null,bd=400;for(const it of G.items){if(it.type!=="chest")continue;const d=Math.hypot(it.x-p.x,it.y-p.y);if(d<bd){bd=d;best=it;}}
   if(best){const dx=best.x-p.x,dy=best.y-p.y,d=bd||1;x+=dx/d*.9;y+=dy/d*.9;}
   return [x,y];}
+function autoSteer(){const p=G.p,s=p.spd*((G.form==="pulse"&&G.stage>=2&&G.res>=30)?1.2:1);
+  const near=s*.6+260, bs=[], es=[];
+  for(const b of G.eb)if(Math.abs(b.x-p.x)<near+200&&Math.abs(b.y-p.y)<near+200)bs.push(b);
+  for(const e of G.en)if(!e.dead&&Math.abs(e.x-p.x)<near&&Math.abs(e.y-p.y)<near)es.push(e);
+  const B=G.boss&&!(G.boss.ang&&ANGELS[G.boss.ang].ghost)?G.boss:null;
+  const v=autoPull(),vl=Math.hypot(v[0],v[1]),ux=vl?v[0]/vl:0,uy=vl?v[1]/vl:0,K=Math.min(1,vl)*40;
+  const pv=G.autoDir||[0,0];let best=[0,0],bc=Infinity;
+  for(let k=-1;k<16;k++){const dx=k<0?0:Math.cos(k*Math.PI/8),dy=k<0?0:Math.sin(k*Math.PI/8);let c=0;
+    for(const t of AUTO_T){const X=p.x+dx*s*t,Y=p.y+dy*s*t,w=1/(1+t*3);
+      for(const b of bs){const d=Math.hypot(X-b.x-b.vx*t,Y-b.y-b.vy*t)-6-b.r;if(d<28)c+=(28-d)*(28-d)*w;}
+      for(const e of es){const ex=X-e.x,ey=Y-e.y,el=Math.hypot(ex,ey)||1,m=Math.min(el,e.spd*t);
+        const d=Math.hypot(ex-ex/el*m,ey-ey/el*m)-p.r-e.r-(e.bomb?55:0);if(d<30)c+=(30-d)*(30-d)*w*.6;}
+      if(B){const d=Math.hypot(X-B.x,Y-B.y)-p.r-B.r;if(d<60)c+=(60-d)*(60-d)*w*.6;}}
+    c-=(dx*ux+dy*uy)*K;                              // 가고 싶은 쪽
+    c-=(dx*pv[0]+dy*pv[1])*4;                       // 떨림 방지
+    if(c<bc){bc=c;best=[dx,dy];}}
+  G.autoDir=best;return best;}
 /* AUTO 선택 — 진화 > 진화 조건 > 새 무기 > 강화 > 첫 장. 갈래·계약·보상은 첫 장 */
 function autoPick(){if(mode!=="level"||!paidOn("auto")&&!G.autoUsed||document.hidden)return;
   if(!G.autoUsed){G.autoUsed=true;saveRun();}
