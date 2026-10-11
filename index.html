@@ -80,6 +80,10 @@ canvas{display:block;width:100%;height:100%}
 #rv-tier{font-size:15px;letter-spacing:.2em}
 #rv-new{display:none;color:var(--gold);font-weight:700;letter-spacing:.12em;margin-top:6px}
 #v-reveal.new #rv-new{display:block}
+#statlist{max-width:560px;margin:14px auto 0;text-align:left;font-size:13px;color:var(--ash)}
+#statlist .sr{display:grid;grid-template-columns:90px 90px 1fr 70px 70px;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}
+#statlist .sr b{color:var(--pale)}
+@media (max-width:620px){#statlist .sr{grid-template-columns:80px 70px 1fr}#statlist .sr span:nth-child(4),#statlist .sr span:nth-child(5){display:none}}
 #dexgrid{display:grid;grid-template-columns:auto repeat(4,1fr);gap:6px;margin-top:16px;align-items:center;font-size:13px}
 #dexgrid .wn{text-align:left;color:var(--pale);padding-right:8px}
 #dexgrid .dc{height:30px;border:1px solid var(--line);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--ash)}
@@ -720,6 +724,12 @@ body.master #paidbar{display:flex}
   <h2 style="margin-top:10px">편하게, 다르게</h2>
   <div id="paidlist"></div>
   <button class="btn ghost" id="b-paidclose" style="margin-top:18px">닫기</button>
+</div></div>
+<div class="veil off" id="v-stats"><div class="box">
+  <div class="tag">기록</div>
+  <p id="statbest" style="margin:12px 0 0;font-size:14px;color:var(--pale)"></p>
+  <div id="statlist"></div>
+  <button class="btn ghost" id="b-statclose" style="margin-top:18px">닫기</button>
 </div></div>
 
 <script>
@@ -3953,10 +3963,10 @@ function hud(){
 }
 
 /* ───── 흐름 ───── */
-function hideAll(){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-dex","#v-paid"].forEach(s=>$(s).classList.add("off"));
+function hideAll(){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-dex","#v-paid","#v-stats"].forEach(s=>$(s).classList.add("off"));
   document.body.classList.remove("phos");
   $("#hud").style.display="block";}
-function showVeil(s){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-dex","#v-paid"].forEach(x=>$(x).classList.add("off"));
+function showVeil(s){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-dex","#v-paid","#v-stats"].forEach(x=>$(x).classList.add("off"));
   $(s).classList.remove("off");
   if(s==="#v-level"&&G&&paidOn("auto")){clearTimeout(G.apTO);G.apTO=setTimeout(autoPick,600);}
   /* 인광 모니터는 멈춘 동안과 신호가 끊긴 뒤에만 */
@@ -4046,7 +4056,7 @@ function finish(won){
     ended:!!G.endNow,score:calcScore(),tier:G.tierBest,chests:G.chestN,auto:!!G.autoUsed,fast:!!G.fastUsed},G.t);
   G.lastRid=RID;RID=null;
   SAVE.runs++;if(G.t>SAVE.best)SAVE.best=G.t;if(G.kills>SAVE.bestk)SAVE.bestk=G.kills;
-  markDaily(calcScore());
+  markDaily(calcScore());pushHist();
   save();menu();
   const trueEnd=!!G.endNow;
   $("#otag").textContent=trueEnd?"SIGNAL DELIVERED":won?"MISSION COMPLETE":"SIGNAL LOST";
@@ -4100,6 +4110,22 @@ function togglePaid(k){if(!isMaster())return;PAID[k]=PAID[k]?0:1;savePaid();paid
 $("#b-auto").onclick=()=>togglePaid("auto");$("#b-fast").onclick=()=>togglePaid("fast");
 $("#paidlink").onclick=openPaid;
 $("#b-paidclose").onclick=()=>showVeil("#v-menu");
+const HKEY="relay:hist";
+function pushHist(){const h=ls.get(HKEY,[]);
+  const top=Object.keys(G.dmgBy).sort((a,b)=>G.dmgBy[b]-G.dmgBy[a]).slice(0,3);
+  h.unshift({d:new Date(Date.now()+9*3600e3).toISOString().slice(0,10),s:calcScore(),t:Math.floor(G.t),lv:G.p.lv,
+    ch:G.ch,form:G.form,tb:G.tierBest,top,a:!!G.autoUsed,f:!!G.fastUsed});
+  ls.set(HKEY,h.slice(0,30));}
+function openStats(){const h=ls.get(HKEY,[]),FN={rover:"기동계",warden:"방어계",pulse:"공진계",none:"순수"};
+  if(!isMaster()){$("#statlist").innerHTML="🔒 유료 · 준비 중";$("#statbest").textContent="";showVeil("#v-stats");return;}
+  $("#statlist").innerHTML=h.map(r=>`<div class="sr"><span>${r.d}</span><b>${r.s.toLocaleString()}</b>`+
+    `<span>${Math.floor(r.t/60)}:${String(r.t%60).padStart(2,"0")} · LV${r.lv}</span><span>${FN[r.form]||""}</span>`+
+    `<span>${r.a?"AUTO":""}${r.f?" 1.5×":""}</span></div>`).join("")||"아직 기록이 없습니다";
+  const b=h.slice().sort((x,y)=>y.s-x.s)[0],cnt={};h.forEach(r=>r.top.forEach(k=>cnt[k]=(cnt[k]||0)+1));
+  $("#statbest").innerHTML=b?`최고 빌드 — ${b.top.map(k=>WEAPONS[k]?WEAPONS[k].n:k).join(" · ")} (${b.s.toLocaleString()}점)<br>`+
+    `자주 쓴 무기 — ${Object.keys(cnt).sort((x,y)=>cnt[y]-cnt[x]).slice(0,3).map(k=>`${WEAPONS[k]?WEAPONS[k].n:k} ${cnt[k]}판`).join(" · ")}`:"";
+  showVeil("#v-stats");}
+$("#b-statclose").onclick=()=>openPaid();
 function openDex(){const d=ls.get(DKEY,{});let h="";
   for(const k in WEAPONS){h+=`<span class="wn">${WEAPONS[k].n}</span>`;
     TIERS.forEach((T,i)=>{const g=d[k+":"+(i+1)];
