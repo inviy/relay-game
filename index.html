@@ -737,7 +737,7 @@ body.master #paidbar{display:flex}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.9.0";
+const VERSION="3.10.0";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','RelayKR','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -2251,7 +2251,7 @@ function update(dt){
     else { G.bossT-=dt; if(G.bossT<=0)spawnBoss(); }
   }
 
-  weapons(dt); enemies(dt); boss(dt); bullets(dt); pools(dt); items(dt); fx(dt);
+  weapons(dt); enemies(dt); danmaku(dt); boss(dt); bullets(dt); pools(dt); items(dt); fx(dt);
   if(p.hp<=0)startEnd(false);
   shake=Math.max(0,shake-dt*3.2);wshT=Math.max(0,wshT-dt);
   hud();
@@ -2648,6 +2648,23 @@ function hitP(d,src){const p=G.p;if(p.inv>0)return;
   if(G.st.thorn)G.bolts.push({x:p.x,y:p.y,r:140*G.st.area,life:.32,max:.32,
     dmg:G.st.thorn*G.st.dmg,done:0,pink:1,sh:.1});}
 
+/* 후반 탄막 — 11분이 넘으면 화력이 이겨 적이 그냥 녹았다(2026-10-11 피드백).
+   체력을 올리면 「버티기」가 되고 점수만 부푼다. 대신 피할 탄을 늘린다.
+   위협 시간 축이라 서버 PACE와 무관하다. eth 1320 = 10:00, 1980 = 15:00 */
+const DK0=1320, DK1=1980, EB_CAP=240;
+const dkAt=eth=>Math.min(1,Math.max(0,(eth-DK0)/(DK1-DK0)));
+function danmaku(dt){const dk=dkAt(G.eth);
+  if(dk<=0)return;
+  G.dkT=(G.dkT||0)-dt;if(G.dkT>0)return;
+  G.dkT=(3.2-1.6*dk)*(G.boss?2:1);   // 11분 뒤로는 사도가 줄줄이 온다 — 끄면 탄막이 거의 안 나온다. 보스 탄막과 겹치니 절반만
+  if(G.eb.length>=EB_CAP)return;
+  const p=G.p,vis=G.en.filter(e=>!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<480);
+  if(!vis.length)return;
+  const e=pick(vis),n=Math.round(10+10*dk),sp=140+40*dk,o=rnd(0,TAU);
+  for(let i=0;i<n;i++){const g=o+i/n*TAU;
+    G.eb.push({x:e.x,y:e.y,vx:Math.cos(g)*sp,vy:Math.sin(g)*sp,r:6,dmg:e.dmg,life:5});}
+  G.fx.push({x:e.x,y:e.y,vx:0,vy:0,life:.3,max:.3,ring:e.r*2.4,rc:C.pink,rw:2});}
+
 function enemies(dt){const p=G.p;
   /* 차폐기 목록을 프레임마다 한 번만 모은다 — dmgE는 초당 수백 번 불리므로
      거기서 전체 적을 훑으면 안 된다. 보통 0~3마리다. */
@@ -2671,8 +2688,10 @@ function enemies(dt){const p=G.p;
       if(dist>300){e.x+=Math.cos(a)*s*dt;e.y+=Math.sin(a)*s*dt;}
       else if(dist<200){e.x-=Math.cos(a)*s*.6*dt;e.y-=Math.sin(a)*s*.6*dt;}
       else{e.x+=Math.cos(a+Math.PI/2)*s*.5*dt;e.y+=Math.sin(a+Math.PI/2)*s*.5*dt;}
-      e.fire-=dt;if(e.fire<=0&&dist<520){e.fire=2.3;
-        G.eb.push({x:e.x,y:e.y,vx:Math.cos(a)*230,vy:Math.sin(a)*230,r:6,dmg:e.dmg,life:3});}
+      e.fire-=dt;if(e.fire<=0&&dist<520){const dk=dkAt(G.eth),m=G.eb.length>=EB_CAP?0:dk<1/3?0:dk<2/3?1:2;   // 상한을 넘으면 기본 한 발만
+        e.fire=2.3*(1-.4*dk);
+        for(let j=-m;j<=m;j++){const g=a+j*.22;
+          G.eb.push({x:e.x,y:e.y,vx:Math.cos(g)*230,vy:Math.sin(g)*230,r:6,dmg:e.dmg,life:3});}}
     }else if(e.orbit){
       /* 배회체 — 일정 반경으로 수렴한 뒤 접선 방향으로 돈다. 가만히 있으면
          포위망이 조여지므로 "제자리에서 쏘기"가 안 통한다. */
@@ -3647,7 +3666,8 @@ function draw(){
     if(b.beam){cx.globalAlpha=.9;cx.beginPath();cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);cx.fill();cx.globalAlpha=1;}
     else{cx.beginPath();cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);cx.fill();}}
   cx.shadowColor=C.pink;cx.fillStyle=C.pink;
-  for(const b of G.eb){cx.beginPath();cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);cx.fill();}
+  /* 한 경로로 모아 한 번만 칠한다 — 그림자는 fill마다 비용이라 후반 탄막(240발)에서 프레임을 먹었다 */
+  cx.beginPath();for(const b of G.eb){cx.moveTo(b.x+ox+b.r,b.y+oy);cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);}cx.fill();
   cx.restore();
 
   // 검
