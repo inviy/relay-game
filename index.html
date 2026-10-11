@@ -84,6 +84,11 @@ canvas{display:block;width:100%;height:100%}
 #dexgrid .wn{text-align:left;color:var(--pale);padding-right:8px}
 #dexgrid .dc{height:30px;border:1px solid var(--line);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--ash)}
 #dexgrid .dc.got{border-color:var(--c);color:var(--c);box-shadow:inset 0 0 12px -4px var(--c)}
+#paidlist{max-width:420px;margin:16px auto 0;text-align:left}
+#paidlist .pr{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:3px;margin:6px 0;cursor:pointer;color:var(--pale)}
+#paidlist .pr.on{border-color:var(--gold);color:var(--gold)}
+#paidlist .pr.lock{opacity:.55;cursor:not-allowed}
+#paidlist .pr small{margin-left:auto;color:var(--ash)}
 #wpanel{display:none;position:absolute;left:16px;top:50%;transform:translateY(-50%);width:200px;pointer-events:none}
 body.bigpc #wpanel{display:block}
 #wpanel .wp{border-left:3px solid var(--c);padding:5px 8px;margin:6px 0;background:rgba(13,18,36,.55);font-size:12.5px;color:var(--pale)}
@@ -640,6 +645,7 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <!-- 통계 세 칸이 각각 두 줄(숫자 · 라벨)로 55px를 쓰고 있었다. 한 줄로 -->
   <p class="mstats"><span>연속 <b id="streak" class="mono">0</b></span><span>어제 <b id="yday" class="mono">—</b></span><span>출격 <b id="runs" class="mono">0</b></span></p>
   <p id="dexlink" style="margin:6px 0 0;font-size:13.5px;color:var(--ash);cursor:pointer">도감 <b id="dexn" class="mono">0</b>/40</p>
+  <p id="paidlink" style="margin:4px 0 0;font-size:13.5px;color:var(--ash);cursor:pointer">유료 기능</p>
   <div id="chars" class="chars" aria-label="시작 기체 선택"></div>
   <p id="chsk"></p>
   <div class="startbox" id="startbox">
@@ -703,6 +709,12 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
   <div id="dexgrid"></div>
   <button class="btn ghost" id="b-dexclose" style="margin-top:18px">닫기</button>
 </div></div>
+<div class="veil off" id="v-paid"><div class="box">
+  <div class="tag">유료 기능</div>
+  <h2 style="margin-top:10px">편하게, 다르게</h2>
+  <div id="paidlist"></div>
+  <button class="btn ghost" id="b-paidclose" style="margin-top:18px">닫기</button>
+</div></div>
 
 <script>
 (()=>{"use strict";
@@ -753,6 +765,21 @@ const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;
           set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
 /* 도감 — 뽑아 본 「무기 × 등급」을 남긴다. 힘은 주지 않는다(순위표가 오염된다).
    기기 안에만 쌓인다. 폰과 PC가 따로인 건 알고 간다 — 아쉬워하는 사람이 생기면 서버로 */
+/* ───── 유료 기능 ─────
+   결제는 아직 없다. 마스터(본인)만 무료로 켠다. 소스에는 코드의 해시만 둔다 —
+   단일 파일이라 localStorage를 고치면 누구나 켤 수 있다는 건 알고 간다. AUTO 판은
+   순위에 오르지 않으니 뚫려도 순위는 안전하다. 결제를 붙일 때 서버 검증으로 바꾼다 */
+const MASTER_H="f7bd7c632bf94f3bb0fae013a39cf098ec7499aadc49086f5e7ddbfa0653238d";
+const isMaster=()=>ls.get("relay:master","")===MASTER_H;
+const PAID=Object.assign({auto:0,fast:0,skin:"base"},ls.get("relay:paid",{}));
+const savePaid=()=>ls.set("relay:paid",PAID);
+const paidOn=k=>isMaster()&&!!PAID[k];
+async function checkMaster(){const q=new URLSearchParams(location.search),c=q.get("master");
+  if(c===null)return;
+  try{const h=[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(c)))]
+      .map(b=>b.toString(16).padStart(2,"0")).join("");
+    if(h===MASTER_H){ls.set("relay:master",h);}}catch(e){}
+  q.delete("master");history.replaceState(null,"",location.pathname+(q.toString()?"?"+q:"")+location.hash);}
 const DKEY="relay:dex";
 function dexAdd(k,t){const d=ls.get(DKEY,{}),id=k+":"+t;
   if(d[id])return false;
@@ -3892,10 +3919,10 @@ function hud(){
 }
 
 /* ───── 흐름 ───── */
-function hideAll(){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-dex"].forEach(s=>$(s).classList.add("off"));
+function hideAll(){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-dex","#v-paid"].forEach(s=>$(s).classList.add("off"));
   document.body.classList.remove("phos");
   $("#hud").style.display="block";}
-function showVeil(s){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-dex"].forEach(x=>$(x).classList.add("off"));
+function showVeil(s){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-dex","#v-paid"].forEach(x=>$(x).classList.add("off"));
   $(s).classList.remove("off");
   /* 인광 모니터는 멈춘 동안과 신호가 끊긴 뒤에만 */
   document.body.classList.toggle("phos",s==="#v-pause"||(s==="#v-over"&&$("#v-over").classList.contains("lost")));
@@ -4018,6 +4045,20 @@ function drawPanel(){let tot=0;for(const k in G.w)tot+=G.dmgBy[k]||0;let h="";
     h+=`<div class="wp" style="--c:${T?T.c:WEAPONS[k].c};--f:${tot?((G.dmgBy[k]||0)/tot).toFixed(3):0}">`+
        `${T?`<em>${T.n}</em>`:""}${ev?ev.n:WEAPONS[k].n} · ${ev?"MAX":"Lv"+G.lvls[k]}<i></i></div>`;}
   $("#wpanel").innerHTML=h;}
+function openPaid(){const m=isMaster(),SK={base:"기본",neon:"네온",plat:"백금"};
+  const row=(k,t,on,sub)=>`<div class="pr${m?(on?" on":""):" lock"}" data-k="${k}">${t}<small>${m?sub:"🔒 유료 · 준비 중"}</small></div>`;
+  $("#paidlist").innerHTML=
+    row("auto","AUTO — 이동·선택 자동",PAID.auto,PAID.auto?"켜짐 · 순위 제외":"꺼짐")+
+    row("fast","1.5배속",PAID.fast,PAID.fast?"켜짐":"꺼짐")+
+    row("skin","연출 스킨 — "+SK[PAID.skin],PAID.skin!=="base","누르면 바뀜")+
+    row("stats","기록 보기",0,"최근 30판");
+  $("#paidlist").querySelectorAll(".pr").forEach(el=>el.onclick=()=>{if(!isMaster())return;const k=el.dataset.k;
+    if(k==="auto"||k==="fast"){PAID[k]=PAID[k]?0:1;savePaid();openPaid();}
+    else if(k==="skin"){const o=["base","neon","plat"];PAID.skin=o[(o.indexOf(PAID.skin)+1)%3];savePaid();openPaid();}
+    else if(k==="stats"&&typeof openStats==="function")openStats();});
+  showVeil("#v-paid");}
+$("#paidlink").onclick=openPaid;
+$("#b-paidclose").onclick=()=>showVeil("#v-menu");
 function openDex(){const d=ls.get(DKEY,{});let h="";
   for(const k in WEAPONS){h+=`<span class="wn">${WEAPONS[k].n}</span>`;
     TIERS.forEach((T,i)=>{const g=d[k+":"+(i+1)];
@@ -4100,6 +4141,7 @@ $("#lb-refresh").onclick=loadLB;
 $("#lbtop").onclick=()=>$("#lb").scrollIntoView({behavior:"smooth",block:"start"});
 $("#todaymod").innerHTML=`<b style="color:var(--gold)">오늘의 규칙 · ${MOD.n}</b> — ${MOD.d}`;
 $("#ver").textContent="v"+VERSION;
+checkMaster().then(()=>{try{menu();}catch(e){}});
 /* 「SECTOR 07」은 아무 뜻이 없었다. 그 자리에 오늘 판 번호를 — 공유 문구의 #번호와 같다 */
 $("#seedtag").textContent="DAILY #"+SEED;
 $("#nick").addEventListener("keydown",e=>e.stopPropagation());
