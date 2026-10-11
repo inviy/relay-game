@@ -1120,6 +1120,7 @@ const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
    서버가 (날짜, 기기)당 최고점만 남기므로 중복 제출은 무해하다.
    언로드 중이라 응답을 기다릴 수 없으므로 keepalive로 던지고 잊는다. */
 function submitBeacon(){
+  if(G&&G.autoUsed)return;
   if(!sbReady()||!G||G.over||G.t<20)return;
   try{fetch(`${SB_URL}/rest/v1/rpc/submit_score`,{method:"POST",headers:SB_H(),keepalive:true,
     body:JSON.stringify({p_client:CLIENT,p_nick:PROF.nick||"오퍼레이터",
@@ -1150,6 +1151,7 @@ async function flushScores(){
   return ok;
 }
 async function submitScore(){
+  if(G&&G.autoUsed)return;
   if(!sbReady()){$("#rankline").textContent="랭킹 서버 미설정 · 이번 판 "+calcScore().toLocaleString()+"점";return;}
   const base={p_client:CLIENT,p_nick:PROF.nick,p_cc:PROF.cc==="OT"?"ZZ":PROF.cc,
     p_time:Math.floor(G.t),p_kills:G.kills,p_lv:G.p.lv,p_form:G.form,p_won:!!G.cleared,p_ch:G.ch};
@@ -2136,6 +2138,7 @@ function update(dt){
   if(keys.a||keys.arrowleft)ix--; if(keys.d||keys.arrowright)ix++;
   if(keys.w||keys.arrowup)iy--; if(keys.s||keys.arrowdown)iy++;
   if(touch){ix+=touch.x;iy+=touch.y;}
+  if(paidOn("auto")){G.autoUsed=true;if(!ix&&!iy){const a=autoSteer();ix=a[0];iy=a[1];}}   // 사람 입력이 이긴다
   const l=Math.hypot(ix,iy);
   G.moving=l>0;
   const sm=(G.form==="pulse"&&G.stage>=2&&G.res>=30)?1.2:1;   // 증폭 — 공명 30 이상이면 빨라진다
@@ -2436,6 +2439,24 @@ function pushPool(k,cap,o){
 /* 투사체 +1 — 권능 분신탄, 임계(공진 3차 · 공명 40 이상) */
 const extraShot=()=>(G.ang.twin ?1:0)+((G.form==="pulse"&&G.stage>=3&&G.res>=40)?1:0);
 function addRes(){G.res=Math.min(G.resCap,G.res+1+(Math.random()<G.st.resBeat?1:0));G.resT=0;}
+/* AUTO 이동 — 피하기 · 신호권 · 상자 세 힘의 합. 영리할 필요는 없다, 순위에 안 오른다 */
+function autoSteer(){const p=G.p;let x=0,y=0;
+  for(const e of G.en){if(e.dead)continue;const dx=p.x-e.x,dy=p.y-e.y,d2=dx*dx+dy*dy;
+    if(d2<220*220&&d2>1){const k=9000/d2;x+=dx*k/Math.sqrt(d2);y+=dy*k/Math.sqrt(d2);}}
+  for(const b of G.eb){const dx=p.x-b.x,dy=p.y-b.y,d2=dx*dx+dy*dy;
+    if(d2<160*160&&d2>1){const k=14000/d2;x+=dx*k/Math.sqrt(d2);y+=dy*k/Math.sqrt(d2);}}
+  if(G.boss){const dx=p.x-G.boss.x,dy=p.y-G.boss.y,d=Math.hypot(dx,dy)||1;if(d<G.boss.r+260){x+=dx/d*1.5;y+=dy/d*1.5;}}
+  const z=G.zone;if(z){const dx=z.x-p.x,dy=z.y-p.y,d=Math.hypot(dx,dy)||1,w=d>z.r*.7?1.2:.25;x+=dx/d*w;y+=dy/d*w;}
+  let best=null,bd=400;for(const it of G.items){if(it.type!=="chest")continue;const d=Math.hypot(it.x-p.x,it.y-p.y);if(d<bd){bd=d;best=it;}}
+  if(best){const dx=best.x-p.x,dy=best.y-p.y,d=bd||1;x+=dx/d*.9;y+=dy/d*.9;}
+  return [x,y];}
+/* AUTO 선택 — 진화 > 진화 조건 > 새 무기 > 강화 > 첫 장. 갈래·계약·보상은 첫 장 */
+function autoPick(){if(mode!=="level"||!paidOn("auto")&&!G.autoUsed)return;
+  const cs=[...document.querySelectorAll("#picks .card")];if(!cs.length)return;
+  const pick=cs.find(c=>c.classList.contains("evo"))||cs.find(c=>c.querySelector(".ev.ok"))
+    ||cs.find(c=>/새 무기|전용 무기/.test(c.querySelector(".kind")?.textContent||""))
+    ||cs.find(c=>/무기 강화/.test(c.querySelector(".kind")?.textContent||""))||cs[0];
+  pick.click();}
 function near(n){const p=G.p,a=[];
   for(const e of G.en)if(!e.dead)a.push([Math.hypot(e.x-p.x,e.y-p.y),e]);
   if(G.boss&&!(G.boss.ang&&ANGELS[G.boss.ang].ghost))a.push([Math.hypot(G.boss.x-p.x,G.boss.y-p.y),G.boss]);
@@ -3932,6 +3953,7 @@ function hideAll(){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-de
   $("#hud").style.display="block";}
 function showVeil(s){["#v-menu","#v-level","#v-pause","#v-over","#v-reveal","#v-dex","#v-paid"].forEach(x=>$(x).classList.add("off"));
   $(s).classList.remove("off");
+  if(s==="#v-level"&&G&&paidOn("auto")){clearTimeout(G.apTO);G.apTO=setTimeout(autoPick,600);}
   /* 인광 모니터는 멈춘 동안과 신호가 끊긴 뒤에만 */
   document.body.classList.toggle("phos",s==="#v-pause"||(s==="#v-over"&&$("#v-over").classList.contains("lost")));
   $("#hud").style.display=(s==="#v-level"||s==="#v-pause"||s==="#v-reveal")?"block":"none";}
@@ -4014,7 +4036,7 @@ function pause(){if(G&&G.dying>0)return;mode="pause";saveRun();showVeil("#v-paus
 function resume(){mode="play";last=performance.now();hideAll();flushLevel();}
 function finish(won){
   if(G.over)return;G.over=1;G.won=!!won;mode="over";SFX.bgm(false);clearRun();
-  $("#o-score").textContent=calcScore().toLocaleString();$("#rankline").textContent="순위 집계 중…";submitScore();
+  $("#o-score").textContent=calcScore().toLocaleString();$("#rankline").textContent=G.autoUsed?"AUTO · 순위 제외":"순위 집계 중…";submitScore();
   track("end",{kills:G.kills,lv:G.p.lv,ch:G.ch,form:G.form,won:!!won,cause:won?"":(G.lastHit||""),
     ended:!!G.endNow,score:calcScore(),tier:G.tierBest,chests:G.chestN,auto:!!G.autoUsed,fast:!!G.fastUsed},G.t);
   G.lastRid=RID;RID=null;
