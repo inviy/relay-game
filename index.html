@@ -3,7 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>RELAY — 중계</title>
+<title>RELAY — 중계 · 브라우저 뱀서라이크</title>
+<!-- 링크 미리보기 — 카톡·iMessage는 매니페스트를 안 읽는다. 이게 없으면 「RELAY — 중계」 한 줄만 떠서
+     게임인지 방송 중계인지 알 수 없었다. og:image는 절대 주소여야 한다 -->
+<meta name="description" content="설치 없이 바로 하는 뱀서라이크. 오늘의 시드로 모두가 같은 판을 돌고, 11분 안에 제7사도를 끊어라.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://relay-signal.vercel.app/">
+<meta property="og:title" content="RELAY — 중계 · 브라우저 뱀서라이크">
+<meta property="og:description" content="설치 없이 바로 하는 뱀서라이크. 오늘의 시드로 모두가 같은 판을 돌고, 11분 안에 제7사도를 끊어라.">
+<meta property="og:image" content="https://relay-signal.vercel.app/icon-512.png">
+<meta name="twitter:card" content="summary">
 <!-- 홈 화면에 추가 — iOS 사파리는 매니페스트를 거의 안 보고 이 apple- 태그들을 본다.
      아이콘은 R 모노그램이다. 처음엔 게임의 중계사 글리프를 썼는데 「원 안에 점」이라
      어디에나 있는 모양이었다. 글자를 획이 아니라 면으로 짜야 60px에서 안 뭉개진다.
@@ -737,7 +746,7 @@ body.master #paidbar{display:flex}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.10.0";
+const VERSION="3.10.1";
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
 const KRF="'Chakra Petch','RelayKR','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic','맑은 고딕',system-ui,sans-serif";   // 캔버스 텍스트용 한글 폴백 스택
 const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -2807,7 +2816,9 @@ function bullets(dt){
   const p=G.p;
   for(let i=G.eb.length-1;i>=0;i--){const b=G.eb[i];
     b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;
-    if(Math.hypot(p.x-b.x,p.y-b.y)<p.r+b.r){hitP(b.dmg,"적 탄환");G.eb.splice(i,1);continue;}
+    /* 탄환 판정은 몸통(13)이 아니라 코어(6)로 받는다 — 탄막 슈팅의 약속. 몸통으로 받으면
+       눈에 비켜 간 탄에 맞는다(합 21px). 적과 부딪히는 판정은 몸통 그대로 */
+    if(Math.hypot(p.x-b.x,p.y-b.y)<6+b.r){hitP(b.dmg,"적 탄환");G.eb.splice(i,1);continue;}
     if(b.life<=0)G.eb.splice(i,1);}
 }
 function pools(dt){
@@ -3665,9 +3676,6 @@ function draw(){
       cx.globalAlpha=1;cx.shadowBlur=tt>=4?26:16;}
     if(b.beam){cx.globalAlpha=.9;cx.beginPath();cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);cx.fill();cx.globalAlpha=1;}
     else{cx.beginPath();cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);cx.fill();}}
-  cx.shadowColor=C.pink;cx.fillStyle=C.pink;
-  /* 한 경로로 모아 한 번만 칠한다 — 그림자는 fill마다 비용이라 후반 탄막(240발)에서 프레임을 먹었다 */
-  cx.beginPath();for(const b of G.eb){cx.moveTo(b.x+ox+b.r,b.y+oy);cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);}cx.fill();
   cx.restore();
 
   // 검
@@ -3700,6 +3708,14 @@ function draw(){
   cx.restore();
   cx.strokeStyle="rgba(79,240,216,.22)";cx.lineWidth=1;
   cx.beginPath();cx.arc(px,py,p.mag,0,TAU);cx.stroke();
+
+  /* 적 탄 — 내 검·분신·포탑·기체보다 위에 그린다. 아래 깔리면 피할 것이 내 이펙트에 가린다.
+     흰 코어는 분홍 피격 섬광·분홍 적과 탄을 가른다. 한 경로로 모아 한 번만 칠한다(240발) */
+  if(G.eb.length){cx.save();cx.shadowColor=C.pink;cx.shadowBlur=14;cx.fillStyle=C.pink;
+    cx.beginPath();for(const b of G.eb){cx.moveTo(b.x+ox+b.r,b.y+oy);cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);}cx.fill();
+    cx.shadowBlur=0;cx.fillStyle="#fff";
+    cx.beginPath();for(const b of G.eb){cx.moveTo(b.x+ox+b.r*.45,b.y+oy);cx.arc(b.x+ox,b.y+oy,b.r*.45,0,TAU);}cx.fill();
+    cx.restore();}
 
   /* 장막(제12사도) — 보스에게서 퍼지는 안개. 정전 마스크를 그대로 쓰되 구멍을
      내 발밑에만 둔다. 안개 밖으로 나가면 풀리는 게 이 사도의 답이다 */
