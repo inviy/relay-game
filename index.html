@@ -780,6 +780,11 @@ const isMaster=()=>ls.get("relay:master","")===MASTER_H;
 const PAID=Object.assign({auto:0,fast:0,skin:"base"},ls.get("relay:paid",{}));
 const savePaid=()=>ls.set("relay:paid",PAID);
 const paidOn=k=>isMaster()&&!!PAID[k];
+/* 스킨은 내 탄·검 색만 바꾼다. 등급 색은 손대지 않는다 — 등급을 못 알아본다 */
+const SKINS={base:{},
+  neon:{"#4ff0d8":"#39ff88","#a86bff":"#ff3df2","#eef2ff":"#c8ff00","#ff5c8a":"#ff2a6d"},
+  plat:{"#4ff0d8":"#dfe8f5","#a86bff":"#b9c4d6","#eef2ff":"#ffffff","#ff5c8a":"#e7c4cf"}};
+const skinC=c=>(isMaster()&&SKINS[PAID.skin]&&SKINS[PAID.skin][c])||c;
 async function checkMaster(){const q=new URLSearchParams(location.search),c=q.get("master");
   if(c===null)return;
   try{const h=[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(c)))]
@@ -3603,12 +3608,12 @@ function draw(){
   // 탄
   cx.save();cx.shadowBlur=16;cx.lineCap="round";
   for(const b of G.bul){const tt=b.wk&&G.tier[b.wk];
-    cx.shadowColor=tt?TIERS[tt-1].c:b.c;cx.fillStyle=b.c;cx.shadowBlur=tt>=4?26:16;
+    cx.shadowColor=tt?TIERS[tt-1].c:b.c;cx.fillStyle=skinC(b.c);cx.shadowBlur=tt>=4?26:16;
     const sp=Math.hypot(b.vx,b.vy);
     if(sp>240&&!b.beam){            // 빠른 탄은 진행 방향으로 꼬리를 끈다
       const t=Math.min(30,sp*.03);
       cx.shadowBlur=0;                    // 꼬리엔 그림자를 끈다 — 그림자 stroke는 비싸다
-      cx.strokeStyle=b.c;cx.lineWidth=b.r*1.6;cx.globalAlpha=.5;
+      cx.strokeStyle=skinC(b.c);cx.lineWidth=b.r*1.6;cx.globalAlpha=.5;
       cx.beginPath();cx.moveTo(b.x+ox,b.y+oy);
       cx.lineTo(b.x+ox-b.vx/sp*t,b.y+oy-b.vy/sp*t);cx.stroke();
       cx.globalAlpha=1;cx.shadowBlur=tt>=4?26:16;}
@@ -3621,7 +3626,7 @@ function draw(){
   // 검
   if(G.blades)for(const o of G.blades){
     cx.save();cx.translate(o.x+ox,o.y+oy);cx.rotate(o.a+Math.PI/2);
-    const bt=G.tier.blade;cx.shadowColor=bt?TIERS[bt-1].c:"#dfe6ff";cx.shadowBlur=bt>=4?28:18;cx.fillStyle="#eef2ff";
+    const bt=G.tier.blade;cx.shadowColor=bt?TIERS[bt-1].c:"#dfe6ff";cx.shadowBlur=bt>=4?28:18;cx.fillStyle=skinC("#eef2ff");
     cx.fillRect(-2.5,-o.r,5,o.r*2);cx.restore();}
 
   // 권능 · 파편
