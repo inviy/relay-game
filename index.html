@@ -3283,6 +3283,40 @@ function apply(o){
   if(k==="beat")st.resBeat+=.12;
 }
 
+/* ───── 아이템 실루엣 ─────
+   화면에서 최소 10.5px 반쪽은 보이게 한다. 모바일은 월드를 1.9배 축소하므로
+   월드 단위 크기를 VS에 비례해 키운다. 픽업 판정(update)은 건드리지 않는다. */
+const ITEM_H=()=>Math.max(9,10.5*VS);
+function drawItem(type,x,y,h,col){
+  cx.save();cx.translate(x,y);cx.shadowColor=col;cx.shadowBlur=14;
+  cx.fillStyle=col;cx.strokeStyle=col;cx.lineJoin="round";cx.lineCap="round";
+  const dark="#0b1024";
+  if(type==="heal"){                 // 십자 캡슐: 둥근 사각 + 어두운 십자
+    rr(-h,-h,h*2,h*2,h*.45);cx.fill();
+    cx.shadowBlur=0;cx.fillStyle=dark;
+    cx.fillRect(-h*.22,-h*.62,h*.44,h*1.24);cx.fillRect(-h*.62,-h*.22,h*1.24,h*.44);
+  }else if(type==="bomb"){           // 구 + 도화선 + 불꽃
+    cx.beginPath();cx.arc(0,h*.15,h*.82,0,TAU);cx.fill();
+    cx.shadowBlur=0;cx.fillStyle=dark;cx.beginPath();cx.arc(-h*.25,-h*.12,h*.22,0,TAU);cx.fill();
+    cx.strokeStyle=col;cx.lineWidth=Math.max(1.5,h*.18);cx.beginPath();
+    cx.moveTo(h*.2,-h*.6);cx.quadraticCurveTo(h*.55,-h*1.05,h*.85,-h*.85);cx.stroke();
+    cx.fillStyle="#fff";cx.beginPath();cx.arc(h*.88,-h*.9,h*.2,0,TAU);cx.fill();
+  }else if(type==="magnet"){         // U자: 굵은 호 + 두 극
+    cx.lineWidth=Math.max(2.5,h*.46);cx.beginPath();
+    cx.arc(0,-h*.1,h*.62,Math.PI,0);cx.lineTo(h*.62,h*.55);cx.moveTo(-h*.62,-h*.1);cx.lineTo(-h*.62,h*.55);cx.stroke();
+    cx.shadowBlur=0;cx.fillStyle="#fff";
+    cx.fillRect(-h*.85,h*.35,h*.46,h*.4);cx.fillRect(h*.39,h*.35,h*.46,h*.4);
+  }else{                             // 상자: 몸통 + 뚜껑 + 잠금
+    rr(-h*.95,-h*.3,h*1.9,h*1.2,h*.15);cx.fill();
+    cx.shadowBlur=0;cx.fillStyle=dark;cx.fillRect(-h*.95,h*.05,h*1.9,h*.14);
+    cx.fillStyle=col;rr(-h,-h*.9,h*2,h*.75,h*.18);cx.fill();
+    cx.fillStyle=dark;cx.fillRect(-h*.16,-h*.1,h*.32,h*.4);
+  }
+  cx.restore();
+}
+function rr(x,y,w,h,r){cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);cx.arcTo(x+w,y+h,x,y+h,r);
+  cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);cx.closePath();}
+
 /* ───── 렌더 ───── */
 /* 정전 마스크.
    구멍이 둘(신호권·발밑)이고 서로 겹칠 수 있다. 한 번의 evenodd 채우기로는
@@ -3533,12 +3567,11 @@ function draw(){
       cx.lineTo(z.x+ox+rnd(-10,10),z.y+oy-80);cx.lineTo(z.x+ox,z.y+oy);cx.stroke();}
     cx.restore();}
 
-  // 아이템
+  // 아이템 — 색을 빼도 구분되는 네 실루엣. 표시 크기만 키우고 판정은 그대로다.
   for(const it of G.items){
     const col={heal:C.pink,bomb:C.orange,magnet:C.cyan,chest:C.gold}[it.type];
     const by=Math.sin(it.ph)*5;
-    cx.save();cx.shadowColor=col;cx.shadowBlur=20;cx.fillStyle=col;
-    cx.fillRect(it.x+ox-9,it.y+oy+by-9,18,18);cx.restore();}
+    drawItem(it.type,it.x+ox,it.y+oy+by,ITEM_H(),col);}
 
   // 적
   for(const e of G.en){
