@@ -1375,7 +1375,7 @@ const ANGELS={
      b.aim-=dt;
      if(b.aim<=0){b.aim=1.25;
        for(let i=-1;i<=1;i++){const g=a+i*.22;
-         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*300,vy:Math.sin(g)*300,r:7,dmg:14,life:3});}}
+         ebPush({x:b.x,y:b.y,vx:Math.cos(g)*300,vy:Math.sin(g)*300,r:7,dmg:14,life:3});}}
      b.summon-=dt;
      if(b.summon<=0){b.summon=8;for(let i=0;i<3;i++)spawnE("dash",false);}
    },
@@ -1396,7 +1396,7 @@ const ANGELS={
      for(let q=0;q<10;q++){const g=G.t*.4+q*TAU/10;cx.beginPath();
        cx.moveTo(px+Math.cos(g)*r*.21,py+Math.sin(g)*r*.21);
        cx.lineTo(px+Math.cos(g)*r*.38,py+Math.sin(g)*r*.38);cx.stroke();}
-     if(sh){cx.strokeStyle="rgba(238,242,255,.7)";cx.lineWidth=2;cx.setLineDash([9,7]);cx.lineDashOffset=-G.t*40;
+     if(sh){cx.strokeStyle="rgba(238,242,255,.38)";cx.lineWidth=1.3;cx.setLineDash([9,7]);cx.lineDashOffset=-G.t*40;
        cx.beginPath();cx.arc(X,Y,r*1.28,0,TAU);cx.stroke();cx.setLineDash([]);}
      if(b.hit>0){cx.globalAlpha=.5;cx.fillStyle="#fff";cx.beginPath();cx.arc(X,Y,r,0,TAU);cx.fill();}
      cx.restore();
@@ -1416,7 +1416,7 @@ const ANGELS={
      b.fire-=dt;
      if(b.fire<=0){b.fire=1.7;b.ring+=.3;
        for(let i=0;i<12;i++){const g=b.ring+i*TAU/12;
-         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*200,vy:Math.sin(g)*200,r:8,dmg:14,life:4});}}
+         ebPush({x:b.x,y:b.y,vx:Math.cos(g)*200,vy:Math.sin(g)*200,r:8,dmg:14,life:4});}}
    },
    /* 맞물린 반고리 두 겹이 반대로 돈다. 코어가 반은 금 반은 보라 — 극성이 그림으로 보인다.
       뒤집히면 색이 통째로 바뀐다. 예고 중엔 흰 게이지가 코어를 감는다 */
@@ -1445,7 +1445,7 @@ const ANGELS={
      b.fire-=dt;
      if(b.fire<=0){b.fire=1.8;b.ring+=.35;
        for(let i=0;i<8;i++){const g=b.ring+i*TAU/8;
-         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*210,vy:Math.sin(g)*210,r:8,dmg:14,life:4});}}
+         ebPush({x:b.x,y:b.y,vx:Math.cos(g)*210,vy:Math.sin(g)*210,r:8,dmg:14,life:4});}}
      /* 파편이 살아 있으면 본체가 회복한다. 파편은 신호권 밖으로 달아난다 —
         권내에서 본체만 때리면 안 죽는다. 나가서 파편을 잡아야 한다 */
      if(b.split){let alive=false;for(const e of G.en)if(e.heal&&!e.dead){alive=true;break;}
@@ -1491,7 +1491,7 @@ const ANGELS={
      b.fire-=dt;
      if(b.fire<=0){b.fire=2.2;b.ring+=.4;
        for(let i=0;i<6;i++){const g=b.ring+i*TAU/6;
-         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*170,vy:Math.sin(g)*170,r:9,dmg:16,life:4.5});}}
+         ebPush({x:b.x,y:b.y,vx:Math.cos(g)*170,vy:Math.sin(g)*170,r:9,dmg:16,life:4.5});}}
      b.summon-=dt;if(b.summon<=0){b.summon=9;for(let i=0;i<2;i++)spawnE("wall",false);}
    },
    shielded(b){return b.forced<=0&&Math.hypot(b.x-G.zone.x,b.y-G.zone.y)<G.zone.r*.92;},
@@ -1563,7 +1563,7 @@ const ANGELS={
    draw(X,Y,b){
      const r=40,col="#9ad6e0",t=G.t;
      cx.save();cx.shadowColor=col;cx.shadowBlur=12;
-     cx.strokeStyle="rgba(154,214,224,.35)";cx.lineWidth=1.5;cx.setLineDash([4,6]);cx.lineDashOffset=-t*20;
+     cx.strokeStyle="rgba(154,214,224,.22)";cx.lineWidth=1.2;cx.setLineDash([4,6]);cx.lineDashOffset=-t*20;
      cx.beginPath();cx.arc(X,Y,r*.5,0,TAU);cx.stroke();cx.setLineDash([]);
      cx.textAlign="center";cx.font="700 "+(13*VS).toFixed(1)+"px "+KRF;cx.fillStyle=col;
      cx.fillText((b.alive||0)+" / 12",X,Y+5*VS);
@@ -1583,7 +1583,7 @@ const ANGELS={
      if(b.fire<=0){b.fire=3;
        const k=Math.min(14,2+Math.floor(b.store/6));b.store=0;
        for(let i=0;i<k;i++){const g=i/k*TAU+a;
-         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*250,vy:Math.sin(g)*250,r:8,dmg:16,life:4});}
+         ebPush({x:b.x,y:b.y,vx:Math.cos(g)*250,vy:Math.sin(g)*250,r:8,dmg:16,life:4});}
        call("거울 — 되돌아온다");}
    },
    draw(X,Y,b){
@@ -1615,7 +1615,7 @@ const ANGELS={
      b.fire-=dt;
      if(b.fire<=0){b.fire=2.1;b.ring+=.4;
        for(let i=0;i<10;i++){const g=b.ring+i*TAU/10;
-         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*195,vy:Math.sin(g)*195,r:8,dmg:15,life:4});}}
+         ebPush({x:b.x,y:b.y,vx:Math.cos(g)*195,vy:Math.sin(g)*195,r:8,dmg:15,life:4});}}
    },
    draw(X,Y,b){
      const r=b.r,col="#9a7bd6",t=G.t;
@@ -1648,7 +1648,7 @@ const ANGELS={
      b.fire-=dt;
      if(b.fire<=0){b.fire=1.5;b.ring+=.33;
        for(let i=0;i<12;i++){const g=b.ring+i*TAU/12;
-         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*215,vy:Math.sin(g)*215,r:8,dmg:15,life:4});}}
+         ebPush({x:b.x,y:b.y,vx:Math.cos(g)*215,vy:Math.sin(g)*215,r:8,dmg:15,life:4});}}
    },
    draw(X,Y,b){
      const r=b.r,col="#ffb347",t=G.t,on=b.slow>0;
@@ -1677,7 +1677,7 @@ const ANGELS={
      b.fire-=dt;
      if(b.fire<=0){b.fire=1.7;
        for(let i=-2;i<=2;i++){const g=a+i*.3;
-         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*270,vy:Math.sin(g)*270,r:7,dmg:14,life:3.4});}}
+         ebPush({x:b.x,y:b.y,vx:Math.cos(g)*270,vy:Math.sin(g)*270,r:7,dmg:14,life:3.4});}}
    },
    draw(X,Y,b){
      const r=b.r,col="#7ad6ff",t=G.t;
@@ -1753,7 +1753,7 @@ const ANGELS={
      if(b.fire<=0){b.fire=1.6;b.ring+=.36;
        const k=8+alive*2;
        for(let i=0;i<k;i++){const g=b.ring+i*TAU/k;
-         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*205,vy:Math.sin(g)*205,r:8,dmg:14,life:4});}}
+         ebPush({x:b.x,y:b.y,vx:Math.cos(g)*205,vy:Math.sin(g)*205,r:8,dmg:14,life:4});}}
    },
    draw(X,Y,b){
      const r=b.r,col="#ff6b9d",t=G.t,hn=1+(b.live||0);
@@ -1790,7 +1790,7 @@ const ANGELS={
      b.fire-=dt;
      if(b.fire<=0){b.fire=2;b.ring+=.3;
        for(let i=0;i<9;i++){const g=b.ring+i*TAU/9;
-         G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*190,vy:Math.sin(g)*190,r:8,dmg:14,life:4});}}
+         ebPush({x:b.x,y:b.y,vx:Math.cos(g)*190,vy:Math.sin(g)*190,r:8,dmg:14,life:4});}}
    },
    draw(X,Y,b){
      const r=b.r,col="#4fd6a0",t=G.t;
@@ -2689,6 +2689,9 @@ function hitP(d,src){const p=G.p;if(p.inv>0)return;
    체력을 올리면 「버티기」가 되고 점수만 부푼다. 대신 피할 탄을 늘린다.
    위협 시간 축이라 서버 PACE와 무관하다. eth 1320 = 10:00, 1980 = 15:00 */
 const DK0=1320, DK1=1980, EB_CAP=240;
+/* 상한은 생성 시점마다 지킨다 — 239발에서 원형 탄막을 더하면 259발이 되던 구멍.
+   잘리는 건 뒤쪽 몇 발뿐이라 빈틈이 줄어드는 일은 없다(늘면 늘었지) */
+function ebPush(o){if(G.eb.length<EB_CAP)G.eb.push(o);}
 const dkAt=eth=>Math.min(1,Math.max(0,(eth-DK0)/(DK1-DK0)));
 function danmaku(dt){const dk=dkAt(G.eth);
   if(dk<=0)return;
@@ -2699,7 +2702,7 @@ function danmaku(dt){const dk=dkAt(G.eth);
   if(!vis.length)return;
   const e=pick(vis),n=Math.round(10+10*dk),sp=140+40*dk,o=rnd(0,TAU);
   for(let i=0;i<n;i++){const g=o+i/n*TAU;
-    G.eb.push({x:e.x,y:e.y,vx:Math.cos(g)*sp,vy:Math.sin(g)*sp,r:6,dmg:e.dmg,life:5});}
+    ebPush({x:e.x,y:e.y,vx:Math.cos(g)*sp,vy:Math.sin(g)*sp,r:6,dmg:e.dmg,life:5});}
   G.fx.push({x:e.x,y:e.y,vx:0,vy:0,life:.3,max:.3,ring:e.r*2.4,rc:C.pink,rw:2});}
 
 function enemies(dt){const p=G.p;
@@ -2728,7 +2731,7 @@ function enemies(dt){const p=G.p;
       e.fire-=dt;if(e.fire<=0&&dist<520){const dk=dkAt(G.eth),m=G.eb.length>=EB_CAP?0:dk<1/3?0:dk<2/3?1:2;   // 상한을 넘으면 기본 한 발만
         e.fire=2.3*(1-.4*dk);
         for(let j=-m;j<=m;j++){const g=a+j*.22;
-          G.eb.push({x:e.x,y:e.y,vx:Math.cos(g)*230,vy:Math.sin(g)*230,r:6,dmg:e.dmg,life:3});}}
+          ebPush({x:e.x,y:e.y,vx:Math.cos(g)*230,vy:Math.sin(g)*230,r:6,dmg:e.dmg,life:3});}}
     }else if(e.orbit){
       /* 배회체 — 일정 반경으로 수렴한 뒤 접선 방향으로 돈다. 가만히 있으면
          포위망이 조여지므로 "제자리에서 쏘기"가 안 통한다. */
@@ -2751,7 +2754,7 @@ function enemies(dt){const p=G.p;
         if(e.chg<=0){e.fire=rnd(3.1,3.9);
           const lead=dist/620;                              // 탄속 620 기준 예측 (사수는 230)
           const b=Math.atan2(p.y+p.dy*p.spd*lead*.55-e.y, p.x+p.dx*p.spd*lead*.55-e.x);
-          G.eb.push({x:e.x,y:e.y,vx:Math.cos(b)*620,vy:Math.sin(b)*620,r:7,dmg:e.dmg,life:3});
+          ebPush({x:e.x,y:e.y,vx:Math.cos(b)*620,vy:Math.sin(b)*620,r:7,dmg:e.dmg,life:3});
           SFX.block();}
       }else{e.fire-=dt;if(e.fire<=0&&dist<900)e.chg=1.1;}
     }else if(e.flee){
@@ -2785,19 +2788,19 @@ function finalBoss(dt,b,a){
   if(b.fire<=0){b.fire=ph===1?1.5:1.9;b.ring+=.28;
     const n=16+ph*4;
     for(let i=0;i<n;i++){const g=b.ring+i*TAU/n;
-      G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*210,vy:Math.sin(g)*210,r:8,dmg:15,life:4});}}
+      ebPush({x:b.x,y:b.y,vx:Math.cos(g)*210,vy:Math.sin(g)*210,r:8,dmg:15,life:4});}}
   if(ph>=2){b.spiral-=dt;                                   // 나선 — 제자리에 못 서 있게
     if(b.spiral<=0){b.spiral=.16;b.ring+=.42;
       for(let i=0;i<2;i++){const g=b.ring+i*Math.PI;
-        G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*260,vy:Math.sin(g)*260,r:7,dmg:12,life:3.4});}}}
+        ebPush({x:b.x,y:b.y,vx:Math.cos(g)*260,vy:Math.sin(g)*260,r:7,dmg:12,life:3.4});}}}
   if(ph>=3){b.conv-=dt;                                     // 수렴 — 빈틈이 반드시 하나 있다
     if(b.conv<=0){b.conv=3.4;
       const p=G.p,R0=640,n=26,gap=Math.floor(rnd(0,n)),gw=4;
       for(let i=0;i<n;i++){
         if((i-gap+n)%n<gw)continue;
         const g=i/n*TAU;
-        G.eb.push({x:p.x+Math.cos(g)*R0,y:p.y+Math.sin(g)*R0,
-          vx:-Math.cos(g)*250,vy:-Math.sin(g)*250,r:7,dmg:16,life:3.2});}
+        ebPush({x:p.x+Math.cos(g)*R0,y:p.y+Math.sin(g)*R0,
+          vx:-Math.cos(g)*250,vy:-Math.sin(g)*250,r:7,dmg:16,life:3.2,conv:1});}
       call("수렴");}}
   b.summon-=dt;
   if(b.summon<=0){b.summon=8-ph;
@@ -2818,7 +2821,7 @@ function boss(dt){const b=G.boss;if(!b)return;const p=G.p;
   b.fire-=dt;
   if(b.fire<=0){b.fire=1.5;b.ring+=.3;
     for(let i=0;i<14;i++){const g=b.ring+i*TAU/14;
-      G.eb.push({x:b.x,y:b.y,vx:Math.cos(g)*205,vy:Math.sin(g)*205,r:8,dmg:14,life:4});}}
+      ebPush({x:b.x,y:b.y,vx:Math.cos(g)*205,vy:Math.sin(g)*205,r:8,dmg:14,life:4});}}
   b.summon-=dt;
   if(b.summon<=0){b.summon=7;for(let i=0;i<4;i++)spawnE("tank",false);}
 }
@@ -3283,6 +3286,39 @@ function apply(o){
   if(k==="beat")st.resBeat+=.12;
 }
 
+/* 보스 체력바·공략 안내 — 장막·정전 마스크보다 위에 와야 한다. 안내가 어두워지면
+   「잡는 법」을 싸우는 내내 보여 준다는 약속이 깨진다 */
+function drawBossUI(b,AN,bc){
+    const inv=!!(AN&&AN.shielded&&AN.shielded(b)), bh=(b.fin?13:9)*VS;
+    cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54*VS,W*.68,bh);
+    cx.fillStyle=inv?"#5a6280":bc;cx.fillRect(W*.16,54*VS,W*.68*Math.max(0,b.hp/b.mhp),bh);
+    cx.save();cx.textAlign="center";
+    /* 잡는 법은 싸우는 내내 보여야 한다 — 한 번 스쳐 간 배너로는 못 읽는다 */
+    const nm2="제"+b.no+"사도 "+(b.fin?"종단":AN?AN.n:"재머");
+    const guide=inv?"지금은 안 통해요 — "+(AN&&AN.how?AN.how:""):(b.fin?"체력에 따라 공격이 3번 바뀌어요":AN&&AN.how?AN.how:"");
+    const nf="700 "+(14*VS).toFixed(1)+"px "+KRF, gf="700 "+(13*VS).toFixed(1)+"px "+KRF;
+    const maxw=W*.92-26*VS;
+    cx.font=gf;
+    const gl=guide?wrapT(guide,maxw):[];   // 좁은 화면에선 두 줄이 된다
+    const ny=(54+11)*VS+bh, lh=17*VS, gy=(54+30)*VS+bh;
+    /* 판 — 가장 긴 줄에 맞춘다. 이게 없으면 탄막 위에서 글자가 사라진다 */
+    cx.font=nf;let pw=cx.measureText(nm2).width;
+    cx.font=gf;for(const L of gl)pw=Math.max(pw,cx.measureText(L).width);
+    pw+=26*VS;
+    const pt=ny-14*VS, phh=(19+gl.length*17)*VS;
+    cx.fillStyle="rgba(6,9,20,.86)";cx.fillRect(W/2-pw/2,pt,pw,phh);
+    cx.fillStyle=inv?"rgba(255,92,138,.5)":"rgba(255,255,255,.14)";
+    cx.fillRect(W/2-pw/2,pt,pw,1.5*VS);
+    cx.font=nf;cx.fillStyle=inv?"#b9c2e8":bc;
+    cx.shadowColor=inv?"#000":bc;cx.shadowBlur=inv?0:9;
+    cx.fillText(nm2,W/2,ny);
+    cx.shadowBlur=0;
+    cx.font=gf;cx.fillStyle=inv?"#ff9fb8":"rgba(255,255,255,.94)";
+    gl.forEach((L,i)=>cx.fillText(L,W/2,gy+i*lh));
+    G.guideBox={x:W/2-pw/2,y:pt,w:pw,h:phh};   // HUD가 이 사각형을 피해야 한다
+    cx.restore();
+}
+
 /* ───── 아이템 실루엣 ─────
    화면에서 최소 10.5px 반쪽은 보이게 한다. 모바일은 월드를 1.9배 축소하므로
    월드 단위 크기를 VS에 비례해 키운다. 픽업 판정(update)은 건드리지 않는다. */
@@ -3605,7 +3641,7 @@ function draw(){
       cx.beginPath();cx.arc(X,Y,e.r*hs*.28,0,TAU);cx.fill();}
     cx.globalAlpha=1;cx.restore();
     /* 차폐기 범위 — 안 보이면 왜 안 죽는지 알 수 없다. 보여야 처리 순서를 배운다. */
-    if(e.aura){cx.save();cx.strokeStyle="rgba(154,214,176,.45)";cx.lineWidth=1.5;cx.setLineDash([9,7]);
+    if(e.aura){cx.save();cx.strokeStyle="rgba(154,214,176,.26)";cx.lineWidth=1;cx.setLineDash([9,7]);
       cx.beginPath();cx.arc(X,Y,e.aura,0,TAU);cx.stroke();cx.restore();}
     /* 관측자 예고선 — 예고가 보이는 1.1초 안에 움직이면 빗나간다 */
     if(e.chg>0){const k=1-e.chg/1.1;
@@ -3694,34 +3730,8 @@ function draw(){
      cx.fillText(nm,X,ty);
      cx.restore();}
     /* 무적이면 바가 회색이 된다 — 숫자 대신 색으로 「지금은 안 통한다」를 보여 준다 */
-    const inv=!!(AN&&AN.shielded&&AN.shielded(b)), bh=(b.fin?13:9)*VS;
-    cx.fillStyle="rgba(11,16,36,.9)";cx.fillRect(W*.16,54*VS,W*.68,bh);
-    cx.fillStyle=inv?"#5a6280":bc;cx.fillRect(W*.16,54*VS,W*.68*Math.max(0,b.hp/b.mhp),bh);
-    cx.save();cx.textAlign="center";
-    /* 잡는 법은 싸우는 내내 보여야 한다 — 한 번 스쳐 간 배너로는 못 읽는다 */
-    const nm2="제"+b.no+"사도 "+(b.fin?"종단":AN?AN.n:"재머");
-    const guide=inv?"지금은 안 통해요 — "+(AN&&AN.how?AN.how:""):(b.fin?"체력에 따라 공격이 3번 바뀌어요":AN&&AN.how?AN.how:"");
-    const nf="700 "+(14*VS).toFixed(1)+"px "+KRF, gf="700 "+(13*VS).toFixed(1)+"px "+KRF;
-    const maxw=W*.92-26*VS;
-    cx.font=gf;
-    const gl=guide?wrapT(guide,maxw):[];   // 좁은 화면에선 두 줄이 된다
-    const ny=(54+11)*VS+bh, lh=17*VS, gy=(54+30)*VS+bh;
-    /* 판 — 가장 긴 줄에 맞춘다. 이게 없으면 탄막 위에서 글자가 사라진다 */
-    cx.font=nf;let pw=cx.measureText(nm2).width;
-    cx.font=gf;for(const L of gl)pw=Math.max(pw,cx.measureText(L).width);
-    pw+=26*VS;
-    const pt=ny-14*VS, phh=(19+gl.length*17)*VS;
-    cx.fillStyle="rgba(6,9,20,.86)";cx.fillRect(W/2-pw/2,pt,pw,phh);
-    cx.fillStyle=inv?"rgba(255,92,138,.5)":"rgba(255,255,255,.14)";
-    cx.fillRect(W/2-pw/2,pt,pw,1.5*VS);
-    cx.font=nf;cx.fillStyle=inv?"#b9c2e8":bc;
-    cx.shadowColor=inv?"#000":bc;cx.shadowBlur=inv?0:9;
-    cx.fillText(nm2,W/2,ny);
-    cx.shadowBlur=0;
-    cx.font=gf;cx.fillStyle=inv?"#ff9fb8":"rgba(255,255,255,.94)";
-    gl.forEach((L,i)=>cx.fillText(L,W/2,gy+i*lh));
-    G.guideBox={x:W/2-pw/2,y:pt,w:pw,h:phh};   // HUD가 이 사각형을 피해야 한다
-    cx.restore();}
+    G._bossUI=[b,AN,bc];   // 체력바·공략 안내는 암전 마스크 뒤에 그린다 (drawBossUI)
+  }
 
   // 탄
   cx.save();cx.shadowBlur=16;cx.lineCap="round";
@@ -3770,14 +3780,7 @@ function draw(){
   cx.strokeStyle="rgba(79,240,216,.22)";cx.lineWidth=1;
   cx.beginPath();cx.arc(px,py,p.mag,0,TAU);cx.stroke();
 
-  /* 적 탄 — 내 검·분신·포탑·기체보다 위에 그린다. 아래 깔리면 피할 것이 내 이펙트에 가린다.
-     흰 코어는 분홍 피격 섬광·분홍 적과 탄을 가른다. 한 경로로 모아 한 번만 칠한다(240발) */
-  if(G.eb.length){cx.save();cx.shadowColor=C.pink;cx.shadowBlur=14;cx.fillStyle=C.pink;
-    cx.beginPath();for(const b of G.eb){cx.moveTo(b.x+ox+b.r,b.y+oy);cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);}cx.fill();
-    cx.shadowBlur=0;cx.fillStyle="#fff";
-    cx.beginPath();for(const b of G.eb){cx.moveTo(b.x+ox+b.r*.45,b.y+oy);cx.arc(b.x+ox,b.y+oy,b.r*.45,0,TAU);}cx.fill();
-    cx.restore();}
-
+  /* 암전·안개는 적 탄과 보스 안내보다 아래에 깔린다 — 어둠 속에서도 피할 것과 잡는 법은 보여야 한다 */
   /* 장막(제12사도) — 보스에게서 퍼지는 안개. 정전 마스크를 그대로 쓰되 구멍을
      내 발밑에만 둔다. 안개 밖으로 나가면 풀리는 게 이 사도의 답이다 */
   if(G.boss&&G.boss.ang==="veil"&&G.boss.fog>.05){
@@ -3795,6 +3798,21 @@ function draw(){
     const k=Math.min(1,Math.min(G.sevT,1.2)/1.2);            // 시작·끝에서 부드럽게
     blackoutMask(G.zone.x+ox,G.zone.y+oy,G.zone.r, px,py,170, .82*k);
   }
+  /* 적 탄 — 내 검·분신·포탑·기체보다 위에 그린다. 아래 깔리면 피할 것이 내 이펙트에 가린다.
+     흰 코어는 분홍 피격 섬광·분홍 적과 탄을 가른다. 한 경로로 모아 한 번만 칠한다(240발) */
+  if(G.eb.length){cx.save();
+    /* 수렴 탄 꼬리 — 링·나선과 같은 분홍 원인데 이것만 바깥에서 안으로 온다. 꼬리가 방향을 말한다 */
+    cx.strokeStyle="rgba(255,92,138,.55)";cx.lineWidth=3;cx.lineCap="round";cx.beginPath();
+    for(const b of G.eb){if(!b.conv)continue;const sp=Math.hypot(b.vx,b.vy)||1,t=16;
+      cx.moveTo(b.x+ox,b.y+oy);cx.lineTo(b.x+ox-b.vx/sp*t,b.y+oy-b.vy/sp*t);}
+    cx.stroke();
+    cx.shadowColor=C.pink;cx.shadowBlur=14;cx.fillStyle=C.pink;
+    cx.beginPath();for(const b of G.eb){cx.moveTo(b.x+ox+b.r,b.y+oy);cx.arc(b.x+ox,b.y+oy,b.r,0,TAU);}cx.fill();
+    cx.shadowBlur=0;cx.fillStyle="#fff";
+    cx.beginPath();for(const b of G.eb){cx.moveTo(b.x+ox+b.r*.45,b.y+oy);cx.arc(b.x+ox,b.y+oy,b.r*.45,0,TAU);}cx.fill();
+    cx.restore();}
+  if(G._bossUI){drawBossUI(...G._bossUI);G._bossUI=null;}
+
   // 화면 밖 인디케이터
   /* 가장자리에 화살표가 일곱 개씩 겹쳐 쌓여 정작 신호권 화살표가 묻혔다.
      신호권은 1.5배로 키우고, 아이템은 가장 가까운 둘만 가리킨다 */
