@@ -3481,6 +3481,9 @@ function wrapT(txt,max){
 
 function draw(){
   const p=G.p,sx=shake?rnd(-shake*11,shake*11):0,sy=shake?rnd(-shake*11,shake*11):0;
+  /* 내 코어 60px 안쪽의 아군 장판·폭발·강타는 불투명도를 깎는다(0.45까지). 거기서는
+     내가 어디 있고 어떤 적 탄이 오는지가 내 이펙트보다 중요하다 */
+  const nearK=(x,y)=>{const d=Math.hypot(x-p.x,y-p.y);return d<60?.45:d<180?.45+.55*(d-60)/120:1;};
   const ox=W/2-p.x+sx, oy=H/2-p.y+sy;
   // 배경
   if(!BGC||BGW!==W||BGH!==H)bakeBG();
@@ -3509,8 +3512,11 @@ function draw(){
   zg.addColorStop(0,"rgba(255,209,102,.10)");zg.addColorStop(.75,"rgba(255,176,56,.05)");
   zg.addColorStop(1,"rgba(255,176,56,0)");
   cx.fillStyle=zg;cx.beginPath();cx.arc(zx,zy,zr,0,TAU);cx.fill();
-  cx.save();cx.shadowColor=C.gold;cx.shadowBlur=22;
-  cx.strokeStyle="rgba(255,209,102,.65)";cx.lineWidth=2.5;
+  cx.save();
+  cx.shadowBlur=0;cx.strokeStyle="rgba(3,5,12,.55)";cx.lineWidth=8;   // 밑선 — 금색끼리 겹쳐도 경계가 남는다
+  cx.beginPath();cx.arc(zx,zy,zr,0,TAU);cx.stroke();
+  cx.shadowColor=C.gold;cx.shadowBlur=22;
+  cx.strokeStyle="rgba(255,214,120,.88)";cx.lineWidth=3.5;
   cx.beginPath();cx.arc(zx,zy,zr,0,TAU);cx.stroke();
   /* 남은 시간 — 위에서 시계 방향으로 줄어든다. 숫자를 안 읽어도 「곧 옮긴다」가 보인다 */
   if(!G.ct.leash&&G.zt>0){const f=Math.min(1,G.zt/(ZONE_T/G.pace));
@@ -3525,7 +3531,7 @@ function draw(){
   // 화염 장판
   /* 상한을 둬도 여덟 겹이면 한 색으로 덮인다. 겹친 수로 나눠 총량을 묶는다. */
   const pd=Math.min(1,3.5/Math.max(1,G.pool.length));
-  for(const q of G.pool){const a=Math.min(1,q.life)*pd;
+  for(const q of G.pool){const a=Math.min(1,q.life)*pd*nearK(q.x,q.y);
     const g=cx.createRadialGradient(q.x+ox,q.y+oy,2,q.x+ox,q.y+oy,q.r);
     /* 우물은 가운데가 비고 테두리가 짙다 — 불길과 반대로 칠해야 "빨려 드는 것"으로 읽힌다 */
     if(q.vio){g.addColorStop(0,`rgba(168,107,255,${.06*a})`);g.addColorStop(.7,`rgba(168,107,255,${.30*a})`);g.addColorStop(1,"rgba(120,40,220,0)");}
@@ -3554,15 +3560,15 @@ function draw(){
        퍼지는 고리 + 중심에서 뻗는 균열로 바꾼다 — 여러 장 겹쳐도 화면을 안 덮는다. */
     if(f.arc){
       const t=f.life/f.max, k=1-t, full=f.w>2.9;
-      const X=f.x+ox, Y=f.y+oy, rr=f.r*(.45+.55*k);
-      cx.save();cx.shadowColor=f.c;cx.shadowBlur=10;
+      const X=f.x+ox, Y=f.y+oy, rr=f.r*(.45+.55*k), nk=nearK(f.x,f.y);
+      cx.save();cx.shadowColor=f.c;cx.shadowBlur=10*nk;
       if(!full){   // 정면 강타 — 방향이 정보라 옅게라도 면을 남긴다
-        cx.globalAlpha=t*.16;cx.fillStyle=f.c;
+        cx.globalAlpha=t*.16*nk;cx.fillStyle=f.c;
         cx.beginPath();cx.moveTo(X,Y);cx.arc(X,Y,f.r,f.a-f.w,f.a+f.w);cx.closePath();cx.fill();}
-      cx.globalAlpha=t*.85;cx.strokeStyle=f.c;cx.lineWidth=(full?3.5:3)*t+1;
+      cx.globalAlpha=t*.85*nk;cx.strokeStyle=f.c;cx.lineWidth=(full?3.5:3)*t+1;
       cx.beginPath();cx.arc(X,Y,rr,f.a-f.w,f.a+f.w);cx.stroke();
       // 균열 — 고리 안쪽으로 짧게 뻗는다. 땅이 갈라진 것으로 읽힌다
-      cx.globalAlpha=t*.5;cx.lineWidth=2;
+      cx.globalAlpha=t*.5*nk;cx.lineWidth=2;
       const NC=full?7:4;
       for(let q=0;q<NC;q++){
         const a=f.a-f.w+(q+.5)*(f.w*2/NC);
@@ -3590,9 +3596,9 @@ function draw(){
   /* 자기 폭풍은 6발씩 나오고 공속이 오르면 초당 52발, 동시 21개까지 간다(실측).
      고리 하나하나가 같은 밝기면 합이 흰색이 된다. 살아 있는 수로 나눠 총량을 묶는다. */
   const bd=Math.min(1,7/Math.max(1,G.bolts.length));
-  for(const z of G.bolts){const k=1-z.life/z.max;
+  for(const z of G.bolts){const k=1-z.life/z.max, zk=nearK(z.x,z.y);
     const col=z.red?"255,77,77":z.cyan?"79,240,216":z.pink?"255,92,138":"255,209,102";
-    cx.save();cx.shadowColor=z.cyan?C.cyan:C.gold;cx.shadowBlur=11*bd;
+    cx.save();cx.globalAlpha=zk;cx.shadowColor=z.cyan?C.cyan:C.gold;cx.shadowBlur=11*bd*zk;
     cx.strokeStyle=`rgba(${col},${((1-k)*.72*(z.gold?1:bd)).toFixed(2)})`;cx.lineWidth=z.gold?5:2;
     cx.beginPath();cx.arc(z.x+ox,z.y+oy,z.r*(.4+k*.6),0,TAU);cx.stroke();
     if(z.cyan||z.gold||z.red||z.pink){cx.fillStyle=`rgba(${col},${((1-k)*.15*(z.gold?1:bd)).toFixed(2)})`;cx.fill();}
@@ -3772,8 +3778,11 @@ function draw(){
   // 플레이어
   const px=W/2+sx,py=H/2+sy;
   cx.save();cx.shadowColor=G.ult.t>0?C.violet:(p.in?C.gold:C.cyan);cx.shadowBlur=G.ult.t>0?48:26;
-  if(p.flash>0){cx.shadowColor=C.pink;}
-  if(!G.dyHide)drawShip(px,py,p.dx,p.dy,G.form,G.stage,p.flash>0?C.pink:null);
+  if(!G.dyHide)drawShip(px,py,p.dx,p.dy,G.form,G.stage,null);
+  /* 피격 — 본체를 분홍으로 바꾸면 적 탄과 같은 색이 된다. 색은 두고 흰 외곽선을 점멸한다 */
+  if(!G.dyHide&&p.flash>0){const on=p.flash<.08||Math.floor(G.t*28)%2===0;
+    if(on){cx.shadowBlur=0;cx.strokeStyle="rgba(255,255,255,.95)";cx.lineWidth=2.5;
+      cx.beginPath();cx.arc(px,py,p.r+7,0,TAU);cx.stroke();}}
   if(!G.dyHide&&G.form==="warden"&&G.shield.up){cx.strokeStyle="rgba(255,209,102,.9)";cx.lineWidth=2.5;cx.setLineDash([14,8]);
     cx.lineDashOffset=-G.t*40;cx.beginPath();cx.arc(px,py,p.r+13,0,TAU);cx.stroke();cx.setLineDash([]);}
   cx.restore();
