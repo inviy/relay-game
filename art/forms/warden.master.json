@@ -1,0 +1,170 @@
+{
+  "schema": "generate2dsprite.master.v1",
+  "tool": {
+    "name": "master_still",
+    "version": "0.4.0"
+  },
+  "created": "2026-11-03T12:45:59.902Z",
+  "name": "warden",
+  "subject": "the RELAY \"warden\" ship, a defensive armored spacecraft",
+  "identity_recap": "RELAY warden ship: thick dark navy #111834 hexagonal armored hull, bold neon gold #ffd166 edge lines, six short gold prongs pointing outward, bright white core with orange #ff9f43 accents",
+  "facing": "none",
+  "view": "top-down view seen from directly above, nose pointing up toward the TOP edge, perfectly centered and symmetric",
+  "finish": "hd",
+  "class": "prop",
+  "framing": {
+    "canvas": [
+      1024,
+      1024
+    ],
+    "subject_height_px": 720,
+    "top_margin_px": 152,
+    "lead_px": 0,
+    "preset": "custom",
+    "subject_bbox": [
+      188,
+      152,
+      836,
+      872
+    ],
+    "anchor": [
+      512.0,
+      872.0
+    ],
+    "opaque_area_px": 218133,
+    "width_limited": false
+  },
+  "key": "#FF00FF",
+  "files": {
+    "master": {
+      "path": "master.png",
+      "sha256": "97bf657340567bc5c46a192f61b7d4a9a9d2a38004cf606c36a0ca93f6f0a340",
+      "bytes": 264836,
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    "cutout": {
+      "path": "master_rgba.png",
+      "sha256": "b8e60eb308e2ccd16aaffd585c6f37d60ef986605a3042cb6db74c3f6b970176",
+      "bytes": 305818,
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    "source": {
+      "path": "source.png",
+      "sha256": "3e2a9e0e5f282d5290765443bd4dd6bfac6b900eeac5d3a4d60286a0695ccb7d",
+      "bytes": 1289098,
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    "spec": {
+      "path": "spec.json",
+      "sha256": "e7cd407f01753bc653ba28328b91389ae6ccac91baff88f3e1fc083e891b604b",
+      "bytes": 1456
+    },
+    "prompt": {
+      "path": "prompt.txt",
+      "sha256": "e080c75f68ae25953d836670052b7b3b880dac2b354f1354ec956fb26b350546",
+      "bytes": 1945
+    }
+  },
+  "references": [],
+  "transform": {
+    "mapping": "master = scale * source + offset (continuous pixel coordinates: pixel i spans [i, i + 1))",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "source_subject_bbox": [
+      202,
+      110,
+      1052,
+      1055
+    ],
+    "crop_box": [
+      196,
+      104,
+      1058,
+      1061
+    ],
+    "crop_margin_px": 6,
+    "scale": 0.7619047619047619,
+    "offset": [
+      34.285714285714334,
+      68.19047619047619
+    ],
+    "canvas": [
+      1024,
+      1024
+    ],
+    "resampler": "lanczos",
+    "premultiplied": true,
+    "alpha_floor_px": 2438,
+    "subject_parts": 1,
+    "ignored_parts": 0,
+    "ignored_px": 0,
+    "source_touches": [],
+    "key_rgb": [
+      255,
+      0,
+      255
+    ]
+  },
+  "route": "local:codex-cli",
+  "provenance": {
+    "command": "generate",
+    "run": "../warden-gen",
+    "take": 3,
+    "source_name": "generated.png",
+    "source_sha256": "3e2a9e0e5f282d5290765443bd4dd6bfac6b900eeac5d3a4d60286a0695ccb7d",
+    "media": {
+      "status": "ok",
+      "route": "local:codex-cli",
+      "sha256": "3e2a9e0e5f282d5290765443bd4dd6bfac6b900eeac5d3a4d60286a0695ccb7d",
+      "estimateUsd": 0.0,
+      "kind": "image",
+      "label": "Codex (local CLI)",
+      "model": "codex-image_gen",
+      "verifiedBefore": true
+    },
+    "media_cli_source": "sibling",
+    "edit": null
+  },
+  "matte": {
+    "requested": "soft",
+    "key_estimate": {
+      "key": [
+        252.0,
+        3.0,
+        250.0
+      ],
+      "source": "border_median",
+      "valid": true,
+      "ring_share": 1.0,
+      "coverage": 0.7596075334050655,
+      "distance_from_declared": 6.56
+    },
+    "quality": "soft",
+    "interior_despill": true,
+    "qa": {
+      "opaque_key_px": 0,
+      "outer_ring_spill_fraction": 0.0,
+      "semitransparent_fraction": 0.009890366099862758,
+      "enclosed_key_pockets": 0,
+      "key_hued_px": 0,
+      "visible_px": 377438
+    },
+    "key_choice": {
+      "status": "ok",
+      "overlap_share": 0.0,
+      "rule": "reject a key when more than 0.5% of subject pixels have key dominance >= 40; first acceptable candidate wins"
+    }
+  },
+  "warnings": []
+}

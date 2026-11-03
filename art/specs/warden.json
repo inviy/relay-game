@@ -1,0 +1,15 @@
+{
+  "schema": "generate2dsprite.master_spec.v1",
+  "name": "warden",
+  "subject": "the RELAY \"warden\" ship, a defensive armored spacecraft",
+  "identity": "A thick regular hexagonal armored hull in dark navy #111834 with bold neon gold #ffd166 edge lines. Six short, blunt gold prongs point straight outward, one from the middle of each hexagon side. A bright white circular core sits at the exact center, ringed by small orange #ff9f43 accents. The nose is marked by the top prong being slightly longer. Hard-edged flat geometric silhouette, clean bold lines of one even weight, no realistic texture, no metal shading, no panel detail. Glow only on the hull edges and the core.",
+  "recap": "RELAY warden ship: thick dark navy #111834 hexagonal armored hull, bold neon gold #ffd166 edge lines, six short gold prongs pointing outward, bright white core with orange #ff9f43 accents",
+  "facing": "none",
+  "view": "top-down view seen from directly above, nose pointing up toward the TOP edge, perfectly centered and symmetric",
+  "class": "prop",
+  "finish": "hd",
+  "key": "#FF00FF",
+  "genre": "a top-down neon arcade shooter (card and codex illustration)",
+  "pronoun": "it",
+  "extra_bans": ["no stars", "no nebula", "no space background", "no ground", "no cast shadow", "no motion blur"]
+}

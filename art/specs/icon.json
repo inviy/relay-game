@@ -1,0 +1,16 @@
+{
+  "schema": "generate2dsprite.master_spec.v1",
+  "name": "icon-master",
+  "subject": "an app icon emblem: the RELAY warden ship inside a broken gold ring",
+  "identity": "In the center, the warden ship from the FIRST image, drawn smaller (about 60% of the ring diameter): the same dark navy #111834 hexagonal hull with gold #ffd166 edge lines and six short gold prongs, but its core is now a bright glowing cyan #4ff0d8 circle instead of white. Around the ship, a thick bold gold #ffd166 ring broken into exactly four equal arcs with four equal gaps, the gaps at the top-left, top-right, bottom-left and bottom-right diagonals. The ring does not touch the ship. Hard-edged flat geometric shapes, clean bold lines of one even weight, no realistic texture, no metal shading.",
+  "recap": "RELAY app icon: navy hexagonal warden ship with gold edges and a cyan #4ff0d8 core, inside a thick gold #ffd166 ring broken into four equal arcs",
+  "facing": "none",
+  "view": "top-down view seen from directly above, nose pointing up toward the TOP edge, perfectly centered and symmetric",
+  "class": "prop",
+  "finish": "hd",
+  "key": "#FF00FF",
+  "genre": "a top-down neon arcade shooter (app icon)",
+  "pronoun": "it",
+  "identity_ref": {"path": "../_work/warden/master.png", "what": "the approved warden ship", "copy": "the hexagonal hull shape, the six prongs, the line weight and the colours of the hull"},
+  "extra_bans": ["no stars", "no nebula", "no space background", "no ground", "no cast shadow", "no motion blur"]
+}
