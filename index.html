@@ -242,6 +242,9 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 /* ── 레벨업 카드 ── */
 #picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin:26px 0 8px}
 .card.form{padding-top:34px}.card.form .t{font-size:26px}.card.form .d{font-size:15.5px}
+.card.form .art{width:128px;height:128px;margin:-6px auto 10px;display:grid;place-items:center}
+.card.form .art img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 10px var(--c)) drop-shadow(0 0 22px color-mix(in srgb,var(--c) 55%,transparent))}
+.card.form:hover .art img{filter:drop-shadow(0 0 14px var(--c)) drop-shadow(0 0 30px var(--c))}
 .card .fit{margin-top:10px;padding:5px 8px;border-radius:6px;background:rgba(255,209,102,.12);color:#ffd166;font-size:13px;font-weight:600}
 .card .fitl{margin-top:8px;font-size:12px;color:var(--ash)}
 .card .sub{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px;color:var(--ash);text-align:left;line-height:1.55}
@@ -271,6 +274,8 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
      것보다 낫다. */
   #picks .card.form{padding:11px 13px;grid-template-columns:1fr}
   #picks .card.form>.glyph{display:none}
+  #picks .card.form{position:relative;padding-right:84px}
+  #picks .card.form .art{position:absolute;right:10px;top:8px;width:66px;height:66px;margin:0}
   #picks .card.form>*{grid-column:1}
   #picks .card.form .t{font-size:17px;margin-bottom:3px}
   #picks .card.form .d{font-size:12.5px;line-height:1.35}
@@ -3022,7 +3027,10 @@ function formChoice(){
   ["rover","warden","pulse","none"].forEach((k,i)=>{
     const f=FORMS[k],b=document.createElement("button"),fit=CHf.fit===k;
     b.className="card form";b.style.setProperty("--c",f.c);
-    b.innerHTML=`${glyph(k)}<div class="kind">${i+1} · ${k==="none"?"선택":"진화 경로"}</div>
+    /* 계열 일러스트(art/forms, Agent Sprite Forge). 플랫 라인 그림이라 글로우는 CSS drop-shadow로 얹는다.
+       진화 화면에서만 로드되고 전투 화면은 그대로 벡터다 */
+    const art=k==="none"?glyph(k):`<div class="art"><img src="art/forms/${k}.png" alt="" loading="lazy" decoding="async"></div>`;
+    b.innerHTML=`${art}<div class="kind">${i+1} · ${k==="none"?"선택":"진화 경로"}</div>
       <div class="t">${f.n}${f.hint?` <span style="font-size:13px;color:var(--ash)">${f.hint}</span>`:""}</div><div class="d">${f.d}</div>${fit?`<div class="fit">★ ${CHf.n} 궁합 · ${CHf.fd}</div>`:""}<div class="sub">${f.sub}</div>`;
     b.onclick=()=>{setForm(k);hideAll();mode="play";last=performance.now();flushLevel();};
     box.appendChild(b);});
