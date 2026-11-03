@@ -3976,56 +3976,66 @@ function drawChar(g,k,R,col){
    진화를 색이 아닌 형태로 읽게 되므로 색약 대응도 같이 좋아진다. */
 const chCol=()=>(CHARS[(G&&G.ch)||"relay"]||CHARS.relay).c;
 function drawShip(x,y,dx,dy,form,stage,over){
-  /* 피격 섬광은 본체에만 준다 — 장식까지 같은 색이 되면 실루엣이 사라진다 */
-  const a=Math.atan2(dy,dx), acc=chCol(), body=over||"#eef2ff";
+  /* 진화 카드의 일러스트(art/forms)와 같은 기체로 읽히게 맞췄다 — 어두운 선체에 계열색
+     윤곽선, 흰 코어. 단계는 요소가 늘어나며 자란다(기동계 날개 겹, 방어계 돌기 수,
+     공진계 고리 수). 피격 섬광(over)은 선체 채움에만 준다 — 윤곽까지 바꾸면 실루엣이 사라진다 */
+  const a=Math.atan2(dy,dx), acc=chCol(), hull=over||"#141b3a", fc=FORMS[form]&&FORMS[form].c;
+  const edge=(w)=>{cx.strokeStyle=fc;cx.lineWidth=w;cx.lineJoin="round";cx.stroke();};
+  const core=(r,x0=0)=>{cx.fillStyle="#ffffff";cx.beginPath();cx.arc(x0,0,r,0,TAU);cx.fill();
+    cx.fillStyle=acc;cx.beginPath();cx.arc(x0,0,r*.5,0,TAU);cx.fill();};
   cx.save();cx.translate(x,y);
   if(!form||form==="none"||stage===0){
     cx.rotate(a);drawChar(cx,(G&&G.ch)||"relay",13,over);
   }else if(form==="rover"){
-    const S=stage>=3?1.34:stage===2?1.12:1;      // 단계는 크기로도 자란다
-    /* 장식을 본체 위에 올린다 — 아래 깔면 육각형 본체에 60%가 가려진다 */
+    /* 화살촉 + 뒤로 젖힌 두 날개. 날개 안쪽에 홈이 파여 카드의 삼각 실루엣이 된다 */
+    const S=stage>=3?1.3:stage===2?1.12:1;
     cx.rotate(a);cx.scale(S,S);
-    cx.fillStyle=body;cx.beginPath();
-    if(stage===1){                                // 날렵한 화살
-      cx.moveTo(20,0);cx.lineTo(-12,-13);cx.lineTo(-5,0);cx.lineTo(-12,13);
-    }else{                                        // 유령 이상 — 긴 날개
-      cx.moveTo(26,0);cx.lineTo(-16,-22);cx.lineTo(-4,0);cx.lineTo(-16,22);
-    }
-    cx.closePath();cx.fill();
-    if(stage>=3){                                 // 3차는 날개가 한 겹 늘어난다 — 확대가 아니라 요소 추가
-      cx.strokeStyle=acc;cx.lineWidth=2.4;cx.beginPath();
-      cx.moveTo(-14,-26);cx.lineTo(14,-13);cx.moveTo(-14,26);cx.lineTo(14,13);cx.stroke();}
+    cx.fillStyle=hull;cx.beginPath();
+    cx.moveTo(24,0);cx.lineTo(-4,-7);cx.lineTo(-14,-20);cx.lineTo(-8,-5);cx.lineTo(-11,0);
+    cx.lineTo(-8,5);cx.lineTo(-14,20);cx.lineTo(-4,7);cx.closePath();cx.fill();edge(2);
+    if(stage>=2){                                 // 2차 — 바깥 날개 한 겹 (보라 보조색)
+      cx.strokeStyle=C.violet;cx.lineWidth=2.2;cx.beginPath();
+      cx.moveTo(-6,-10);cx.lineTo(-20,-27);cx.moveTo(-6,10);cx.lineTo(-20,27);cx.stroke();}
+    if(stage>=3){                                 // 3차 — 날개 끝 핀
+      cx.strokeStyle=fc;cx.lineWidth=2;cx.beginPath();
+      cx.moveTo(-14,-20);cx.lineTo(2,-14);cx.moveTo(-14,20);cx.lineTo(2,14);cx.stroke();}
+    cx.strokeStyle=fc;cx.lineWidth=1.4;cx.beginPath();cx.moveTo(18,0);cx.lineTo(-8,0);cx.stroke();   // 등줄
     charAccent(cx,(G&&G.ch)||"relay",stage>=3?20:stage===2?17:14);
-    cx.fillStyle=acc;cx.beginPath();cx.arc(stage===1?4:6,0,4,0,TAU);cx.fill();
+    core(4.2,5);
   }else if(form==="pulse"){
-    /* 마름모 본체 + 공명 고리. 고리가 스택만큼 찬다 — 몸에 게이지가 있다 */
-    const S=stage>=3?1.3:stage===2?1.12:1, k=G?Math.min(1,G.res/(G.resCap||40)):0;
+    /* 둥근 코어 + 동심 고리(단계마다 한 겹) + 대각선 위성 4개. 첫 고리는 공명 게이지다 */
+    const S=stage>=3?1.25:stage===2?1.1:1, k=G?Math.min(1,G.res/(G.resCap||40)):0, t=G?G.t:0;
     cx.rotate(a);cx.scale(S,S);
-    cx.fillStyle=body;cx.beginPath();cx.moveTo(18,0);cx.lineTo(0,-11);cx.lineTo(-12,0);cx.lineTo(0,11);cx.closePath();cx.fill();
+    cx.fillStyle=hull;cx.beginPath();cx.arc(0,0,11,0,TAU);cx.fill();edge(2.2);
+    cx.strokeStyle="rgba(255,92,138,.35)";cx.lineWidth=2.4;cx.beginPath();cx.arc(0,0,17,0,TAU);cx.stroke();
     cx.strokeStyle=acc;cx.lineWidth=2.6;cx.beginPath();cx.arc(0,0,17,-Math.PI/2,-Math.PI/2+TAU*k);cx.stroke();
-    if(stage>=2){cx.strokeStyle="rgba(255,92,138,.55)";cx.lineWidth=1.6;cx.setLineDash([4,5]);cx.lineDashOffset=-(G?G.t:0)*30*(1+k*2);
+    if(stage>=2){cx.strokeStyle="rgba(255,92,138,.5)";cx.lineWidth=1.6;cx.setLineDash([4,5]);cx.lineDashOffset=-t*30*(1+k*2);
       cx.beginPath();cx.arc(0,0,23,0,TAU);cx.stroke();cx.setLineDash([]);}
-    if(stage>=3){cx.strokeStyle=acc;cx.lineWidth=2;cx.beginPath();cx.moveTo(-6,-20);cx.lineTo(10,-8);cx.moveTo(-6,20);cx.lineTo(10,8);cx.stroke();}
+    if(stage>=3){cx.strokeStyle="rgba(255,92,138,.4)";cx.lineWidth=1.4;cx.beginPath();cx.arc(0,0,29,0,TAU);cx.stroke();}
+    if(stage>=2){                                 // 위성 — 대각선 네 점, 천천히 공전
+      const R=stage>=3?29:23;cx.save();cx.rotate(-a+t*.8);cx.fillStyle=hull;cx.strokeStyle=C.cyan;cx.lineWidth=1.6;
+      for(let i=0;i<4;i++){const g=Math.PI/4+i*Math.PI/2,sx=Math.cos(g)*R,sy=Math.sin(g)*R;
+        cx.beginPath();cx.moveTo(sx,sy-4);cx.lineTo(sx+4,sy);cx.lineTo(sx,sy+4);cx.lineTo(sx-4,sy);cx.closePath();cx.fill();cx.stroke();}
+      cx.restore();}
     charAccent(cx,(G&&G.ch)||"relay",stage>=3?19:stage===2?16:13);
-    cx.fillStyle=acc;cx.beginPath();cx.arc(3,0,4,0,TAU);cx.fill();
+    core(5);
   }else{ // warden
-    const n=6,R=stage>=3?26:stage===2?22:16;
+    /* 육각 장갑 + 꼭짓점 돌기 + 흰 코어. 1차 6개 짧게 → 2차 길게 → 3차 12개 */
+    const n=6,R=stage>=3?24:stage===2?21:17, pr=stage>=3?10:stage===2?9:6, m=stage>=3?12:6;
     cx.save();cx.rotate(G.t*.6);                  // 본체만 자전한다
-    cx.fillStyle=body;cx.beginPath();
+    cx.fillStyle=hull;cx.beginPath();
     for(let i=0;i<n;i++){const g=i/n*TAU;i?cx.lineTo(Math.cos(g)*R,Math.sin(g)*R):cx.moveTo(R,0);}
-    cx.closePath();cx.fill();
-    cx.fillStyle="#0b1024";cx.beginPath();
-    for(let i=0;i<n;i++){const g=i/n*TAU;i?cx.lineTo(Math.cos(g)*R*.55,Math.sin(g)*R*.55):cx.moveTo(R*.55,0);}
-    cx.closePath();cx.fill();
-    if(stage>=2){                                 // 2차 6갈래 → 3차 12갈래
-      const m=stage>=3?12:6;
-      cx.strokeStyle=acc;cx.lineWidth=stage>=3?3.4:3;cx.beginPath();
-      for(let i=0;i<m;i++){const g=i/m*TAU;cx.moveTo(Math.cos(g)*R,Math.sin(g)*R);cx.lineTo(Math.cos(g)*(R+9),Math.sin(g)*(R+9));}
-      cx.stroke();}
+    cx.closePath();cx.fill();edge(2.4);
+    cx.strokeStyle=fc;cx.lineWidth=1.2;cx.beginPath();          // 안쪽 육각 — 장갑판 두 겹
+    for(let i=0;i<n;i++){const g=i/n*TAU;i?cx.lineTo(Math.cos(g)*R*.6,Math.sin(g)*R*.6):cx.moveTo(R*.6,0);}
+    cx.closePath();cx.stroke();
+    cx.lineWidth=stage>=3?3.2:2.8;cx.lineCap="round";cx.beginPath();  // 돌기
+    for(let i=0;i<m;i++){const g=i/m*TAU,r0=(m===6||i%2===0)?R:R*.8;
+      cx.moveTo(Math.cos(g)*r0,Math.sin(g)*r0);cx.lineTo(Math.cos(g)*(r0+pr),Math.sin(g)*(r0+pr));}
+    cx.stroke();
     cx.restore();
-    /* 장식은 진행 방향 고정 — 본체와 같이 돌면 방패 호가 뒤를 막는다 */
     cx.save();cx.rotate(a);charAccent(cx,(G&&G.ch)||"relay",stage>=3?23:stage===2?19:15);cx.restore();
-    cx.fillStyle=acc;cx.beginPath();cx.arc(0,0,4.5,0,TAU);cx.fill();
+    core(5.5);
   }
   cx.restore();
 }
