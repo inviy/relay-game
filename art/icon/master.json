@@ -1,0 +1,180 @@
+{
+  "schema": "generate2dsprite.master.v1",
+  "tool": {
+    "name": "master_still",
+    "version": "0.4.0"
+  },
+  "created": "2026-11-03T12:49:04.163Z",
+  "name": "icon-master",
+  "subject": "an app icon emblem: the RELAY warden ship inside a broken gold ring",
+  "identity_recap": "RELAY app icon: navy hexagonal warden ship with gold edges and a cyan #4ff0d8 core, inside a thick gold #ffd166 ring broken into four equal arcs",
+  "facing": "none",
+  "view": "top-down view seen from directly above, nose pointing up toward the TOP edge, perfectly centered and symmetric",
+  "finish": "hd",
+  "class": "prop",
+  "framing": {
+    "canvas": [
+      1024,
+      1024
+    ],
+    "subject_height_px": 904,
+    "top_margin_px": 60,
+    "lead_px": 0,
+    "preset": "custom",
+    "subject_bbox": [
+      66,
+      60,
+      958,
+      964
+    ],
+    "anchor": [
+      510.5,
+      964.0
+    ],
+    "opaque_area_px": 348866,
+    "width_limited": false
+  },
+  "key": "#FF00FF",
+  "files": {
+    "master": {
+      "path": "master.png",
+      "sha256": "897215e20cfd9a12734a97e37145414f704ec394c0e22e8edd72c78e4d0ea895",
+      "bytes": 468259,
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    "cutout": {
+      "path": "master_rgba.png",
+      "sha256": "3a94fb156794abf683b834efc739a8643dd1c6816e716953accf6d640fd6d987",
+      "bytes": 548661,
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    "source": {
+      "path": "source.png",
+      "sha256": "df7122d6c2ef692c688c802fbddfa99ae78dbda7c77f6271b611f75b92bf3bc3",
+      "bytes": 1384884,
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    "spec": {
+      "path": "spec.json",
+      "sha256": "39cbe319762a73300571316381ab6479c5ec6bc2e0e1f2a159d3348f709f2c51",
+      "bytes": 1747
+    },
+    "prompt": {
+      "path": "prompt.txt",
+      "sha256": "16f15e015b0b95964c5ffd08383196670baeac4d3307af09a277048cbfc3bcc8",
+      "bytes": 2183
+    }
+  },
+  "references": [
+    {
+      "role": "identity",
+      "path": "../warden/master.png",
+      "sha256": "97bf657340567bc5c46a192f61b7d4a9a9d2a38004cf606c36a0ca93f6f0a340",
+      "bytes": 264836,
+      "what": "the approved warden ship"
+    }
+  ],
+  "transform": {
+    "mapping": "master = scale * source + offset (continuous pixel coordinates: pixel i spans [i, i + 1))",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "source_subject_bbox": [
+      201,
+      195,
+      1052,
+      1058
+    ],
+    "crop_box": [
+      195,
+      189,
+      1058,
+      1064
+    ],
+    "crop_margin_px": 6,
+    "scale": 1.0475086906141367,
+    "offset": [
+      -144.26419466975665,
+      -144.26419466975665
+    ],
+    "canvas": [
+      1024,
+      1024
+    ],
+    "resampler": "lanczos",
+    "premultiplied": true,
+    "alpha_floor_px": 5010,
+    "subject_parts": 5,
+    "ignored_parts": 0,
+    "ignored_px": 0,
+    "source_touches": [],
+    "key_rgb": [
+      255,
+      0,
+      255
+    ]
+  },
+  "route": "local:codex-cli",
+  "provenance": {
+    "command": "generate",
+    "run": "../icon-gen",
+    "take": 1,
+    "source_name": "generated.png",
+    "source_sha256": "df7122d6c2ef692c688c802fbddfa99ae78dbda7c77f6271b611f75b92bf3bc3",
+    "media": {
+      "status": "ok",
+      "route": "local:codex-cli",
+      "sha256": "df7122d6c2ef692c688c802fbddfa99ae78dbda7c77f6271b611f75b92bf3bc3",
+      "estimateUsd": 0.0,
+      "kind": "image",
+      "label": "Codex (local CLI)",
+      "model": "codex-image_gen",
+      "verifiedBefore": true
+    },
+    "media_cli_source": "sibling",
+    "edit": null
+  },
+  "matte": {
+    "requested": "soft",
+    "key_estimate": {
+      "key": [
+        252.0,
+        4.0,
+        250.0
+      ],
+      "source": "border_median",
+      "valid": true,
+      "ring_share": 1.0,
+      "coverage": 0.7955480262204009,
+      "distance_from_declared": 7.07
+    },
+    "quality": "soft",
+    "interior_despill": true,
+    "qa": {
+      "opaque_key_px": 0,
+      "outer_ring_spill_fraction": 0.0,
+      "semitransparent_fraction": 0.022844921789628148,
+      "enclosed_key_pockets": 0,
+      "key_hued_px": 0,
+      "visible_px": 320290
+    },
+    "key_choice": {
+      "status": "ok",
+      "overlap_share": 0.0,
+      "rule": "reject a key when more than 0.5% of subject pixels have key dominance >= 40; first acceptable candidate wins"
+    }
+  },
+  "warnings": [
+    "the subject is upscaled x1.05 (863 px source height): detail will be soft; ask the route for a larger figure"
+  ]
+}

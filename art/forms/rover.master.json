@@ -1,0 +1,178 @@
+{
+  "schema": "generate2dsprite.master.v1",
+  "tool": {
+    "name": "master_still",
+    "version": "0.4.0"
+  },
+  "created": "2026-11-03T12:48:54.925Z",
+  "name": "rover",
+  "subject": "the RELAY \"rover\" ship, a fast agile interceptor spacecraft",
+  "identity_recap": "RELAY rover ship: long slender dark navy #111834 arrowhead hull, bold neon cyan #4ff0d8 edge lines with violet #a86bff accents, two swept-back wings, two thin tail streaks",
+  "facing": "none",
+  "view": "top-down view seen from directly above, nose pointing up toward the TOP edge, perfectly centered and symmetric",
+  "finish": "hd",
+  "class": "prop",
+  "framing": {
+    "canvas": [
+      1024,
+      1024
+    ],
+    "subject_height_px": 720,
+    "top_margin_px": 152,
+    "lead_px": 0,
+    "preset": "custom",
+    "subject_bbox": [
+      234,
+      152,
+      790,
+      872
+    ],
+    "anchor": [
+      513.0,
+      872.0
+    ],
+    "opaque_area_px": 95349,
+    "width_limited": false
+  },
+  "key": "#00FF00",
+  "files": {
+    "master": {
+      "path": "master.png",
+      "sha256": "9b05036086fd6f185b28ed76da6e401f9b0d4dbc7cd3478c335d74d7cddd933f",
+      "bytes": 177217,
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    "cutout": {
+      "path": "master_rgba.png",
+      "sha256": "11ca978a3199b5259524b931d06adc287e44769a85ac18d090be3bf410ad8a47",
+      "bytes": 209367,
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    "source": {
+      "path": "source.png",
+      "sha256": "69f33b875a84e8598add04d7314ed3f5cf94567e82747a0fb5ab145ef0825a03",
+      "bytes": 1294916,
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    "spec": {
+      "path": "spec.json",
+      "sha256": "cafccd9900eaed1271aec56b166f08da232a5d5495233cf2abdf48f59a67a1db",
+      "bytes": 1800
+    },
+    "prompt": {
+      "path": "prompt.txt",
+      "sha256": "59115c6ca6c25854efbd3baf32331041af590659ce9cb74db7c46454f5df694b",
+      "bytes": 2335
+    }
+  },
+  "references": [
+    {
+      "role": "style",
+      "path": "../warden/master.png",
+      "sha256": "97bf657340567bc5c46a192f61b7d4a9a9d2a38004cf606c36a0ca93f6f0a340",
+      "bytes": 264836,
+      "what": "the approved warden ship of the same game"
+    }
+  ],
+  "transform": {
+    "mapping": "master = scale * source + offset (continuous pixel coordinates: pixel i spans [i, i + 1))",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "source_subject_bbox": [
+      278,
+      189,
+      975,
+      1092
+    ],
+    "crop_box": [
+      272,
+      183,
+      981,
+      1098
+    ],
+    "crop_margin_px": 6,
+    "scale": 0.7973421926910299,
+    "offset": [
+      12.465116279069775,
+      1.302325581395337
+    ],
+    "canvas": [
+      1024,
+      1024
+    ],
+    "resampler": "lanczos",
+    "premultiplied": true,
+    "alpha_floor_px": 2184,
+    "subject_parts": 1,
+    "ignored_parts": 0,
+    "ignored_px": 0,
+    "source_touches": [],
+    "key_rgb": [
+      0,
+      255,
+      0
+    ]
+  },
+  "route": "local:codex-cli",
+  "provenance": {
+    "command": "generate",
+    "run": "../rover-gen",
+    "take": 2,
+    "source_name": "generated.png",
+    "source_sha256": "69f33b875a84e8598add04d7314ed3f5cf94567e82747a0fb5ab145ef0825a03",
+    "media": {
+      "status": "ok",
+      "route": "local:codex-cli",
+      "sha256": "69f33b875a84e8598add04d7314ed3f5cf94567e82747a0fb5ab145ef0825a03",
+      "estimateUsd": 0.0,
+      "kind": "image",
+      "label": "Codex (local CLI)",
+      "model": "codex-image_gen",
+      "verifiedBefore": true
+    },
+    "media_cli_source": "sibling",
+    "edit": null
+  },
+  "matte": {
+    "requested": "soft",
+    "key_estimate": {
+      "key": [
+        2.0,
+        249.0,
+        6.0
+      ],
+      "source": "border_median",
+      "valid": true,
+      "ring_share": 1.0,
+      "coverage": 0.9037764957558461,
+      "distance_from_declared": 8.72
+    },
+    "quality": "soft",
+    "interior_despill": false,
+    "qa": {
+      "opaque_key_px": 0,
+      "outer_ring_spill_fraction": 0.0,
+      "semitransparent_fraction": 0.028048691788385118,
+      "enclosed_key_pockets": 0,
+      "key_hued_px": 0,
+      "visible_px": 151237
+    },
+    "key_choice": {
+      "status": "ok",
+      "overlap_share": 0.0,
+      "rule": "reject a key when more than 0.5% of subject pixels have key dominance >= 40; first acceptable candidate wins"
+    }
+  },
+  "warnings": []
+}

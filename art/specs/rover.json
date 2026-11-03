@@ -1,0 +1,16 @@
+{
+  "schema": "generate2dsprite.master_spec.v1",
+  "name": "rover",
+  "subject": "the RELAY \"rover\" ship, a fast agile interceptor spacecraft",
+  "identity": "A long, slender arrowhead hull in dark navy #111834 with bold neon cyan #4ff0d8 edge lines and violet #a86bff secondary accents. A sharp narrow nose points straight up. Two swept-back wings flare out wide behind the middle of the hull, ending in sharp tips. Two thin separate tail streaks trail straight down from the rear, like afterimage ribbons. A small bright cyan core in the hull center. Thin and fast-looking, much narrower than it is tall. Hard-edged flat geometric silhouette, clean bold lines of one even weight, no realistic texture, no metal shading, no panel detail. Glow only on the hull edges and the core.",
+  "recap": "RELAY rover ship: long slender dark navy #111834 arrowhead hull, bold neon cyan #4ff0d8 edge lines with violet #a86bff accents, two swept-back wings, two thin tail streaks",
+  "facing": "none",
+  "view": "top-down view seen from directly above, nose pointing up toward the TOP edge, perfectly centered and symmetric",
+  "class": "prop",
+  "finish": "hd",
+  "key": "#00FF00",
+  "genre": "a top-down neon arcade shooter (card and codex illustration)",
+  "pronoun": "it",
+  "style_ref": {"path": "../_work/warden/master.png", "what": "the approved warden ship of the same game", "do_not_copy": "its hexagonal shape, its prongs, its gold and orange colours"},
+  "extra_bans": ["no stars", "no nebula", "no space background", "no ground", "no cast shadow", "no motion blur"]
+}

@@ -1,0 +1,178 @@
+{
+  "schema": "generate2dsprite.master.v1",
+  "tool": {
+    "name": "master_still",
+    "version": "0.4.0"
+  },
+  "created": "2026-11-03T12:48:56.203Z",
+  "name": "pulse",
+  "subject": "the RELAY \"pulse\" ship, a resonance spacecraft",
+  "identity_recap": "RELAY pulse ship: round dark navy #111834 core with bright neon pink #ff5c8a center, three concentric pink rings, four small cyan-edged floating pods at top, bottom, left and right",
+  "facing": "none",
+  "view": "top-down view seen from directly above, nose pointing up toward the TOP edge, perfectly centered and symmetric",
+  "finish": "hd",
+  "class": "prop",
+  "framing": {
+    "canvas": [
+      1024,
+      1024
+    ],
+    "subject_height_px": 720,
+    "top_margin_px": 152,
+    "lead_px": 0,
+    "preset": "custom",
+    "subject_bbox": [
+      163,
+      152,
+      861,
+      872
+    ],
+    "anchor": [
+      512.0,
+      872.0
+    ],
+    "opaque_area_px": 164933,
+    "width_limited": false
+  },
+  "key": "#0000FF",
+  "files": {
+    "master": {
+      "path": "master.png",
+      "sha256": "77e008c91ef773f659adf5cfb339adf69a1fb6aac7f9fcaa8892256d90883f67",
+      "bytes": 303317,
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    "cutout": {
+      "path": "master_rgba.png",
+      "sha256": "a84fc3d395d4ee4331ddb17a2836525fece2471d85ae1807c1bd47dee95636be",
+      "bytes": 367417,
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    "source": {
+      "path": "source.png",
+      "sha256": "f4a52274081d6c0b72db4cd89e098e928d65d444678a2c6538273a4079988dec",
+      "bytes": 1310524,
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    "spec": {
+      "path": "spec.json",
+      "sha256": "c66c7df699b45d5b7af3373e6252a16e5ca5a2ba111912e650ffb6ae7ef3739a",
+      "bytes": 1815
+    },
+    "prompt": {
+      "path": "prompt.txt",
+      "sha256": "01143475b4cfd4f65548e5840fb3cf13c9e12b5719ef01edca30176f8670500a",
+      "bytes": 2339
+    }
+  },
+  "references": [
+    {
+      "role": "style",
+      "path": "../warden/master.png",
+      "sha256": "97bf657340567bc5c46a192f61b7d4a9a9d2a38004cf606c36a0ca93f6f0a340",
+      "bytes": 264836,
+      "what": "the approved warden ship of the same game"
+    }
+  ],
+  "transform": {
+    "mapping": "master = scale * source + offset (continuous pixel coordinates: pixel i spans [i, i + 1))",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "source_subject_bbox": [
+      219,
+      190,
+      1035,
+      1032
+    ],
+    "crop_box": [
+      213,
+      184,
+      1041,
+      1038
+    ],
+    "crop_margin_px": 6,
+    "scale": 0.8551068883610451,
+    "offset": [
+      -24.152019002375255,
+      -10.470308788598572
+    ],
+    "canvas": [
+      1024,
+      1024
+    ],
+    "resampler": "lanczos",
+    "premultiplied": true,
+    "alpha_floor_px": 6366,
+    "subject_parts": 15,
+    "ignored_parts": 0,
+    "ignored_px": 0,
+    "source_touches": [],
+    "key_rgb": [
+      0,
+      0,
+      255
+    ]
+  },
+  "route": "local:codex-cli",
+  "provenance": {
+    "command": "generate",
+    "run": "../pulse-gen",
+    "take": 2,
+    "source_name": "generated.png",
+    "source_sha256": "f4a52274081d6c0b72db4cd89e098e928d65d444678a2c6538273a4079988dec",
+    "media": {
+      "status": "ok",
+      "route": "local:codex-cli",
+      "sha256": "f4a52274081d6c0b72db4cd89e098e928d65d444678a2c6538273a4079988dec",
+      "estimateUsd": 0.0,
+      "kind": "image",
+      "label": "Codex (local CLI)",
+      "model": "codex-image_gen",
+      "verifiedBefore": true
+    },
+    "media_cli_source": "sibling",
+    "edit": null
+  },
+  "matte": {
+    "requested": "soft",
+    "key_estimate": {
+      "key": [
+        0.0,
+        2.0,
+        251.0
+      ],
+      "source": "border_median",
+      "valid": true,
+      "ring_share": 1.0,
+      "coverage": 0.8537706452589353,
+      "distance_from_declared": 4.47
+    },
+    "quality": "soft",
+    "interior_despill": false,
+    "qa": {
+      "opaque_key_px": 0,
+      "outer_ring_spill_fraction": 0.0,
+      "semitransparent_fraction": 0.042063870874513395,
+      "enclosed_key_pockets": 0,
+      "key_hued_px": 0,
+      "visible_px": 228367
+    },
+    "key_choice": {
+      "status": "ok",
+      "overlap_share": 0.000305,
+      "rule": "reject a key when more than 0.5% of subject pixels have key dominance >= 40; first acceptable candidate wins"
+    }
+  },
+  "warnings": []
+}
