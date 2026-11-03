@@ -1,0 +1,16 @@
+{
+  "schema": "generate2dsprite.master_spec.v1",
+  "name": "pulse",
+  "subject": "the RELAY \"pulse\" ship, a resonance spacecraft",
+  "identity": "A round central core: a solid circular disc in dark navy #111834 with a bright neon pink #ff5c8a center. Around it, three thin concentric rings in neon pink with small gaps, evenly spaced, like a sound wave ringing outward. Four small separate floating devices (small diamond-shaped pods in navy with cyan #4ff0d8 edge lines) hover just outside the rings at the top, bottom, left and right, not touching the rings. A short pointed notch on the top of the core marks the nose. Hard-edged flat geometric silhouette, clean bold lines of one even weight, no realistic texture, no metal shading, no panel detail. Glow only on edges and the core.",
+  "recap": "RELAY pulse ship: round dark navy #111834 core with bright neon pink #ff5c8a center, three concentric pink rings, four small cyan-edged floating pods at top, bottom, left and right",
+  "facing": "none",
+  "view": "top-down view seen from directly above, nose pointing up toward the TOP edge, perfectly centered and symmetric",
+  "class": "prop",
+  "finish": "hd",
+  "key": "#0000FF",
+  "genre": "a top-down neon arcade shooter (card and codex illustration)",
+  "pronoun": "it",
+  "style_ref": {"path": "../_work/warden/master.png", "what": "the approved warden ship of the same game", "do_not_copy": "its hexagonal shape, its prongs, its gold and orange colours"},
+  "extra_bans": ["no stars", "no nebula", "no space background", "no ground", "no cast shadow", "no motion blur"]
+}
