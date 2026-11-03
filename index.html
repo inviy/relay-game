@@ -247,6 +247,9 @@ p{color:var(--ash);line-height:1.6;font-size:17px;font-weight:500}
 .card.form:hover .art img{filter:drop-shadow(0 0 14px var(--c)) drop-shadow(0 0 30px var(--c))}
 .card .fit{margin-top:10px;padding:5px 8px;border-radius:6px;background:rgba(255,209,102,.12);color:#ffd166;font-size:13px;font-weight:600}
 .card .fitl{margin-top:8px;font-size:12px;color:var(--ash)}
+.card.ch .fitl{display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;font-size:11.5px}
+.card.ch .fitl img{width:30px;height:30px;object-fit:contain;filter:drop-shadow(0 0 6px var(--c))}
+.card.ch.on .fitl img{filter:drop-shadow(0 0 9px var(--c)) drop-shadow(0 0 14px var(--c))}
 .card .sub{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px;color:var(--ash);text-align:left;line-height:1.55}
 .card .sub b{color:var(--c)}
 .card .sub span{display:block}
@@ -751,7 +754,7 @@ body.master #paidbar{display:flex}
 <script>
 (()=>{"use strict";
 /* 배포할 때 여기만 올린다. 메뉴 상단 시드 옆에 표시된다. */
-const VERSION="3.12.1";
+const VERSION="3.13.0";
 /* 배속 — 1.5배는 「빨라졌나?」 싶은 애매한 폭이었다(2026-10-11 피드백) */
 const FAST=2;
 const $=s=>document.querySelector(s), TAU=Math.PI*2;
@@ -1335,7 +1338,7 @@ const charRate=()=>G.ch==="tech"&&G.chs.on?2:1;
 const charOf=()=>CHARS[PROF.ch]||CHARS.relay;
 function renderChars(){
   $("#chars").innerHTML=Object.entries(CHARS).map(([k,c])=>
-    `<button class="card ch${k===PROF.ch?" on":""}" data-ch="${k}" style="--c:${c.c}"><div class="glyph"><canvas width="76" height="76"></canvas></div><div class="t">${c.n}</div><div class="d">${c.d}</div><div class="sk"><b>${c.sk}</b> ${c.sd}</div><div class="fitl">궁합 갈래 · ${FORMS[c.fit].n}</div></button>`).join("");
+    `<button class="card ch${k===PROF.ch?" on":""}" data-ch="${k}" style="--c:${c.c}"><div class="glyph"><canvas width="76" height="76"></canvas></div><div class="t">${c.n}</div><div class="d">${c.d}</div><div class="sk"><b>${c.sk}</b> ${c.sd}</div><div class="fitl">${c.fit!=="none"?`<img src="art/forms/${c.fit}.png" alt="" loading="lazy" decoding="async">`:""}궁합 갈래 · ${FORMS[c.fit].n}</div></button>`).join("");
   $("#chars").querySelectorAll(".card").forEach(b=>{
     const k=b.dataset.ch, g=b.querySelector("canvas").getContext("2d");
     g.translate(38,38);drawChar(g,k,15);   // 게임 화면과 같은 실루엣을 그대로 쓴다
